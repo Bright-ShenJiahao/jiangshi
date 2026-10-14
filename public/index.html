@@ -83,6 +83,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 #sTitle h1 { font-size: clamp(40px, 12vw, 96px); animation: slam .5s cubic-bezier(.2, 1.6, .4, 1) both; }
 #sTitle p { margin: 0; color: var(--talisman); font-size: 20px; letter-spacing: .2em; animation: sblink 1s steps(2) infinite; animation-delay: .8s; opacity: 0; animation-fill-mode: both; }
 @keyframes slam { 0% { transform: scale(3.4); opacity: 0; } 60% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+.chks { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; }
 .storyChk { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 17px; color: var(--text); cursor: pointer; }
 .storyChk input { width: 20px; height: 20px; accent-color: #f0c020; margin: 0; }
 .btn.ghost { background: transparent; color: var(--muted); border-color: var(--line); box-shadow: none; font-size: 16px; padding: 4px 14px; margin-top: 10px; }
@@ -110,6 +111,10 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 #pTip { margin: 0; color: var(--talisman); font-size: 17px; text-align: center; }
 .pBtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .pBtns .btn { text-decoration: none; }
+#tip { position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 92px); transform: translateX(-50%); width: min(92vw, 460px); text-align: center; pointer-events: none; }
+#tip span { display: inline-block; background: rgba(26, 14, 30, .88); border: 2px solid var(--talisman); box-shadow: 0 0 0 2px var(--ink); color: var(--paper); font-size: 17px; line-height: 1.5; padding: 8px 14px; animation: tipin .35s ease-out; }
+@keyframes tipin { from { transform: translateY(-8px); opacity: 0; } }
+#tipArrow { position: absolute; pointer-events: none; right: calc(max(16px, env(safe-area-inset-right, 0px)) + 86px); bottom: calc(env(safe-area-inset-bottom, 0px) + 126px); font-size: 46px; color: var(--talisman); text-shadow: 3px 3px 0 var(--ink); animation: wxbob 0.8s ease-in-out infinite; }
 .hint { font-size: 13px !important; margin: 8px 0 0 !important; }
 .score { font-size: 18px !important; color: var(--text) !important; }
 .score b { color: var(--talisman); font-size: 30px; font-weight: 400; }
@@ -149,6 +154,8 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
   <button id="breath" hidden>屏息<small>空格</small></button>
   <button id="ult" hidden>雷<small>Q</small></button>
   <div id="banner" hidden></div>
+  <div id="tip" hidden><span id="tipT"></span></div>
+  <div id="tipArrow" hidden>↘</div>
 
   <div class="modal" id="title">
     <div class="card">
@@ -164,7 +171,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
       <div class="nameRow"><input id="startName" maxlength="10" placeholder="道长尊姓大名？" autocomplete="off" aria-label="道号"><span id="nameTip"></span></div>
       <div class="diffs"><button class="btn" id="startBtn">开坛 · 普通</button><button class="btn hard" id="hardBtn">开坛 · 困难</button></div>
       <p class="hint">困难：怪更硬更疼、出招更勤，积分 ×1.5</p>
-      <label class="storyChk"><input type="checkbox" id="storyChk"> 播放开场剧情</label>
+      <div class="chks"><label class="storyChk"><input type="checkbox" id="storyChk"> 播放开场剧情</label><label class="storyChk"><input type="checkbox" id="tipChk"> 新手提示</label></div>
     </div>
   </div>
 
@@ -383,7 +390,10 @@ function newGame(diff = 'normal') {
     objs: (MAP.objs || []).map(o => ({ ...o, burnt: false, state: 'ok', fireT: 0, smoke: 0, tk: 0 })), ult: null, ultCd: 0, sweeps: [], taijis: [], guas: [], shield: 0, shieldT: null, eshots: [], npcs: [], npcT: 15, fish: [], fishT: 2, cam: { x: 0, y: 0 },
     food: [], foodT: 18, parts: [], combo: 0, comboT: 0, stop: 0, flash: 0, en: [], shots: [], areas: [], orbs: [], fx: [], texts: [], spawnAcc: 0, nextId: 1, shake: 0,
   };
-  for (const k of ['title', 'end', 'levelup', 'pause', 'revive', 'brag']) $(k).hidden = true;
+  for (const k of ['title', 'end', 'levelup', 'pause', 'revive', 'brag', 'tip', 'tipArrow']) $(k).hidden = true;
+  S.tips = $('tipChk').checked; S.tipI = 0; tipT = 0; S.wx = null;
+  try { const n = (+localStorage.getItem('ztzh_plays') || 0) + 1; localStorage.setItem('ztzh_plays', n); if (n >= 3) $('tipChk').checked = false; } catch (e) {}
+  setWeather(pickWeather(), true); S.wxNext = rnd(50, 90);
   $('nameForm').hidden = true; boardNote = ''; myEntry = null;
   $('hud').hidden = false; $('breath').hidden = false; $('ult').hidden = true; $('banner').hidden = true;
   for (let k = 0; k < 200 && !freeAt(S.p.x, S.p.y); k++) { S.p.x = 700 + rnd(-60, 60); S.p.y = 700 + rnd(-60, 60); }
@@ -930,6 +940,7 @@ let DT = 0, last = performance.now();
 function update() {
   const P = S.p;
   S.t += DT;
+  updateTips(); updateCamp(); updateWeather();
   const rooster = S.t >= ROOSTER_AT;
   if (rooster && !S.roosterShown) { S.roosterShown = true; banner('喔喔喔——鸡鸣将至！', 2.5); sfx('rooster'); }
   if (S.t >= BOSS_AT && !S.bossSpawned) { S.bossSpawned = true; spawn('king'); banner('尸王出世！', 2.5); S.shake = 0.4; sfx('boss'); }
@@ -1020,7 +1031,16 @@ function update() {
     const tl2 = Math.hypot(tx, ty) || 1;
     if (e.type === 'ghost') e.phase += DT * 3;
     if (e.type === 'walker') e.phase += DT * 9;
-    if (e.type === 'ghost') { e.x += tx / tl2 * sp * DT; e.y += ty / tl2 * sp * DT; } else moveBy(e, tx / tl2 * sp * DT, ty / tl2 * sp * DT);
+    if (e.type === 'ghost') { e.x += tx / tl2 * sp * DT; e.y += ty / tl2 * sp * DT; }
+    else if (e.vault > 0) {   // 跃过树木 / 棺材
+      e.vault -= DT; e.x += e.vvx * DT; e.y += e.vvy * DT; e.z = Math.sin(Math.min(1, 1 - e.vault / e.vaultT) * Math.PI) * 14;
+      if (e.vault <= 0) { if (!freeAt(e.x, e.y) && e.vaultT < 1.2) { e.vault = 0.1; e.vaultT += 0.1; } else e.z = 0; }
+    } else {
+      const ox = e.x, oy = e.y, want = sp * DT;
+      moveBy(e, tx / tl2 * sp * DT, ty / tl2 * sp * DT);
+      if (want > 0.15) { if (Math.hypot(e.x - ox, e.y - oy) < want * 0.3) e.stuckT = (e.stuckT || 0) + DT; else e.stuckT = 0; }
+      if (e.stuckT > 0.6 && nearSoft(e)) { e.stuckT = 0; e.vault = e.vaultT = 0.55; e.vvx = tx / tl2 * 70; e.vvy = ty / tl2 * 70; }
+    }
     // separation
     if (e.type !== 'ghost' && e.type !== 'king') {
       const cx = e.x >> 4, cy = e.y >> 4;
@@ -1451,6 +1471,7 @@ function draw() {
   // night tint, lifts toward dawn
   const dawn = Math.max(0, (S.t - ROOSTER_AT) / (NIGHT - ROOSTER_AT));
   g.fillStyle = `rgba(${Math.round(20 + 120 * dawn)},${Math.round(8 + 60 * dawn)},${Math.round(40 - 10 * dawn)},${0.22 - 0.1 * dawn})`; g.fillRect(0, 0, VW, VH);
+  drawWeather();
   const vg = g.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.35, VW / 2, VH / 2, Math.max(VW, VH) * 0.75);
   vg.addColorStop(0, 'rgba(8,4,16,0)'); vg.addColorStop(1, 'rgba(8,4,16,.6)'); g.fillStyle = vg; g.fillRect(0, 0, VW, VH);
   if (P.breath > 0) { g.fillStyle = 'rgba(80,160,220,.12)'; g.fillRect(0, 0, VW, VH); }
@@ -1463,6 +1484,79 @@ function draw() {
     const dx = joy.x - joy.ox, dy = joy.y - joy.oy, l = Math.min(40, Math.hypot(dx, dy)), a = Math.atan2(dy, dx);
     ctx.fillStyle = '#ece4ff'; ctx.beginPath(); ctx.arc(joy.ox + Math.cos(a) * l, joy.oy + Math.sin(a) * l, 14, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
   }
+}
+
+// ---------- 新手提示 ----------
+const TOUCH = matchMedia('(pointer: coarse)').matches;
+let tipT = 0;
+try { $('tipChk').checked = (+localStorage.getItem('ztzh_plays') || 0) < 3; } catch (e) { $('tipChk').checked = true; }
+const TIPS = [
+  [1, TOUCH ? '手指按住屏幕拖动 = 走路' : 'WASD / 方向键 = 走路'],
+  [5, '法器会自动攻击，你只管走位躲怪'],
+  [9, '不用找出口，活到鸡鸣天亮就赢'],
+  [13, '被围住了？按右下角「屏息」，僵尸就闻不到你', true],
+  [18, '打怪掉落阴德（金币），捡了就能升级、选新法器'],
+];
+function showTip(s, arrow, dur) { $('tipT').textContent = s; $('tipArrow').hidden = !arrow; $('tip').hidden = false; const el = $('tipT'); el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; tipT = dur || 3.6; }
+function updateTips() {
+  if (tipT > 0) { tipT -= DT; if (tipT <= 0) { $('tip').hidden = true; $('tipArrow').hidden = true; } }
+  if (!S.tips) return;
+  while (S.tipI < TIPS.length && S.t >= TIPS[S.tipI][0]) { const [, s, ar] = TIPS[S.tipI++]; showTip(s, ar); }
+  if (S.ult && !S.ultTipShown) { S.ultTipShown = true; showTip(TOUCH ? '右下角出现了大招按钮，点它释放！' : '获得大招！按 Q 或点右下角按钮释放', true, 4.5); }
+}
+// ---------- 阴气聚集（防蹲角落） ----------
+function updateCamp() {
+  const P = S.p;
+  if (S.campX === undefined || (P.x - S.campX) ** 2 + (P.y - S.campY) ** 2 > 70 * 70) { S.campX = P.x; S.campY = P.y; S.campT = 0; return; }
+  S.campT += DT;
+  if (S.campT > 20 && S.t > 25) {
+    S.campT = 8; banner('此地阴气聚集……', 2); sfx('wisp');
+    const n = 8 + Math.min(8, Math.floor(S.t / 40));
+    for (let i = 0; i < n; i++) { const a = i / n * 6.283, e = spawn('ghost'); e.x = P.x + Math.cos(a) * 120; e.y = P.y + Math.sin(a) * 90; e.spd *= 1.2; }
+  }
+}
+// ---------- 跃过树木 / 棺材 ----------
+const SOFT = [...(MAP.objs || []).filter(o => o.k === 'tree').map(o => [o.x, o.y]), ...(MAP.coffins || [])];
+function nearSoft(e) { for (const [x, y] of SOFT) if ((e.x - x) ** 2 + (e.y - y) ** 2 < 26 * 26) return true; return false; }
+// ---------- 天气（只有画面） ----------
+const WEATHER = { rain: '天降细雨', storm: '雷雨交加', snow: '大雪纷飞', moon: '月光普照', wind: '阴风四起', bats: '群蝠夜飞' };
+function setWeather(k, quiet) {
+  const W = S.wx = { k, p: [], flash: 0, flashT: rnd(6, 12), batT: rnd(3, 8), white: S.wx ? S.wx.white : 0 };
+  const n = k === 'rain' ? 90 : k === 'storm' ? 140 : k === 'snow' ? 70 : k === 'wind' ? 18 : 0;
+  for (let i = 0; i < n; i++) W.p.push({ x: Math.random() * VW, y: Math.random() * VH, s: Math.random(), r: Math.random() * 6.28 });
+  if (!quiet && k !== 'clear') banner(WEATHER[k], 1.6);
+  S.wxNext = S.t + rnd(70, 120);
+}
+function pickWeather() { const ks = ['clear', 'rain', 'storm', 'snow', 'moon', 'wind', 'bats']; let k; do k = ks[Math.floor(Math.random() * ks.length)]; while (S.wx && k === S.wx.k); return k; }
+function updateWeather() {
+  const W = S.wx; if (!W) return;
+  if (S.t >= S.wxNext) setWeather(pickWeather());
+  W.white = Math.max(0, Math.min(0.1, W.white + (W.k === 'snow' ? 0.004 : -0.01) * DT));
+  if (W.k === 'storm') { W.flash = Math.max(0, W.flash - DT * 3); W.flashT -= DT; if (W.flashT <= 0) { W.flashT = rnd(7, 14); W.flash = 1; setTimeout(() => S && S.state === 'play' && noise(0.9, 0.025, 120), 500); } }
+  if (W.k === 'bats' || W.k === 'moon') { W.batT -= DT; if (W.batT <= 0) { W.batT = W.k === 'bats' ? rnd(6, 12) : rnd(20, 35); const dir = Math.random() < 0.5 ? 1 : -1, y0 = rnd(20, VH * 0.6), m = W.k === 'bats' ? 26 : 8; for (let i = 0; i < m; i++) W.p.push({ bat: 1, x: dir > 0 ? -20 - rnd(0, 120) : VW + 20 + rnd(0, 120), y: y0 + rnd(-30, 30), vx: dir * rnd(110, 160), ph: Math.random() * 6 }); } }
+  for (const q of W.p) {
+    if (q.bat) { q.x += q.vx * DT; q.y += Math.sin(S.t * 6 + q.ph) * 20 * DT; q.ph += DT * 18; continue; }
+    if (W.k === 'rain' || W.k === 'storm') { const v = W.k === 'storm' ? 420 : 320; q.y += v * (0.7 + q.s * 0.5) * DT; q.x -= v * 0.18 * DT; }
+    else if (W.k === 'snow') { q.y += (18 + q.s * 22) * DT; q.x += Math.sin(S.t * 1.3 + q.r) * 12 * DT; }
+    else if (W.k === 'wind') { q.x += (120 + q.s * 90) * DT; q.y += Math.sin(S.t * 3 + q.r) * 30 * DT; q.r += DT * 6; }
+    if (q.y > VH + 8) { q.y = -8; q.x = Math.random() * (VW + 60); } if (q.x < -20) q.x = VW + 10; if (q.x > VW + 30) { q.x = -20; q.y = Math.random() * VH; }
+  }
+  W.p = W.p.filter(q => !q.bat || (q.x > -200 && q.x < VW + 200));
+}
+function drawWeather() {
+  const W = S.wx; if (!W) return;
+  if (W.white > 0) { g.fillStyle = `rgba(230,236,255,${W.white})`; g.fillRect(0, 0, VW, VH); }
+  if (W.k === 'moon') { const gr = g.createRadialGradient(VW * 0.8, -20, 10, VW * 0.8, -20, VH * 1.1); gr.addColorStop(0, 'rgba(220,226,255,.22)'); gr.addColorStop(1, 'rgba(220,226,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, VW, VH); }
+  if (W.k === 'rain' || W.k === 'storm') {
+    g.fillStyle = 'rgba(20,24,50,.12)'; g.fillRect(0, 0, VW, VH);
+    g.strokeStyle = 'rgba(170,190,230,.45)'; g.lineWidth = 1; g.beginPath();
+    for (const q of W.p) { if (q.bat) continue; g.moveTo(Math.round(q.x), Math.round(q.y)); g.lineTo(Math.round(q.x + 2), Math.round(q.y - 9 - q.s * 4)); } g.stroke();
+    for (let i = 0; i < 6; i++) { const x = (i * 97 + Math.floor(S.t * 7) * 53) % VW, y = (i * 61 + Math.floor(S.t * 7) * 31) % VH; px(x - 2, y, 1, 1, 'rgba(200,220,255,.6)'); px(x + 2, y, 1, 1, 'rgba(200,220,255,.6)'); px(x, y - 1, 1, 1, 'rgba(200,220,255,.6)'); }
+  }
+  if (W.k === 'storm' && W.flash > 0) { g.fillStyle = `rgba(220,230,255,${W.flash * 0.16})`; g.fillRect(0, 0, VW, VH); }
+  if (W.k === 'snow') for (const q of W.p) { if (q.bat) continue; px(q.x, q.y, q.s > 0.6 ? 2 : 1, q.s > 0.6 ? 2 : 1, 'rgba(245,248,255,.85)'); }
+  if (W.k === 'wind') for (const q of W.p) { if (q.bat) continue; g.save(); g.translate(Math.round(q.x), Math.round(q.y)); g.rotate(q.r); if (q.s > 0.5) { px(-2, -1, 4, 2, '#b8783a'); px(-1, -2, 2, 1, '#8a5428'); } else { px(-2, -2, 4, 4, '#e8dcc0'); px(-1, -1, 2, 2, '#c8b890'); } g.restore(); }
+  for (const q of W.p) { if (!q.bat) continue; const up = Math.sin(q.ph) > 0, x = Math.round(q.x), y = Math.round(q.y); px(x - 1, y, 3, 2, '#120a18'); if (up) { px(x - 4, y - 2, 3, 2, '#120a18'); px(x + 2, y - 2, 3, 2, '#120a18'); } else { px(x - 4, y + 1, 3, 2, '#120a18'); px(x + 2, y + 1, 3, 2, '#120a18'); } }
 }
 
 const SHI = [['子时', 0], ['丑时', 50], ['寅时', 150], ['卯时', 250]];
