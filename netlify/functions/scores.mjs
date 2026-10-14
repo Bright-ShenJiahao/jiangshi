@@ -1,0 +1,55 @@
+// 功德簿：共享排行榜（Netlify Functions + Netlify Blobs）
+import { getStore } from '@netlify/blobs';
+
+const KEY = 'top';
+const KEEP = 100;          // stored entries
+const SHOW = 20;           // entries returned to the game
+
+const clean = (v) => String(v ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 10);
+const int = (v, lo, hi) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo; };
+const json = (data, status = 200) => new Response(JSON.stringify(data), {
+  status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+});
+
+export default async (req) => {
+  const store = getStore({ name: 'leaderboard', consistency: 'strong' });
+  const read = async () => {
+    const r = await store.getWithMetadata(KEY, { type: 'json' });
+    return { list: Array.isArray(r?.data) ? r.data : [], etag: r?.etag };
+  };
+
+  if (req.method === 'GET') return json((await read()).list.slice(0, SHOW));
+  if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
+
+  let b;
+  try { b = await req.json(); } catch { return json({ error: 'bad json' }, 400); }
+  const rec = {
+    name: clean(b.name) || '无名道士',
+    kills: int(b.kills, 0, 20000),
+    lv: int(b.lv, 1, 200),
+    t: int(b.t, 0, 300),
+    win: b.win === true,
+    diff: b.diff === 'hard' ? 'hard' : 'normal',
+    score: int(b.score, 0, 200000),
+    at: int(b.at, 0, 4102444800000),
+  };
+  // Plausibility: the score must not exceed what the game's own formula allows.
+  const max = (rec.kills + rec.lv * 20 + rec.t * 2 + (rec.win ? 1000 : 0) + 500) * (rec.diff === 'hard' ? 1.5 : 1);
+  if (rec.score > max + 5) return json({ error: 'score rejected' }, 422);
+
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const { list, etag } = await read();
+    const keyOf = (r) => r.name + '|' + r.diff;
+    const prev = list.find((r) => keyOf(r) === keyOf(rec));
+    let next = list;
+    if (!prev || prev.score < rec.score) {
+      next = list.filter((r) => keyOf(r) !== keyOf(rec)).concat(rec)
+        .sort((a, b) => b.score - a.score).slice(0, KEEP);
+    } else return json(list.slice(0, SHOW));
+    const res = await store.setJSON(KEY, next, etag ? { onlyIfMatch: etag } : { onlyIfNew: true });
+    if (res?.modified !== false) return json(next.slice(0, SHOW));
+  }
+  return json({ error: 'busy, try again' }, 503);
+};
+
+export const config = { path: '/api/scores' };
