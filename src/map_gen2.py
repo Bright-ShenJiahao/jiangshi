@@ -14,6 +14,9 @@ def river_x(y): return 215 + 38 * math.sin(y / 170) + 14 * math.sin(y / 53)
 
 RIVER_W = 64
 BRIDGE = (590, 646)
+# 教堂周围的十字架坟墓
+CROSSES = [(1215, 300), (1262, 336), (1214, 384), (1270, 420), (1226, 462), (1300, 470), (1252, 252), (1302, 290),
+           (1492, 302), (1540, 334), (1486, 382), (1552, 414), (1502, 456), (1562, 470), (1532, 252), (1360, 252), (1432, 244)]
 WALL_Y = 104
 WALL_X = (300, 1160)
 PLAT_X, PLAT_Y = 1180, 500
@@ -328,6 +331,13 @@ def build(seed=11):
         d.polygon([(x + 1, y - 33), (x + 9, y - 31), (x + 7, y - 22), (x + 10, y - 12), (x + 1, y - 16)], fill=K)
         d.polygon([(x + 1, y - 32), (x + 8, y - 30), (x + 6, y - 22), (x + 8, y - 14), (x + 1, y - 17)], fill=(226, 226, 220))
 
+    def cross(x, y, tilt=0):
+        d.ellipse([x - 13, y - 5, x + 13, y + 7], fill=K); d.ellipse([x - 12, y - 4, x + 12, y + 6], fill=(70, 76, 92)); d.ellipse([x - 9, y - 3, x + 7, y + 2], fill=(86, 92, 110))
+        cx, top = x + tilt, y - 26
+        d.rectangle([cx - 3, top - 1, cx + 3, y + 1], fill=K); d.rectangle([cx - 2, top, cx + 2, y], fill=(176, 176, 190)); d.rectangle([cx + 1, top, cx + 2, y], fill=(132, 132, 150))
+        d.rectangle([cx - 9, top + 5, cx + 9, top + 11], fill=K); d.rectangle([cx - 8, top + 6, cx + 8, top + 10], fill=(176, 176, 190)); d.rectangle([cx - 8, top + 9, cx + 8, top + 10], fill=(132, 132, 150))
+        block(x - 4, y - 3, x + 4, y + 1)
+
     def signpost(x, y):
         d.ellipse([x - 8, y - 2, x + 8, y + 3], fill=(30, 20, 44))
         d.rectangle([x - 2, y - 56, x + 2, y], fill=K); d.rectangle([x - 1, y - 55, x + 1, y], fill=(120, 80, 50))
@@ -345,7 +355,8 @@ def build(seed=11):
         block(x - 3, y - 3, x + 3, y + 1)
 
     items = [('td', x, y) for x, y in border] + [('dd', x, y) for x, y in deads] + [('g', x, y) for x, y in graves] + \
-            [('c', x, y) for x, y in coffins] + [('f', x, y) for x, y in flags] + [('s', 806, 668)]
+            [('c', x, y) for x, y in coffins] + [('f', x, y) for x, y in flags] + [('s', 806, 668)] + \
+            [('x', x, y) for x, y in CROSSES]
     for k, x, y in sorted(items, key=lambda t: t[2]):
         if k == 'td': bgtree(x, y)
         elif k == 'dd': bgtree(x, y, True)
@@ -353,6 +364,7 @@ def build(seed=11):
         elif k == 'c': coffin(x, y, random.random() < 0.35)
         elif k == 'f': flag(x, y)
         elif k == 's': signpost(x, y)
+        elif k == 'x': cross(x, y, (x * 7 + y) % 3 - 1)
     for (x, y) in [(560, 668), (980, 600), (1240, 590), (720, 300)]:
         glow = Image.new('RGBA', (W, H), (0, 0, 0, 0)); gd = ImageDraw.Draw(glow)
         for r in range(22, 4, -2): gd.ellipse([x - r, y - 19 - r, x + r, y - 19 + r], fill=(255, 236, 190, 9))

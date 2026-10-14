@@ -26,6 +26,9 @@ exec(open('story_sprites.py').read(), g)
 g['PAL']['P'] = (236, 112, 104)
 sprites.update({'afu': g['afu']().img(), 'afuR': g['afu'](True).img(), 'ren': g['ren']().img(),
                 'coffin': g['coffin']().img(), 'lid': g['coffin_lid']().img(), 'rooster': g['rooster']().img()})
+exec(open('monsters2.py').read(), g)
+sprites.update({'vampire': g['vampire']().img(), 'ghostR': g['red_ghost'](g), 'jumperM': g['hairy'](g['zombie']('m', 'M').img()),
+                'chest': g['chest']().img(), 'chestB': g['chest'](True).img()})
 import qrcode
 _q = qrcode.QRCode(border=2, box_size=1, error_correction=qrcode.constants.ERROR_CORRECT_M)
 _q.add_data('https://jiangshidaozhang.netlify.app/'); _q.make(fit=True)
