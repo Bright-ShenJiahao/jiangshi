@@ -88,6 +88,13 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 .wxCard small { font-size: 15px; color: var(--muted); margin-top: 10px; }
 .tag { display: inline-block; font-style: normal; font-size: 12px; line-height: 1; padding: 3px 5px 2px; margin-left: 6px; vertical-align: 2px; border: 2px solid var(--ink); color: var(--ink); letter-spacing: .05em; }
 .tag.dmg { background: #e85a4a; } .tag.ctl { background: #f0c020; } .tag.def { background: #6cb8f0; } .tag.aoe { background: #b08ae0; } .tag.pas { background: #a99cc8; } .tag.oth { background: #6cc8a0; }
+.nameRow { display: grid; justify-items: center; gap: 4px; margin: 6px 0 10px; }
+#startName { font: 20px var(--display); background: var(--ink); color: var(--paper); border: 3px solid var(--line); padding: 7px 12px; width: 12em; max-width: 100%; text-align: center; }
+#startName:focus-visible { outline: 3px solid var(--jade); outline-offset: 1px; }
+#startName.bad { border-color: var(--seal); animation: shake .35s; }
+#nameTip { font-size: 14px; color: #ff8a7a; min-height: 1em; }
+@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.diffs.off .btn { filter: grayscale(.8) brightness(.75); }
 .hint { font-size: 13px !important; margin: 8px 0 0 !important; }
 .score { font-size: 18px !important; color: var(--text) !important; }
 .score b { color: var(--talisman); font-size: 30px; font-weight: 400; }
@@ -139,6 +146,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
         <span>大招</span><span>Q 键或右下角按钮（升级时获得）</span>
         <span>暂停</span><span>P 键</span>
       </div>
+      <div class="nameRow"><input id="startName" maxlength="10" placeholder="留下道号（必填）" autocomplete="off" aria-label="道号"><span id="nameTip"></span></div>
       <div class="diffs"><button class="btn" id="startBtn">开坛 · 普通</button><button class="btn hard" id="hardBtn">开坛 · 困难</button></div>
       <p class="hint">困难：怪更硬更疼、出招更勤，积分 ×1.5</p>
       <label class="storyChk"><input type="checkbox" id="storyChk"> 播放开场剧情</label>
@@ -354,7 +362,7 @@ function newGame(diff = 'normal') {
     food: [], foodT: 18, parts: [], combo: 0, comboT: 0, stop: 0, flash: 0, en: [], shots: [], areas: [], orbs: [], fx: [], texts: [], spawnAcc: 0, nextId: 1, shake: 0,
   };
   for (const k of ['title', 'end', 'levelup', 'pause', 'revive', 'brag']) $(k).hidden = true;
-  $('nameForm').hidden = false; $('saveBtn').disabled = false; boardNote = ''; myEntry = null;
+  $('nameForm').hidden = true; boardNote = ''; myEntry = null;
   $('hud').hidden = false; $('breath').hidden = false; $('ult').hidden = true; $('banner').hidden = true;
   for (let k = 0; k < 200 && !freeAt(S.p.x, S.p.y); k++) { S.p.x = 700 + rnd(-60, 60); S.p.y = 700 + rnd(-60, 60); }
   last = performance.now();
@@ -835,10 +843,10 @@ function endGame(win) {
   S.score = Math.round((S.kills + S.lv * 20 + Math.floor(S.t) * 2 + (win ? 1000 : 0) + (S.bossKilled ? 500 : 0)) * DIFF[S.diff].mul);
   S.win = win; $('scoreV').textContent = S.score;
   $('endP').textContent += `（${DIFF[S.diff].name}）`;
-  try { $('nameIn').value = localStorage.getItem('ztzh_name') || ''; } catch (e) {}
   renderBoard();
   $('end').hidden = false; $('breath').hidden = true; $('ult').hidden = true;
-  setTimeout(() => $('nameIn').focus(), 50);
+  $('nameForm').hidden = true; $('brag').hidden = true; saveRecord(PNAME || '无名道士');
+  setTimeout(() => $('againBtn').focus(), 50);
 }
 
 // ---------- update ----------
@@ -1418,7 +1426,17 @@ function frame(now) {
 requestAnimationFrame(frame);
 const ready = () => Object.values(IMG).every(im => im.complete && im.naturalWidth);
 function whenReady(fn) { if (ready()) fn(); else setTimeout(() => whenReady(fn), 50); }
+let PNAME = '';
+function cleanName(v) { return (v || '').replace(/\s+/g, ' ').trim().slice(0, 10); }
+function nameState() { $('startBtn').parentNode.classList.toggle('off', !cleanName($('startName').value)); }
+try { $('startName').value = localStorage.getItem('ztzh_name') || ''; } catch (e) {}
+$('startName').addEventListener('input', () => { $('startName').classList.remove('bad'); $('nameTip').textContent = ''; nameState(); });
+$('startName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); begin('normal'); } });
+nameState();
 function begin(diff) {
+  const nm = cleanName($('startName').value);
+  if (!nm) { const el = $('startName'); el.classList.remove('bad'); void el.offsetWidth; el.classList.add('bad'); $('nameTip').textContent = '请先留下道号'; el.focus(); return; }
+  PNAME = nm; try { localStorage.setItem('ztzh_name', nm); } catch (e) {}
   audioInit();
   const play = $('storyChk').checked;
   whenReady(() => play ? playStory(() => newGame(diff)) : newGame(diff));
@@ -1867,7 +1885,7 @@ addEventListener('keydown', e => {
 return playStory;
 })();
 $('againBtn').onclick = () => { audioInit(); newGame(S ? S.diff : 'normal'); };
-setTimeout(() => $('startBtn').focus(), 100);
+setTimeout(() => (cleanName($('startName').value) ? $('startBtn') : $('startName')).focus(), 100);
 
 // ---------- 功德簿 (leaderboard) ----------
 let DB = null, USER = null, myEntry = null, boardNote = '';
@@ -1898,13 +1916,12 @@ async function renderBoard() {
   box.appendChild(t);
   if (boardNote) { const n = document.createElement('div'); n.className = 'empty'; n.textContent = boardNote; box.appendChild(n); }
 }
-$('nameForm').addEventListener('submit', async ev => {
-  ev.preventDefault();
-  if (!S || S.state !== 'over') return;
-  const name = ($('nameIn').value || '').trim().slice(0, 10) || '无名道士';
-  try { localStorage.setItem('ztzh_name', name); } catch (e) {}
+$('nameForm').addEventListener('submit', ev => ev.preventDefault());
+async function saveRecord(name) {
+  if (!S || S.state !== 'over' || S.saved) return;
+  S.saved = true;
   const rec = { name, score: S.score, kills: S.kills, lv: S.lv, t: Math.floor(S.t), win: !!S.win, diff: S.diff, at: Date.now() };
-  myEntry = rec; $('saveBtn').disabled = true;
+  myEntry = rec;
   try { const arr = localBoard(); arr.push(rec); arr.sort((a, b) => b.score - a.score); localStorage.setItem('ztzh_board', JSON.stringify(arr.slice(0, 20))); } catch (e) {}
   if (!DB && WEB) {
     try { await webPost(rec); } catch (e) { boardNote = '这次成绩只记在本机：暂时连不上共享功德簿。'; }
@@ -1916,10 +1933,9 @@ $('nameForm').addEventListener('submit', async ev => {
       const ref = DB.doc('scores/' + uid), old = await ref.get(), od = old.data && old.data(); if (!od || (Number(od.score) || 0) < rec.score) await ref.set(rec);
     } catch (e) { boardNote = '这次成绩只记在本机：你在这个页面没有写入共享功德簿的权限。'; }
   }
-  $('nameForm').hidden = true;
   renderBoard();
   $('bragNote').textContent = ''; $('brag').hidden = false;
-});
+}
 </script>
 
 </body>
