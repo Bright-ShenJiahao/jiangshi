@@ -11,6 +11,8 @@
   color-scheme: dark;
 }
 [hidden] { display: none !important; }
+*:not(input):not(#pImg) { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+#pImg { -webkit-touch-callout: default; -webkit-user-select: auto; user-select: auto; }
 html, body { height: 100%; margin: 0; }
 body { background: var(--night); color: var(--text); font-family: var(--display); overflow: hidden; user-select: none; -webkit-user-select: none; }
 #wrap { position: fixed; inset: 0; }
@@ -90,6 +92,12 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 #nameTip { font-size: 14px; color: #ff8a7a; min-height: 1em; }
 @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
 .diffs.off .btn { filter: grayscale(.8) brightness(.75); }
+#poster { position: absolute; inset: 0; z-index: 55; background: rgba(8, 4, 14, .92); display: grid; place-items: center; padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px calc(env(safe-area-inset-bottom, 0px) + 10px); }
+.pwrap { display: grid; justify-items: center; gap: 8px; max-height: 100%; }
+#pImg { max-width: min(92vw, 420px); max-height: calc(100dvh - 150px); border: 3px solid var(--ink); box-shadow: 0 0 0 2px var(--line); image-rendering: pixelated; }
+#pTip { margin: 0; color: var(--talisman); font-size: 17px; text-align: center; }
+.pBtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.pBtns .btn { text-decoration: none; }
 .hint { font-size: 13px !important; margin: 8px 0 0 !important; }
 .score { font-size: 18px !important; color: var(--text) !important; }
 .score b { color: var(--talisman); font-size: 30px; font-weight: 400; }
@@ -174,6 +182,13 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
       <p class="hint" id="revNote"></p></div>
   </div>
 
+  <div id="poster" hidden>
+    <div class="pwrap">
+      <img id="pImg" alt="战绩海报">
+      <p id="pTip"></p>
+      <div class="pBtns"><button class="btn small" id="pShare" type="button">分享图片</button><a class="btn small" id="pSave" download="暂时停止呼吸.png">保存图片</a><button class="btn small hard" id="pDone" type="button">关闭</button></div>
+    </div>
+  </div>
   <div id="wxTip" hidden>
     <svg class="wxArrow" viewBox="0 0 120 140" aria-hidden="true"><path d="M20 130 C 30 70, 60 40, 100 22" fill="none" stroke="#f0c020" stroke-width="8" stroke-linecap="round"/><path d="M78 10 L104 20 L90 44" fill="none" stroke="#f0c020" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <div class="wxCard"><b>点右上角「···」</b><span>选「发送给朋友」或「分享到朋友圈」</span><small id="wxSub">发完回来，点任意处继续</small></div>
@@ -814,19 +829,73 @@ function revive() {
   $('revive').hidden = true; $('breath').hidden = false; if (S.ult) $('ult').hidden = false;
   S.state = 'play'; last = performance.now(); sfx('ult'); banner('借阳还魂！', 1.6); S.shake = 0.2;
 }
-$('revBtn').onclick = async () => {
-  audioInit(); $('revBtn').disabled = true;
-  const r = await doShare(`我在《暂时停止呼吸》里被僵尸围了，撑到${shichenNow()}，快来帮我续一口阳气！`, '发给好友后回来，点任意处复活');
-  if (r === 'cancel') { $('revBtn').disabled = false; $('revNote').textContent = '要分享出去才能复活哦。'; return; }
-  if (r === 'copied') { $('revNote').textContent = '链接已复制，发给好友吧！'; setTimeout(revive, 900); return; }
-  if (r === 'manual') { $('revNote').textContent = '复制失败，把这个网址发给好友：' + shareUrl(); setTimeout(revive, 1800); return; }
-  revive();
+// ---------- 战绩海报 ----------
+function wrapText(c, s, x, y, maxW, lh) { let line = ''; for (const ch of s) { if (c.measureText(line + ch).width > maxW && line) { c.fillText(line, x, y); line = ch; y += lh; } else line += ch; } c.fillText(line, x, y); return y + lh; }
+function makePoster(mode) {
+  const Wp = 360, Hp = 572, k = 2, cv2 = document.createElement('canvas'); cv2.width = Wp * k; cv2.height = Hp * k;
+  const c = cv2.getContext('2d'); c.imageSmoothingEnabled = false; c.scale(k, k);
+  const F = '"ZCOOL QingKe HuangYou", "PingFang SC", "Microsoft YaHei", sans-serif';
+  c.fillStyle = '#140c22'; c.fillRect(0, 0, Wp, Hp);
+  // scene: 乱葬岗 crop of the map
+  c.drawImage(IMG.bg, 1030, 870, 360, 300, 0, 70, 360, 300);
+  const gr = c.createLinearGradient(0, 70, 0, 370); gr.addColorStop(0, 'rgba(20,12,34,.85)'); gr.addColorStop(.35, 'rgba(20,12,34,.25)'); gr.addColorStop(1, 'rgba(20,12,34,.95)');
+  c.fillStyle = gr; c.fillRect(0, 70, 360, 300);
+  c.fillStyle = '#f4e4a8'; c.beginPath(); c.arc(300, 104, 18, 0, 7); c.fill();
+  const spr = (key, x, by, s, flip) => { const im = flip ? flipped(key) : IMG[key]; c.drawImage(im, Math.round(x - im.width * s / 2), Math.round(by - im.height * s), Math.round(im.width * s), Math.round(im.height * s)); };
+  spr('king', 180, 218, 2, true);
+  spr('zombie', 62, 320, 2.5, false); spr('jumper', 300, 316, 2.5, true); spr('walker', 110, 352, 2, false); spr('ghost', 268, 236, 2, true);
+  c.fillStyle = 'rgba(255,214,90,.25)'; c.beginPath(); c.ellipse(180, 352, 60, 14, 0, 0, 7); c.fill();
+  spr('taoist', 180, 356, 3, false);
+  // title
+  c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  c.font = `40px ${F}`; c.fillStyle = '#1a0e1e'; c.fillText('暂时停止呼吸', 183, 53); c.fillStyle = '#c8302c'; c.fillText('暂时停止呼吸', 181, 51); c.fillStyle = '#f4e4a8'; c.fillText('暂时停止呼吸', 179, 49);
+  // text panel
+  c.fillStyle = '#2a1d40'; c.fillRect(14, 384, 332, 100); c.strokeStyle = '#4a3866'; c.lineWidth = 2; c.strokeRect(14, 384, 332, 100);
+  const nm = PNAME || '道长', sc = S ? S.score || 0 : 0;
+  c.fillStyle = '#f0c020'; c.font = `22px ${F}`;
+  if (mode === 'revive') {
+    c.fillText(`${nm} 被僵尸围住了！`, 180, 414);
+    c.fillStyle = '#ece4ff'; c.font = `16px ${F}`; c.fillText(`撑到${shichenNow()}，伏尸 ${S.kills} 具`, 180, 442);
+    c.fillStyle = '#ff8a7a'; c.fillText('扫码进游戏，帮他续一口阳气！', 180, 468);
+  } else {
+    c.fillText(`${nm} 撑到了${shichenNow()}${S.win ? '，熬到天亮！' : ''}`, 180, 414);
+    c.fillStyle = '#ece4ff'; c.font = `16px ${F}`; c.fillText(`积分 ${sc} · 伏尸 ${S.kills} 具 · 修为${cn(S.lv)}重`, 180, 442);
+    c.fillStyle = '#ff8a7a'; c.fillText('你的朋友一定玩不过你，不信试试', 180, 468);
+  }
+  // QR
+  const q = IMG.qr;
+  c.fillStyle = '#140c22'; c.fillRect(0, 488, Wp, Hp - 488);
+  const qsz = q.width * 2, qy = 494, qx = 22;
+  c.fillStyle = '#ffffff'; c.fillRect(qx - 3, qy - 3, qsz + 6, qsz + 6); c.drawImage(q, qx, qy, qsz, qsz);
+  c.textAlign = 'left'; c.fillStyle = '#f4e4a8'; c.font = `18px ${F}`; c.fillText('长按识别二维码', 98, 516);
+  c.fillStyle = '#a99cc8'; c.font = `13px ${F}`; c.fillText('荒坟尸变，撑到鸡鸣就算你赢', 98, 538);
+  c.fillText(SITE.replace('https://', '').replace(/\/$/, ''), 98, 554);
+  return cv2;
+}
+let posterMode = null;
+function showPoster(mode) {
+  posterMode = mode;
+  const cv2 = makePoster(mode), url = cv2.toDataURL('image/png');
+  $('pImg').src = url; $('pSave').href = url;
+  $('pTip').textContent = IN_WX ? '长按图片 → 发送给朋友 / 保存图片' : '把这张图发给好友，扫码就能玩';
+  $('pShare').hidden = IN_WX || !navigator.share; $('pSave').hidden = IN_WX;
+  $('pDone').textContent = mode === 'revive' ? '发好了，复活！' : '关闭';
+  $('poster').hidden = false; cv2.toBlob(b => { posterBlob = b; });
+}
+let posterBlob = null;
+$('pShare').onclick = async () => {
+  try {
+    const file = posterBlob && new File([posterBlob], '暂时停止呼吸.png', { type: 'image/png' });
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: '暂时停止呼吸' });
+    else await navigator.share({ title: '暂时停止呼吸', text: '荒坟尸变，你能撑多久？', url: shareUrl() });
+  } catch (e) {}
 };
+$('pDone').onclick = () => { $('poster').hidden = true; if (posterMode === 'revive' && S && S.state === 'dead') revive(); posterMode = null; };
+$('revBtn').onclick = () => { audioInit(); showPoster('revive'); };
 $('giveUpBtn').onclick = () => { $('revive').hidden = true; S.revived = true; endGame(false); };
-$('bragBtn').onclick = async () => {
-  const r = await doShare(`我在《暂时停止呼吸》撑到了${shichenNow()}，积分 ${S.score}${S.win ? '，熬到了鸡鸣天亮' : ''}。你能撑多久？`);
-  $('bragNote').textContent = r === 'copied' ? '链接已复制，发给好友吧！' : r === 'manual' ? '把这个网址发给好友：' + shareUrl() : r === 'shared' ? '已分享！' : '';
-};
+$('bragBtn').onclick = () => showPoster('brag');
+document.addEventListener('contextmenu', e => { if (e.target && e.target.id !== 'pImg') e.preventDefault(); });
+document.addEventListener('selectstart', e => { const t = e.target; if (!(t && (t.tagName === 'INPUT' || t.id === 'pImg'))) e.preventDefault(); });
 
 function endGame(win) {
   S.state = 'over';
