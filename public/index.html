@@ -146,7 +146,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
         <span>大招</span><span>Q 键或右下角按钮（升级时获得）</span>
         <span>暂停</span><span>P 键</span>
       </div>
-      <div class="nameRow"><input id="startName" maxlength="10" placeholder="留下道号（必填）" autocomplete="off" aria-label="道号"><span id="nameTip"></span></div>
+      <div class="nameRow"><input id="startName" maxlength="10" placeholder="道长尊姓大名？" autocomplete="off" aria-label="道号"><span id="nameTip"></span></div>
       <div class="diffs"><button class="btn" id="startBtn">开坛 · 普通</button><button class="btn hard" id="hardBtn">开坛 · 困难</button></div>
       <p class="hint">困难：怪更硬更疼、出招更勤，积分 ×1.5</p>
       <label class="storyChk"><input type="checkbox" id="storyChk"> 播放开场剧情</label>
@@ -1435,7 +1435,7 @@ $('startName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.pre
 nameState();
 function begin(diff) {
   const nm = cleanName($('startName').value);
-  if (!nm) { const el = $('startName'); el.classList.remove('bad'); void el.offsetWidth; el.classList.add('bad'); $('nameTip').textContent = '请先留下道号'; el.focus(); return; }
+  if (!nm) { const el = $('startName'); el.classList.remove('bad'); void el.offsetWidth; el.classList.add('bad'); $('nameTip').textContent = '道长还没留下尊姓大名'; el.focus(); return; }
   PNAME = nm; try { localStorage.setItem('ztzh_name', nm); } catch (e) {}
   audioInit();
   const play = $('storyChk').checked;
