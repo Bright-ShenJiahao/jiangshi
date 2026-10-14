@@ -22,14 +22,19 @@ sprites = {
     'walker': wg['walker']().img(),
     'villager': map_gen2.villager_spr(g),
 }
+exec(open('story_sprites.py').read(), g)
+g['PAL']['P'] = (236, 112, 104)
+sprites.update({'afu': g['afu']().img(), 'afuR': g['afu'](True).img(), 'ren': g['ren']().img(),
+                'coffin': g['coffin']().img(), 'lid': g['coffin_lid']().img(), 'rooster': g['rooster']().img()})
 bg, objsprites, data = map_gen2.build()
 sprites.update(objsprites)
 assets = {k: b64(v) for k, v in sprites.items()}
 assets['bg'] = b64(bg.convert('RGB'))
-html = open('game_template.html').read().replace('/*ASSETS*/{}', json.dumps(assets)).replace('/*MAP*/{}', json.dumps(data, separators=(',', ':')))
+import glob, os
+vo = {os.path.basename(f)[:2]: 'data:audio/mpeg;base64,' + base64.b64encode(open(f, 'rb').read()).decode() for f in sorted(glob.glob('tts/vo/*.mp3'))}
+html = open('game_template.html').read().replace('/*ASSETS*/{}', json.dumps(assets)).replace('/*MAP*/{}', json.dumps(data, separators=(',', ':'))).replace('/*VO*/{}', json.dumps(vo))
 open('game.html', 'w').write(html)
 print(len(html) // 1024, 'KB')
-
 # also write the standalone page used by Netlify (public/index.html next to this src folder)
 import os
 he = html.index('</style>') + len('</style>')
