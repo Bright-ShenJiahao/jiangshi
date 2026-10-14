@@ -81,6 +81,8 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 .wxCard b { font-weight: 400; font-size: 30px; color: var(--paper); text-shadow: 3px 3px 0 var(--seal); }
 .wxCard span { font-size: 19px; color: var(--text); }
 .wxCard small { font-size: 15px; color: var(--muted); margin-top: 10px; }
+.tag { display: inline-block; font-style: normal; font-size: 12px; line-height: 1; padding: 3px 5px 2px; margin-left: 6px; vertical-align: 2px; border: 2px solid var(--ink); color: var(--ink); letter-spacing: .05em; }
+.tag.dmg { background: #e85a4a; } .tag.ctl { background: #f0c020; } .tag.def { background: #6cb8f0; } .tag.aoe { background: #b08ae0; } .tag.pas { background: #a99cc8; } .tag.oth { background: #6cc8a0; }
 .hint { font-size: 13px !important; margin: 8px 0 0 !important; }
 .score { font-size: 18px !important; color: var(--text) !important; }
 .score b { color: var(--talisman); font-size: 30px; font-weight: 400; }
@@ -246,11 +248,11 @@ const NUM = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九
 const cn = n => n <= 10 ? NUM[n] : n < 20 ? '十' + (n % 10 ? NUM[n % 10] : '') : NUM[Math.floor(n / 10)] + '十' + (n % 10 ? NUM[n % 10] : '');
 const WEAPONS = {
   sword: { name: '桃木剑', seal: '剑', w: 1, desc: ['身边两把剑环绕挥砍', '伤害提升', '三把剑', '剑更长', '四把剑，伤害大增'] },
-  fu: { name: '镇尸符', seal: '符', w: 1, desc: ['向四周撒出 6 张符，命中必减速，几率定身 2 秒', '一次 8 张', '定身几率提高', '一次 12 张', '符飞得更远'] },
+  fu: { name: '镇尸符', seal: '符', w: 1, desc: ['向四周撒出 6 张符：命中必减速，几率贴符定身 2 秒；定住的怪挨打伤害 +25%', '一次 8 张', '定身几率提高', '一次 12 张', '符飞得更远'] },
   coin: { name: '铜钱剑', seal: '钱', w: 1, desc: ['铜钱剑飞出再飞回，来回穿透', '飞得更远', '两把', '伤害提升', '三把，剑更大'] },
   rice: { name: '糯米', seal: '米', w: 1, desc: ['边走边撒糯米，踩到的怪被灼烧', '撒得更宽', '伤害提升', '留得更久', '更宽，伤害大增'] },
-  ink: { name: '墨斗线', seal: '墨', w: 1, desc: ['弹出墨线，弹开碰到的敌人', '变成两条平行线', '变成三角形，把你围住', '变成四方形', '四方形更大，伤害提升'] },
-  mirror: { name: '金光咒', seal: '金', w: 1, desc: ['金光一闪，击退四周', '范围变大', '伤害提升', '间隔缩短', '范围与击退大增'] },
+  ink: { name: '墨斗线', seal: '墨', w: 1, desc: ['弹出长时间停留的墨线，弹开并重伤碰到的敌人', '变成两条平行线', '变成三角形，把你围住', '变成四方形', '四方形更大，伤害提升'] },
+  mirror: { name: '金光咒', seal: '金', w: 1, desc: ['每 8 秒凝出一层金光罩，挡下一次伤害，破碎时炸开震退四周', '炸开伤害提升', '金光恢复更快（6 秒）', '金光罩可叠两层', '炸开范围与伤害大增'] },
   bell: { name: '镇魂铃', seal: '铃', w: 1, desc: ['摇铃发出扇形声波，穿透敌人', '声波更远', '伤害提升，扇面变宽', '间隔缩短', '距离与伤害大增'] },
 };
 const PASSIVES = {
@@ -260,10 +262,12 @@ const PASSIVES = {
   hp: { name: '阳气', seal: '阳', desc: '阳气上限 +20，并回满' },
 };
 const ULTS = {
-  thunder: { name: '五雷正法', seal: '雷', desc: ['大招：全屏降下 12 道天雷，会劈焦树、点燃民房', '16 道雷', '24 道雷，伤害提升'] },
-  qiankun: { name: '乾坤剑法', seal: '乾', desc: ['大招：飞剑从左到右扫过全屏，推开敌人', '来回扫两遍', '伤害提升，扫中定身 1 秒'] },
-  fuchen: { name: '神兵火急如律令', seal: '拂', desc: ['大招：召出祖师爷的巨型拂尘，横扫身前半圈', '扫一整圈', '扫两圈，并把满地阴德吸回来'] },
+  thunder: { name: '五雷正法', seal: '雷', desc: ['大招：全屏降下 12 道天雷，会劈焦树、点燃民房', '16 道雷', '24 道雷，伤害提升；尸王在场时三分之一的雷专劈尸王'] },
+  qiankun: { name: '乾坤剑法', seal: '乾', desc: ['大招：飞剑扫过屏幕中间一大片，推开敌人', '飞剑扫满全屏', '来回扫两遍，扫中定身 1 秒'] },
+  taiji: { name: '太极八卦阵', seal: '卦', desc: ['大招：脚下展开旋转的八卦法阵 4 秒，碰到的怪持续受伤并被推开', '法阵更大，并跟着你走', '收阵时八道卦象飞射四方，并吸回满地阴德'] },
 };
+const TAGS = { sword: ['伤害', '近身'], coin: ['伤害', '穿透'], rice: ['伤害', '持续'], bell: ['伤害', '范围'], fu: ['控制'], ink: ['控制', '范围'], mirror: ['防御'] };
+const TAGC = { '伤害': 'dmg', '控制': 'ctl', '防御': 'def', '范围': 'aoe', '被动': 'pas' };
 const DIFF = {
   normal: { name: '普通', hp: 1, dmg: 1, inv: 0.9, spawn: 1, skill: 1, mul: 1 },
   hard: { name: '困难', hp: 1.5, dmg: 1.5, inv: 0.6, spawn: 1.25, skill: 1.6, mul: 1.5 },
@@ -339,7 +343,7 @@ function newGame(diff = 'normal') {
     p: { x: 700, y: 700, hp: 100, max: 100, face: 1, inv: 0, moving: false, walk: 0, breath: 0, breathCd: 0 },
     mods: { speed: 0, magnet: 0, cd: 0, hp: 0, dmg: 0, regen: 0 },
     w: { sword: 1 }, timers: {}, swordAng: 0,
-    objs: (MAP.objs || []).map(o => ({ ...o, burnt: false, state: 'ok', fireT: 0, smoke: 0, tk: 0 })), ult: null, ultCd: 0, sweeps: [], whisks: [], eshots: [], npcs: [], npcT: 15, fish: [], fishT: 2, cam: { x: 0, y: 0 },
+    objs: (MAP.objs || []).map(o => ({ ...o, burnt: false, state: 'ok', fireT: 0, smoke: 0, tk: 0 })), ult: null, ultCd: 0, sweeps: [], taijis: [], guas: [], shield: 0, shieldT: null, eshots: [], npcs: [], npcT: 15, fish: [], fishT: 2, cam: { x: 0, y: 0 },
     food: [], foodT: 18, parts: [], combo: 0, comboT: 0, stop: 0, flash: 0, en: [], shots: [], areas: [], orbs: [], fx: [], texts: [], spawnAcc: 0, nextId: 1, shake: 0,
   };
   for (const k of ['title', 'end', 'levelup', 'pause', 'revive', 'brag']) $(k).hidden = true;
@@ -399,7 +403,15 @@ function jumperLand(e) {
   S.fx.push({ k: 'pulse', x: e.x, y: e.y, r: 4, R: 32, t: 0, c: '#c8a070' });
   if (P.inv <= 0 && (P.x - e.x) ** 2 + (P.y - e.y) ** 2 < 30 * 30) hurtPlayer(Math.round(6 * (1 + 0.5 * S.t / 300) * DIFF[S.diff].dmg));
 }
+function shieldBurst() {
+  const P = S.p, lv = S.w.mirror || 1, R = 72 + (lv >= 5 ? 30 : 0), dmg = lv >= 5 ? 45 : lv >= 2 ? 30 : 20;
+  S.shield--; P.inv = 0.6; sfx('pulse'); S.shake = Math.max(S.shake, 0.12);
+  S.fx.push({ k: 'pulse', x: P.x, y: P.y - 8, r: 4, R, t: 0 });
+  for (const e of S.en) if (!e.dead && dist2(e, P) < R * R) hurt(e, dmg, 150);
+  S.texts.push({ x: P.x, y: P.y - 34, v: '金光护体', t: 0.8, c: '#ffe070' });
+}
 function hurtPlayer(dmg) {
+  if (S.shield > 0) { shieldBurst(); return false; }
   const P = S.p; P.hp -= dmg; P.inv = DIFF[S.diff].inv; S.shake = Math.max(S.shake, 0.15); sfx('hurt');
   S.texts.push({ x: P.x, y: P.y - 30, v: '-' + dmg, t: 0.7, c: '#ff6a5a' });
   if (P.hp <= 0) { P.hp = 0; if (!S.revived) offerRevive(); else endGame(false); return true; }
@@ -409,6 +421,7 @@ function hurtPlayer(dmg) {
 function hurt(e, dmg, kb = 0, fromX = S.p.x, fromY = S.p.y) {
   if (e.dead) return;
   dmg *= dmgMul() * 0.8; const crit = Math.random() < 0.1; if (crit) { dmg *= 2; S.stop = Math.max(S.stop, 0.03); }
+  if (e.stun > 0) dmg *= 1.25;
   e.hp -= dmg; e.flash = 0.12; sfx('hit');
   if (kb) { const dx = e.x - fromX, dy = e.y - fromY, l = Math.hypot(dx, dy) || 1, k = e.type === 'king' ? 0.15 : 1; e.kx += dx / l * kb * k; e.ky += dy / l * kb * k; }
   S.texts.push({ x: e.x + rnd(-3, 3), y: e.y - 22, v: Math.round(dmg) + (crit ? '!' : ''), t: crit ? 0.8 : 0.6, c: crit ? '#ffd040' : '#ffffff', big: crit });
@@ -452,10 +465,10 @@ function updateWeapons() {
       }
     }
   }
-  if (W.fu && tick('fu', 1.4)) {
+  if (W.fu && tick('fu', 1.0)) {
     const lv = W.fu, n = [0, 6, 8, 8, 12, 12][lv], sp = lv >= 5 ? 150 : 120;
     sfx('throw');
-    for (let i = 0; i < n; i++) { const a = Math.random() * 6.283; S.shots.push({ k: 'fu', x: P.x, y: P.y - 12, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.8, life: 0.8, dmg: lv >= 5 ? 7 : 5, chance: lv >= 3 ? 0.5 : 0.35, pierce: 2, hit: new Set(), spin: Math.random() * 6 }); }
+    for (let i = 0; i < n; i++) { const a = Math.random() * 6.283; S.shots.push({ k: 'fu', x: P.x, y: P.y - 12, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.8, life: 0.8, dmg: lv >= 5 ? 7 : 5, chance: lv >= 3 ? 0.6 : 0.4, pierce: 2, hit: new Set(), spin: Math.random() * 6 }); }
   }
   if (W.coin && tick('coin', 2.0)) {
     const lv = W.coin, n = lv >= 5 ? 3 : lv >= 3 ? 2 : 1, R = lv >= 2 ? 140 : 110;
@@ -471,7 +484,7 @@ function updateWeapons() {
       S.areas.push({ k: 'rice', x: P.x + rnd(-2, 2), y: P.y + rnd(-1, 1), r: lv >= 5 ? 17 : lv >= 2 ? 13 : 10, life: lv >= 4 ? 4 : 2.6, dmg: lv >= 5 ? 12 : lv >= 3 ? 8 : 5, tk: rnd(0, 0.3), seed: Math.random() * 1000 });
     }
   }
-  if (W.ink && tick('ink', 3.6)) {
+  if (W.ink && tick('ink', 4.5)) {
     const lv = W.ink, rot = Math.random() * Math.PI, cx = P.x, cy = P.y - 6, segs = [], reels = [];
     const T = (x, y) => [cx + x * Math.cos(rot) - y * Math.sin(rot), cy + (x * Math.sin(rot) + y * Math.cos(rot)) * 0.8];
     const add = (pts, closed) => { reels.push(pts[0]); for (let i = 0; i < pts.length - (closed ? 0 : 1); i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; segs.push([a[0], a[1], b[0], b[1]]); } };
@@ -479,7 +492,7 @@ function updateWeapons() {
     else if (lv === 2) { add([T(-55, -22), T(55, -22)]); add([T(-55, 22), T(55, 22)]); }
     else if (lv === 3) add([0, 1, 2].map(i => T(Math.cos(i * 2.094 - 1.571) * 52, Math.sin(i * 2.094 - 1.571) * 52)), true);
     else { const h = lv >= 5 ? 54 : 42; add([T(-h, -h), T(h, -h), T(h, h), T(-h, h)], true); }
-    S.areas.push({ k: 'ink', segs, reels, ox: P.x, oy: P.y - 12, life: 0, max: lv >= 4 ? 4.2 : 3.2, dmg: lv >= 5 ? 14 : 8 }); sfx('throw');
+    S.areas.push({ k: 'ink', segs, reels, ox: P.x, oy: P.y - 12, life: 0, max: lv >= 4 ? 5.2 : 4.2, dmg: lv >= 5 ? 20 : 12 }); sfx('throw');
   }
   if (W.thunder && tick('thunder', 2.4)) {
     const lv = W.thunder, n = [0, 1, 2, 3, 4, 8][lv];
@@ -492,7 +505,7 @@ function updateWeapons() {
   if (W.bell && tick('bell', W.bell >= 4 ? 1.8 : 2.4)) {
     const lv = W.bell; let a = P.face > 0 ? 0 : Math.PI;
     const tg = nearest(1, 200)[0]; if (tg) a = Math.atan2(tg.y - P.y, tg.x - P.x);
-    const R = 100 + (lv >= 2 ? 25 : 0) + (lv >= 5 ? 30 : 0), half = (lv >= 3 ? 60 : 45) * Math.PI / 180, dmg = lv >= 5 ? 40 : lv >= 3 ? 30 : 22;
+    const R = 100 + (lv >= 2 ? 25 : 0) + (lv >= 5 ? 30 : 0), half = (lv >= 3 ? 60 : 45) * Math.PI / 180, dmg = lv >= 5 ? 30 : lv >= 3 ? 22 : 16;
     sfx('bell'); S.fx.push({ k: 'wave', x: P.x, y: P.y - 10, a, half, R, t: 0 });
     for (const e of S.en) {
       if (e.dead) continue;
@@ -501,10 +514,10 @@ function updateWeapons() {
       if (Math.abs(da) < half) hurt(e, dmg, 40);
     }
   }
-  if (W.mirror && tick('mirror', W.mirror >= 4 ? 2.6 : 3.6)) {
-    const lv = W.mirror, R = 75 + (lv >= 2 ? 18 : 0) + (lv >= 5 ? 25 : 0);
-    sfx('pulse'); S.fx.push({ k: 'pulse', x: P.x, y: P.y - 8, r: 4, R, t: 0 });
-    for (const e of S.en) if (!e.dead && dist2(e, P) < R * R) hurt(e, (lv >= 3 ? 26 : 18), lv >= 5 ? 140 : 90);
+  if (W.mirror) {
+    const lv = W.mirror, maxL = lv >= 4 ? 2 : 1;
+    if (S.shield < maxL) { S.shieldT = (S.shieldT ?? 1) - DT; if (S.shieldT <= 0) { S.shield++; S.shieldT = lv >= 3 ? 6 : 8; sfx('pickbig'); } }
+    else S.shieldT = Math.min(S.shieldT ?? 1, lv >= 3 ? 6 : 8);
   }
 }
 
@@ -532,7 +545,8 @@ function levelUp() {
     const D = o.kind === 'w' ? WEAPONS[o.k] : o.kind === 'u' ? ULTS[o.k] : o.kind === 'h' ? { name: '调息', seal: '息', desc: '恢复 30 点阳气' } : PASSIVES[o.k];
     const desc = o.kind === 'w' || o.kind === 'u' ? D.desc[o.lv] : D.desc;
     const b = document.createElement('button'); b.className = o.kind === 'u' ? 'opt ult' : 'opt'; b.id = 'opt' + i;
-    b.innerHTML = `<span class="seal">${D.seal}</span><span>${D.name}<span class="d">${desc}</span></span><span class="lv ${o.lv ? '' : 'new'}">${o.kind === 'h' ? '' : o.kind === 'u' && !o.lv ? '大招' : o.lv ? cn(o.lv) + ' → ' + cn(o.lv + 1) + '重' : '新'}</span>`;
+    const tg = o.kind === 'w' ? TAGS[o.k] || [] : o.kind === 'p' ? ['被动'] : [];
+    b.innerHTML = `<span class="seal">${D.seal}</span><span>${D.name}${tg.map(x => `<i class="tag ${TAGC[x] || 'oth'}">${x}</i>`).join('')}<span class="d">${desc}</span></span><span class="lv ${o.lv ? '' : 'new'}">${o.kind === 'h' ? '' : o.kind === 'u' && !o.lv ? '大招' : o.lv ? cn(o.lv) + ' → ' + cn(o.lv + 1) + '重' : '新'}</span>`;
     b.onclick = () => pick(i); box.appendChild(b);
   });
   const hasUlt = curOpts.some(o => o.kind === 'u');
@@ -563,15 +577,15 @@ function tryUlt() {
     const n = [0, 12, 16, 24][lv];
     const vis = S.en.filter(e => !e.dead && e.x > C.x && e.x < C.x + VW && e.y > C.y && e.y < C.y + VH);
     for (let i = 0; i < n; i++) {
-      const t = vis.length ? vis[Math.floor(Math.random() * vis.length)] : null;
-      S.areas.push({ k: 'bolt', x: t ? t.x + rnd(-6, 6) : C.x + rnd(20, VW - 20), y: t ? t.y : C.y + rnd(20, VH - 20), life: -i * (1.5 / n), dmg: lv >= 3 ? 140 : 110, r: 40, done: false, seed: Math.random() });
+      const king = lv >= 3 && i % 3 === 0 ? vis.find(e => e.type === 'king') : null;
+      const t = king || (vis.length ? vis[Math.floor(Math.random() * vis.length)] : null);
+      S.areas.push({ k: 'bolt', x: t ? t.x + rnd(-6, 6) : C.x + rnd(20, VW - 20), y: t ? t.y : C.y + rnd(20, VH - 20), life: -i * (1.5 / n), dmg: lv >= 3 ? 120 : 95, r: 40, done: false, seed: Math.random() });
     }
   } else if (k === 'qiankun') {
-    S.sweeps.push({ dir: 1, x: C.x - 30, x0: C.x - 30, x1: C.x + VW + 30, y0: C.y, y1: C.y + VH, spd: (VW + 60) / 1.0, hit: new Set(), dmg: lv >= 3 ? 80 : 60, stun: lv >= 3, again: lv >= 2 });
-  } else if (k === 'fuchen') {
-    const f = P.face >= 0 ? 1 : -1;
-    S.whisks.push({ t: 0, dur: 0.55, R: 125, a0: -Math.PI / 2, span: (lv >= 2 ? 2 * Math.PI : Math.PI) * f, left: lv >= 3 ? 2 : 1, hit: new Set(), dmg: 65 });
-    if (lv >= 3) for (const o of S.orbs) o.pull = true;
+    const band = lv === 1 ? 0.2 : 0;
+    S.sweeps.push({ dir: 1, x: C.x - 30, x0: C.x - 30, x1: C.x + VW + 30, y0: C.y + VH * band, y1: C.y + VH * (1 - band), spd: (VW + 60) / 1.0, hit: new Set(), dmg: [0, 65, 60, 50][lv], stun: lv >= 3, again: lv >= 3 });
+  } else if (k === 'taiji') {
+    S.taijis.push({ x: P.x, y: P.y, t: 0, dur: 4, R: lv >= 2 ? 160 : 120, follow: lv >= 2, gua: lv >= 3, tk: 0, dmg: 30 });
   }
 }
 function updateUlts() {
@@ -590,17 +604,35 @@ function updateUlts() {
     }
   }
   S.sweeps = S.sweeps.filter(s => !s.done);
-  for (const w of S.whisks) {
-    w.t += DT; w.ang = w.a0 + w.span * Math.min(1, w.t / w.dur);
-    for (const e of S.en) {
-      if (e.dead || w.hit.has(e.id)) continue;
-      const dx = e.x - P.x, dy = (e.y - 8) - (P.y - 12), d = Math.hypot(dx, dy); if (d > w.R) continue;
-      let da = Math.atan2(dy, dx) - w.ang; da = Math.atan2(Math.sin(da), Math.cos(da));
-      if (Math.abs(da) < 0.35) { w.hit.add(e.id); hurt(e, w.dmg, 260); }
+  for (const z of S.taijis) {
+    z.t += DT; if (z.follow) { z.x = P.x; z.y = P.y; }
+    z.r = z.R * Math.min(1, 0.15 + z.t / 1.0);
+    z.tk -= DT;
+    if (z.tk <= 0) {
+      z.tk = 0.4;
+      for (const e of S.en) {
+        if (e.dead) continue;
+        const dx = e.x - z.x, dy = (e.y - z.y) / 0.75, d = Math.hypot(dx, dy) || 1;
+        if (d > z.r + e.r) continue;
+        hurt(e, z.dmg, 0); e.slow = Math.max(e.slow, S.t + 0.5);
+        if (e.type !== 'king') { e.kx += dx / d * 70; e.ky += dy / d * 52; }
+      }
     }
-    if (w.t >= w.dur) { if (--w.left > 0) { w.t = 0; w.a0 = w.ang; w.hit.clear(); } else w.done = true; }
+    if (z.t >= z.dur) {
+      z.done = true;
+      if (z.gua) {
+        for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + S.t; S.guas.push({ x: z.x, y: z.y - 8, vx: Math.cos(a) * 260, vy: Math.sin(a) * 200, a, life: 1.1, hit: new Set(), i }); }
+        for (const o of S.orbs) o.pull = true;
+        sfx('ult');
+      }
+    }
   }
-  S.whisks = S.whisks.filter(w => !w.done);
+  S.taijis = S.taijis.filter(z => !z.done);
+  for (const q of S.guas) {
+    q.x += q.vx * DT; q.y += q.vy * DT; q.life -= DT;
+    for (const e of S.en) { if (e.dead || q.hit.has(e.id)) continue; if ((e.x - q.x) ** 2 + (e.y - 10 - q.y) ** 2 < (e.r + 9) ** 2) { q.hit.add(e.id); hurt(e, 60, 120, q.x - q.vx, q.y - q.vy); } }
+  }
+  S.guas = S.guas.filter(q => q.life > 0);
 }
 
 // ---------- boss ----------
@@ -933,7 +965,7 @@ function update() {
       if (e.dead || s.hit.has(e.id)) continue;
       if ((e.x - s.x) ** 2 + (e.y - 10 - s.y) ** 2 < (e.r + (s.k === 'csword' ? (s.big ? 10 : 7) : 4)) ** 2) {
         hurt(e, s.dmg, s.k === 'csword' ? 35 : 10, s.x, s.y); s.hit.add(e.id);
-        if (s.k === 'fu') { e.slow = S.t + 2; if (Math.random() < s.chance) e.stun = Math.max(e.stun, e.type === 'king' || e.elite ? 1 : 2); }
+        if (s.k === 'fu') { e.slow = S.t + 2; if (Math.random() < s.chance) { e.stun = Math.max(e.stun, e.type === 'king' || e.elite ? 1 : 2); e.fuStun = 1; } }
         if (s.pierce-- <= 0) { s.life = 0; break; }
       }
     }
@@ -1052,6 +1084,31 @@ function drawFood(f) {
     px(x - 6, y + 3, 2, 2, K); px(x + 3, y + 3, 2, 2, K); px(x - 9, y - 4, 2, 2, K);
   }
 }
+// 八卦法阵贴图（像素风）
+const GUA = [0, 4, 2, 6, 1, 5, 3, 7];   // 三爻：位为 1 表示阴爻（断）
+function pixCanvas(w, h, f) { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; f(x); return c; }
+const BAGUA = pixCanvas(128, 128, x => {
+  const oct = (r) => { x.beginPath(); for (let i = 0; i < 8; i++) { const a = (i + 0.5) * Math.PI / 4; x[i ? 'lineTo' : 'moveTo'](64 + Math.cos(a) * r, 64 + Math.sin(a) * r); } x.closePath(); };
+  oct(62); x.fillStyle = 'rgba(40,20,10,.55)'; x.fill(); x.lineWidth = 4; x.strokeStyle = '#1a0e1e'; x.stroke(); x.lineWidth = 2; x.strokeStyle = '#ffd860'; x.stroke();
+  oct(30); x.lineWidth = 4; x.strokeStyle = '#1a0e1e'; x.stroke(); x.lineWidth = 2; x.strokeStyle = '#ffd860'; x.stroke();
+  for (let i = 0; i < 8; i++) {
+    x.save(); x.translate(64, 64); x.rotate(i * Math.PI / 4 + Math.PI / 2);
+    for (let k = 0; k < 3; k++) {
+      const y = -54 + k * 7, broken = (GUA[i] >> k) & 1;
+      x.fillStyle = '#1a0e1e'; x.fillRect(-15, y - 1, 30, 6);
+      x.fillStyle = '#ffe070'; if (broken) { x.fillRect(-14, y, 12, 4); x.fillRect(2, y, 12, 4); } else x.fillRect(-14, y, 28, 4);
+    }
+    x.restore();
+  }
+});
+const TAIJI = pixCanvas(32, 32, x => {
+  x.fillStyle = '#1a0e1e'; x.beginPath(); x.arc(16, 16, 15, 0, 7); x.fill();
+  x.fillStyle = '#f4f0e0'; x.beginPath(); x.arc(16, 16, 13, -Math.PI / 2, Math.PI / 2); x.fill();
+  x.fillStyle = '#1a0e1e'; x.beginPath(); x.arc(16, 22.5, 6.5, 0, 7); x.fill();
+  x.fillStyle = '#f4f0e0'; x.beginPath(); x.arc(16, 9.5, 6.5, 0, 7); x.fill();
+  x.fillStyle = '#f4f0e0'; x.beginPath(); x.arc(16, 22.5, 2, 0, 7); x.fill();
+  x.fillStyle = '#1a0e1e'; x.beginPath(); x.arc(16, 9.5, 2, 0, 7); x.fill();
+});
 function draw() {
   const P = S.p;
   let cx = Math.round(Math.max(0, Math.min(WORLD.w - VW, P.x - VW / 2)));
@@ -1064,7 +1121,16 @@ function draw() {
   g.save(); g.translate(-cx, -cy);
   g.drawImage(IMG.bg, 0, 0);
 
-  // areas
+  // 太极八卦阵 (ground)
+  for (const z of S.taijis) {
+    const fade = Math.min(1, (z.dur - z.t) * 3), s = z.r / 64;
+    g.save(); g.translate(Math.round(z.x), Math.round(z.y - 2)); g.scale(1, 0.75); g.globalAlpha = 0.85 * fade;
+    g.fillStyle = 'rgba(255,214,90,.12)'; g.beginPath(); g.arc(0, 0, z.r, 0, 7); g.fill();
+    g.save(); g.rotate(z.t * 1.6); g.scale(s, s); g.drawImage(BAGUA, -64, -64); g.restore();
+    g.save(); g.rotate(-z.t * 3.2); g.scale(s, s); g.drawImage(TAIJI, -16, -16); g.restore();
+    g.restore(); g.globalAlpha = 1;
+  }
+  // areas (draw)
   for (const a of S.areas) {
     if (a.k === 'rice') {
       const alpha = Math.min(1, a.life * 2);
@@ -1166,6 +1232,7 @@ function draw() {
       g.drawImage(im, Math.round(P.x - im.width / 2), Math.round(P.y - im.height + 3 + bob));
       g.globalAlpha = 1;
       if (P.breath > 0) { px(P.x - 1 + P.face * 5, P.y - 23, 3, 2, '#8fd8f0'); }
+      if (S.shield > 0) for (let L = 0; L < S.shield; L++) { g.globalAlpha = 0.35 + 0.15 * Math.sin(S.t * 5 + L); g.strokeStyle = L ? '#fff6c0' : '#ffd860'; g.lineWidth = 2; g.beginPath(); g.ellipse(P.x, P.y - 13, 13 + L * 4, 18 + L * 4, 0, 0, 7); g.stroke(); g.globalAlpha = 1; }
       if (P.slowT > 0) { g.globalAlpha = 0.35; g.fillStyle = '#5ac04a'; g.beginPath(); g.ellipse(P.x, P.y - 2, 9, 3, 0, 0, 7); g.fill(); g.globalAlpha = 1; }
       continue;
     }
@@ -1194,6 +1261,9 @@ function draw() {
     g.drawImage(im, X, Y, iw, ih);
     if (e.flash > 0) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.8; g.drawImage(im, X, Y, iw, ih); g.globalCompositeOperation = 'source-over'; }
     if (e.type === 'ghost' && e.cast > 0) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.6; g.fillStyle = '#5ab8ff'; g.beginPath(); g.arc(e.x, Y + 10, 7 + 3 * Math.sin(S.t * 30), 0, 7); g.fill(); g.globalCompositeOperation = 'source-over'; }
+    if (e.slow > S.t && !e.stun) { g.globalAlpha = 0.35; g.fillStyle = '#f0c020'; g.beginPath(); g.ellipse(e.x, e.y - 1, e.r + 3, 2.5, 0, 0, 7); g.fill(); g.globalAlpha = 1; }
+    if (e.stun > 0 && e.fuStun) { g.globalAlpha = 1; const fx = Math.round(e.x - 3), fy = Y + 3 + Math.round(Math.sin(S.t * 8 + e.id)); px(fx - 1, fy - 1, 8, 12, '#1a0e1e'); px(fx, fy, 6, 10, '#fae478'); px(fx + 2, fy + 1, 2, 8, '#d22c28'); px(fx + 1, fy + 3, 4, 1, '#d22c28'); }
+    if (e.stun <= 0 && e.fuStun) e.fuStun = 0;
     if (e.crouch > 0) { g.globalAlpha = 1; px(e.x - 1, Y - 9, 3, 6, '#1a0e1e'); px(e.x, Y - 8, 1, 3, '#ff4a4a'); px(e.x, Y - 4, 1, 1, '#ff4a4a'); }
     if (e.type === 'king' && e.st === 'roar' && !e.fired) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.5 * Math.abs(Math.sin(S.t * 20)); g.fillStyle = '#ff2a2a'; g.fillRect(X, Y, iw, ih); g.globalCompositeOperation = 'source-over'; }
     if (e.type === 'king' && e.st === 'slash' && !e.fired) { g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.5 * Math.abs(Math.sin(S.t * 25)); g.drawImage(im, X, Y, iw, ih); g.globalCompositeOperation = 'source-over'; }
@@ -1251,18 +1321,11 @@ function draw() {
     g.globalAlpha = 0.25; g.fillStyle = '#ffe9b0'; g.fillRect(Math.round(s.x - s.dir * 40), s.y0, 40, s.y1 - s.y0); g.globalAlpha = 1;
     for (let y = s.y0 + 10, i = 0; y < s.y1; y += 20, i++) drawSword(s.x + (i % 2) * s.dir * -8, y, s.dir > 0 ? 0 : Math.PI, 30);
   }
-  for (const w of S.whisks) {
-    const a = w.ang ?? w.a0, ox = P.x, oy = P.y - 12, sg = Math.sign(w.span);
-    g.globalAlpha = 0.18; g.strokeStyle = '#ffd860'; g.lineWidth = w.R * 0.55; g.beginPath(); g.arc(ox, oy, w.R * 0.66, sg > 0 ? a - 0.9 : a, sg > 0 ? a : a + 0.9); g.stroke(); g.globalAlpha = 1;
-    const hx = ox + Math.cos(a) * w.R * 0.32, hy = oy + Math.sin(a) * w.R * 0.32;
-    g.strokeStyle = '#1a0e1e'; g.lineWidth = 6; g.beginPath(); g.moveTo(ox, oy); g.lineTo(hx, hy); g.stroke();
-    g.strokeStyle = '#c89030'; g.lineWidth = 3; g.beginPath(); g.moveTo(ox, oy); g.lineTo(hx, hy); g.stroke();
-    for (let k = -7; k <= 7; k++) {
-      const aa = a + k * 0.025 - sg * Math.abs(k) * 0.01, L = w.R * (0.92 + 0.08 * Math.sin(S.t * 30 + k));
-      g.strokeStyle = k % 3 ? '#f4f0e0' : '#ffe070'; g.lineWidth = 2; g.globalAlpha = 0.9;
-      g.beginPath(); g.moveTo(hx, hy); g.lineTo(ox + Math.cos(aa) * L, oy + Math.sin(aa) * L); g.stroke();
-    }
-    g.globalAlpha = 1; px(hx - 3, hy - 3, 6, 6, '#ffe070');
+  for (const q of S.guas) {
+    g.save(); g.translate(Math.round(q.x), Math.round(q.y)); g.rotate(q.a + Math.PI / 2); g.globalAlpha = Math.min(1, q.life * 3);
+    g.fillStyle = 'rgba(255,220,110,.3)'; g.fillRect(-9, -8, 18, 16);
+    for (let k = 0; k < 3; k++) { const broken = (GUA[q.i] >> k) & 1; px(-7, -6 + k * 5, 14, 3, '#1a0e1e'); if (broken) { px(-6, -5 + k * 5, 5, 1, '#ffe070'); px(1, -5 + k * 5, 5, 1, '#ffe070'); } else px(-6, -5 + k * 5, 12, 1, '#ffe070'); }
+    g.restore();
   }
   for (const s of S.eshots) {
     if (s.k === 'wisp') { const f = Math.sin(S.t * 30 + s.x) > 0; g.globalAlpha = 0.35; g.fillStyle = '#5ab8ff'; g.beginPath(); g.arc(s.x, s.y, 6, 0, 7); g.fill(); g.globalAlpha = 1; px(s.x - 2, s.y - (f ? 4 : 3), 4, 6, '#1a0e1e'); px(s.x - 1, s.y - 2, 2, 4, '#9ad8ff'); px(s.x - 1, s.y - 1, 2, 2, '#ffffff'); continue; }
