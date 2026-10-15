@@ -328,13 +328,13 @@ const WEAPONS = {
   rice: { name: '糯米', seal: '米', w: 1, desc: ['边走边撒糯米，踩到的怪被灼烧', '撒得更宽', '伤害提升', '留得更久', '更宽，伤害大增'] },
   ink: { name: '墨斗线', seal: '墨', w: 1, desc: ['弹出墨线挡住怪物 3 秒，弹开多次后会断；精英和尸王能冲断它', '变成两条平行线', '变成三角形，把你围住', '变成四方形', '四方形更大，伤害提升'] },
   mirror: { name: '金光咒', seal: '金', w: 1, desc: ['每 12 秒凝出金光罩，最多挡 30 点伤害；破碎时炸开震退四周', '护盾上限提高到 40', '金光恢复更快（9 秒）', '炸开范围变大，震退更远', '护盾上限 55，7 秒恢复'] },
-  push: { name: '太极推手', seal: '推', w: 1, desc: ['每 3 秒在身边转出黑白太极图：贴身的怪被带着转半圈、受伤后甩出去，背过身走开 1 秒', '伤害提升', '太极图变大', '间隔缩短到 2.2 秒', '正反各转一次，甩出去的怪撞到别的怪，两只都受伤'] },
+  palm: { name: '八卦掌', seal: '掌', w: 1, desc: ['每 1.5 秒朝身边的怪推出 1/4 太极掌风，伤害 24、减速 40%；被打时 10% 几率闪开并反手一掌', '伤害提升到 32', '掌风更远，闪避提升到 15%', '间隔缩短到 1.2 秒，减速 60%', '伤害 45，闪避 20%；闪开后打出八卦连环掌，完整太极向四面八方扩散'] },
   bell: { name: '镇魂铃', seal: '铃', w: 1, desc: ['摇铃发出扇形声波，穿透敌人', '声波更远', '伤害提升，扇面变宽', '间隔缩短', '距离与伤害大增'] },
 };
 const PASSIVES = {
   speed: { name: '神行', seal: '行', desc: '移动速度 +10%' },
   magnet: { name: '引魂', seal: '引', desc: '吸取阴德范围 +20%（最多三重）' },
-  cd: { name: '法力', seal: '法', desc: '符、铜钱剑、墨斗、铃、推手、金光咒的间隔 -8%（不影响大招）' },
+  cd: { name: '法力', seal: '法', desc: '符、铜钱剑、墨斗、铃、八卦掌、金光咒的间隔 -8%（不影响大招）' },
   hp: { name: '阳气', seal: '阳', desc: '阳气上限 +20，回复 20 点' },
 };
 const ULTS = {
@@ -349,10 +349,10 @@ const ULTSYN = {
   qiankun: { w: 'coin', name: '剑停回旋', text: '铜钱剑偶尔停在原地旋转攻击', ch: [0, 0.10, 0.15, 0.20] },
 };
 const dimin = n => n <= 12 ? 1 : Math.max(0.4, 1 - 0.05 * (n - 12));   // 大招：同一次命中第 13 只起逐只递减
-const ULTSYN2 = { taiji: { w: 'push', name: '阴阳大圈', text: '太极推手偶尔转出大一号的阴阳圈', ch: [0, 0.15, 0.2, 0.25] } };
+const ULTSYN2 = { taiji: { w: 'palm', name: '八卦身法', text: '法阵中八卦掌闪避 +10%，掌击偶尔打出连环掌', ch: [0, 0.1, 0.15, 0.2] } };
 const synCh = k => (S.ult && S.ult.k === k ? ULTSYN[k].ch[S.ult.lv] || 0 : 0);
 function synShow(k, x, y) { S.synSeen = S.synSeen || {}; S.texts.push({ x, y: y - 30, v: ULTSYN[k].name + '！', t: S.synSeen[k] ? 0.7 : 1.4, c: '#ffe070', big: !S.synSeen[k] }); S.synSeen[k] = true; }
-const TAGS = { push: ['控制', '近身'], sword: ['伤害', '近身'], coin: ['伤害', '穿透'], rice: ['伤害', '持续'], bell: ['伤害', '范围'], fu: ['控制'], ink: ['控制', '范围'], mirror: ['防御'] };
+const TAGS = { palm: ['伤害', '近身'], sword: ['伤害', '近身'], coin: ['伤害', '穿透'], rice: ['伤害', '持续'], bell: ['伤害', '范围'], fu: ['控制'], ink: ['控制', '范围'], mirror: ['防御'] };
 const TAGC = { '伤害': 'dmg', '控制': 'ctl', '防御': 'def', '范围': 'aoe', '被动': 'pas' };
 const DIFF = {
   normal: { name: '普通', hp: 1, dmg: 1, inv: 0.9, spawn: 1, skill: 1, mul: 1 },
@@ -461,7 +461,7 @@ function newGame(diff = 'normal') {
     p: { x: 700 + EX, y: 700 + (MAP.townH || 0), hp: 100, max: 100, face: 1, inv: 0, moving: false, walk: 0, breath: 0, breathCd: 0 },
     mods: { speed: 0, magnet: 0, cd: 0, hp: 0, dmg: 0, regen: 0 },
     w: { sword: 1 }, timers: {}, swordAng: 0,
-    objs: (MAP.objs || []).map(o => ({ ...o, burnt: false, state: 'ok', fireT: 0, smoke: 0, tk: 0 })), ult: null, ultCd: 0, sweeps: [], taijis: [], pushes: [], ev: {}, allies: [], decor: [], batFx: [], rumorQ: [], guas: [], shield: 0, shieldT: null, chests: [], lvQueue: 0, eliteT: 60, eliteN: 0, vampOut: false, wgCd: 8, eshots: [], npcs: [], npcT: 15, loot: [], aw: null, awDone: false, yamT: 0, gongVo: 0, dawnT: null, yz: (MAP.yz || []).map(([x, y, o]) => ({ x, y, open: !!o, pre: !!o, t: 0 })), yzT: rnd(40, 60), fish: [], fishT: 2, cam: { x: 0, y: 0 },
+    objs: (MAP.objs || []).map(o => ({ ...o, burnt: false, state: 'ok', fireT: 0, smoke: 0, tk: 0 })), ult: null, ultCd: 0, sweeps: [], taijis: [], palms: [], afterimgs: [], ev: {}, allies: [], decor: [], batFx: [], rumorQ: [], guas: [], shield: 0, shieldT: null, chests: [], lvQueue: 0, eliteT: 60, eliteN: 0, vampOut: false, wgCd: 8, eshots: [], npcs: [], npcT: 15, loot: [], aw: null, awDone: false, yamT: 0, gongVo: 0, dawnT: null, yz: (MAP.yz || []).map(([x, y, o]) => ({ x, y, open: !!o, pre: !!o, t: 0 })), yzT: rnd(40, 60), fish: [], fishT: 2, cam: { x: 0, y: 0 },
     food: [], foodT: 18, parts: [], combo: 0, comboT: 0, stop: 0, flash: 0, en: [], shots: [], areas: [], orbs: [], fx: [], texts: [], spawnAcc: 0, nextId: 1, shake: 0,
   };
   for (const k of ['title', 'end', 'levelup', 'pause', 'revive', 'brag', 'tip', 'tipArrow']) $(k).hidden = true;
@@ -545,6 +545,7 @@ function shieldBurst() {
 }
 const shieldCap = () => { const lv = S.w.mirror || 1; return lv >= 5 ? 55 : lv >= 2 ? 40 : 30; };
 function hurtPlayer(dmg) {
+  if (tryDodge()) return false;
   if (S.shield > 0) { const cap = shieldCap(); shieldBurst(); dmg -= cap; if (dmg <= 0) return false; }
   const P = S.p; P.hp -= dmg; P.inv = DIFF[S.diff].inv; S.shake = Math.max(S.shake, 0.15); sfx('hurt');
   S.texts.push({ x: P.x, y: P.y - 30, v: '-' + dmg, t: 0.7, c: '#ff6a5a' });
@@ -673,48 +674,68 @@ function updateWeapons() {
     if (S.shield < 1) { S.shieldT = (S.shieldT ?? 1) - DT; if (S.shieldT <= 0) { S.shield = 1; S.shieldT = cd; sfx('pickbig'); } }
     else S.shieldT = Math.min(S.shieldT ?? 1, cd);
   }
-  // 太极推手
-  if (W.push && tick('push', W.push >= 4 ? 2.2 : 3)) {
-    const lv = W.push, sc = S.ult && ULTSYN2[S.ult.k] ? ULTSYN2[S.ult.k].ch[S.ult.lv] || 0 : 0, big = Math.random() < sc;
-    const R = (lv >= 3 ? 48 : 36) * (big ? 1.6 : 1), dmg = lv >= 2 ? 22 : 15;
-    const z = { x: P.x, y: P.y, t: 0, dur: lv >= 5 ? 1.2 : 0.8, R, two: lv >= 5, caught: [], big };
-    for (const e of S.en) {
-      if (e.dead || e.rise > 0 || e.type === 'hand' || e.ally) continue;
-      const dx = e.x - P.x, dy = (e.y - P.y) / 0.75, d = Math.hypot(dx, dy) || 1;
-      if (d > R + e.r) continue;
-      hurt(e, dmg, 0, P.x, P.y);
-      if (e.dead || e.type === 'king' || e.type === 'vampire') continue;
-      if (e.elite) { e.kx += dx / d * 160; e.ky += dy / d * 120; continue; }
-      z.caught.push({ e, a: Math.atan2(dy, dx), d: Math.max(12, d) });
-    }
-    if (big) { S.synSeen = S.synSeen || {}; S.texts.push({ x: P.x, y: P.y - 40, v: '阴阳大圈！', t: S.synSeen.push2 ? 0.7 : 1.4, c: '#ffe070', big: !S.synSeen.push2 }); S.synSeen.push2 = true; }
-    S.pushes.push(z); sfx('pulse');
+  // 八卦掌：朝身边的怪推出 1/4 太极掌风
+  if (W.palm && tick('palm', W.palm >= 4 ? 1.2 : 1.5)) {
+    const tg = nearest(1, W.palm >= 3 ? 70 : 60)[0];
+    if (tg) { palmStrike(Math.atan2((tg.y - P.y) / 0.75, tg.x - P.x)); if (Math.random() < synCh2('taiji') && S.taijis.some(z => !z.mini)) palmBurst(); }
+    else S.timers.palm = 0.15;
   }
-  for (const z of S.pushes) {
-    z.t += DT; z.x = P.x; z.y = P.y;
-    const k = Math.min(1, z.t / z.dur), ez = q => q * q * (3 - 2 * q);
-    z.rot = z.two ? (k < 0.5 ? Math.PI * ez(k * 2) : Math.PI * (1 - ez((k - 0.5) * 2))) : Math.PI * ez(k);
-    for (const c of z.caught) {
-      const e = c.e; if (e.dead) continue;
-      const a = c.a + z.rot; e.x = z.x + Math.cos(a) * c.d; e.y = z.y + Math.sin(a) * c.d * 0.75; e.stun = Math.max(e.stun, 0.05);
-    }
-    if (k >= 1 && !z.done) {
-      z.done = true;
-      for (const c of z.caught) {
-        const e = c.e; if (e.dead) continue;
-        const a = c.a + z.rot, sg = z.two ? -1 : 1, tx = -Math.sin(a) * sg, ty = Math.cos(a) * sg;
-        e.kx += (tx * 0.6 + Math.cos(a)) * 220; e.ky += (ty * 0.6 + Math.sin(a)) * 160; e.fleeT = S.t + 1.0;
-        if (z.two) { e.flungT = S.t + 0.5; e.flungHit = false; }
-        S.texts.push({ x: e.x, y: e.y - 30, v: '晕', t: 0.6, c: '#ffffff' });
-      }
-    }
-  }
-  S.pushes = S.pushes.filter(z => z.t < z.dur + 0.25);
+  for (const q of S.palms) q.t += DT;
+  S.palms = S.palms.filter(q => q.t < (q.full ? 0.5 : 0.35));
+  for (const a of S.afterimgs) a.t += DT;
+  S.afterimgs = S.afterimgs.filter(a => a.t < 0.45);
+}
+const synCh2 = k => (S.ult && S.ult.k === k && ULTSYN2[k] ? ULTSYN2[k].ch[S.ult.lv] || 0 : 0);
+function palmSlow(e, lv) { const k = lv >= 4 ? 0.4 : 0.6; e.pslow = S.t + 1.5; e.pslowK = e.elite || e.type === 'king' ? 1 - (1 - k) / 2 : k; }
+function palmStrike(a) {
+  const P = S.p, lv = S.w.palm || 1, R = lv >= 3 ? 70 : 54, dmg = [0, 24, 32, 32, 32, 45][lv];
+  S.palms.push({ x: P.x, y: P.y - 8, a, R, t: 0 }); sfx('pulse');
   for (const e of S.en) {
-    if (!(e.flungT > S.t) || e.flungHit || e.dead) continue;
-    const o = S.en.find(q => q !== e && !q.dead && !q.ally && (q.x - e.x) ** 2 + (q.y - e.y) ** 2 < 14 * 14);
-    if (o) { e.flungHit = true; hurt(e, 10, 0); hurt(o, 10, 40, e.x, e.y); sfx('hit'); }
+    if (e.dead || e.audience || e.onBike || e.type === 'hand') continue;
+    const dx = e.x - P.x, dy = (e.y - P.y) / 0.75, d = Math.hypot(dx, dy); if (d > R + e.r) continue;
+    let da = Math.atan2(dy, dx) - a; da = Math.atan2(Math.sin(da), Math.cos(da)); if (Math.abs(da) > Math.PI / 4 + 0.15 && d > 14) continue;
+    hurt(e, dmg, 40); palmSlow(e, lv);
   }
+}
+function palmBurst() {
+  const P = S.p, lv = S.w.palm || 1;
+  S.palms.push({ x: P.x, y: P.y - 4, a: 0, R: 92, t: 0, full: true }); sfx('ult'); S.shake = Math.max(S.shake, 0.12);
+  S.synSeen = S.synSeen || {}; S.texts.push({ x: P.x, y: P.y - 46, v: '八卦连环掌！', t: S.synSeen.palm ? 0.8 : 1.5, c: '#ffe070', big: true }); S.synSeen.palm = true;
+  for (const e of S.en) { if (e.dead || e.audience || e.onBike || e.type === 'hand') continue; if ((e.x - P.x) ** 2 + ((e.y - P.y) / 0.75) ** 2 < 92 * 92) { hurt(e, 40, 70); palmSlow(e, Math.max(4, lv)); } }
+}
+function tryDodge() {
+  const lv = S.w.palm || 0; if (!lv) return false;
+  const ch = [0, 0.1, 0.1, 0.15, 0.15, 0.2][lv] + (S.ult && S.ult.k === 'taiji' && S.taijis.some(z => !z.mini) ? 0.1 : 0);
+  if (Math.random() >= ch) return false;
+  const P = S.p; P.inv = Math.max(P.inv, 0.35);
+  for (let i = 1; i <= 3; i++) S.afterimgs.push({ x: P.x - P.face * i * 6, y: P.y, face: P.face, t: -i * 0.03 });
+  S.texts.push({ x: P.x, y: P.y - 40, v: '闪', t: 0.7, c: '#ffe070', big: true }); sfx('wisp');
+  const tg = nearest(1, 80)[0]; if (tg) palmStrike(Math.atan2((tg.y - P.y) / 0.75, tg.x - P.x));
+  if (lv >= 5) palmBurst();
+  return true;
+}
+function drawPalm(q) {
+  const k = q.full ? q.t / 0.5 : q.t / 0.35, al = Math.max(0, 1 - Math.max(0, k - 0.5) * 2) * 0.85;
+  if (q.full) {
+    const r = 20 + q.R * Math.min(1, k * 1.6);
+    yinyang(q.x, q.y, r, q.t * 6, al * 0.85);
+    g.save(); g.translate(Math.round(q.x), Math.round(q.y)); g.scale(1, 0.75); g.globalAlpha = al;
+    g.strokeStyle = '#ffe070'; g.lineWidth = 2; g.beginPath(); g.arc(0, 0, r + 6, 0, 7); g.stroke();
+    g.fillStyle = '#ffe070';
+    for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + q.t * 2, x = Math.cos(a) * (r + 6), y = Math.sin(a) * (r + 6); for (let j = 0; j < 3; j++) g.fillRect(Math.round(x - 4), Math.round(y - 3 + j * 3), 8, 1); }
+    g.restore(); g.globalAlpha = 1; return;
+  }
+  const r = q.R * (0.55 + 0.45 * Math.min(1, k * 2.2)), a0 = q.a - Math.PI / 4 + k * 0.4, mid = a0 + Math.PI / 4, a1 = a0 + Math.PI / 2;
+  g.save(); g.translate(Math.round(q.x), Math.round(q.y)); g.scale(1, 0.75); g.globalAlpha = al;
+  g.fillStyle = '#f4efe2'; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, r, a0, mid); g.closePath(); g.fill();
+  g.fillStyle = '#1a0e1e'; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, r, mid, a1); g.closePath(); g.fill();
+  const cx1 = Math.cos(mid) * r * 0.38, cy1 = Math.sin(mid) * r * 0.38, cx2 = Math.cos(mid) * r * 0.72, cy2 = Math.sin(mid) * r * 0.72, rr = r * 0.17;
+  g.fillStyle = '#1a0e1e'; g.beginPath(); g.arc(cx1, cy1, rr, mid - Math.PI, mid); g.fill();
+  g.fillStyle = '#f4efe2'; g.beginPath(); g.arc(cx2, cy2, rr, mid, mid + Math.PI); g.fill();
+  for (const [da, c] of [[-0.21, '#1a0e1e'], [0.21, '#f4efe2']]) { g.fillStyle = c; g.beginPath(); g.arc(Math.cos(mid + da) * r * 0.6, Math.sin(mid + da) * r * 0.6, 2, 0, 7); g.fill(); }
+  g.strokeStyle = '#1a0e1e'; g.lineWidth = 2; g.beginPath(); g.arc(0, 0, r, a0, a1); g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 1; g.beginPath(); g.arc(0, 0, r + 4, a0 + 0.1, a1 - 0.1); g.stroke();
+  g.restore(); g.globalAlpha = 1;
 }
 function yinyang(x, y, r, rot, alpha) {
   g.save(); g.translate(Math.round(x), Math.round(y)); g.scale(1, 0.75); g.rotate(rot); g.globalAlpha = alpha;
@@ -1528,7 +1549,7 @@ function update() {
     if (lost) { tx = e.wx; ty = e.wy; }
     if (e.fleeT > S.t) { tx = -tx; ty = -ty; }
     const tl = Math.hypot(tx, ty) || 1;
-    let sp = e.spd * (rooster ? 0.5 : 1) * (e.slow > S.t ? 0.35 : 1) * (lost && P.breath > 2.0 ? 0 : 1) * (e.type === 'ghost' && S.t < 60 ? 0.8 : 1);
+    let sp = e.spd * (rooster ? 0.5 : 1) * (e.slow > S.t ? 0.35 : 1) * (e.pslow > S.t ? e.pslowK : 1) * (lost && P.breath > 2.0 ? 0 : 1) * (e.type === 'ghost' && S.t < 60 ? 0.8 : 1);
     if ((e.type === 'zombie' && !e.leaper) || e.type === 'king') { e.phase += DT * (e.type === 'king' ? 5 : 7); sp *= Math.max(0, Math.sin(e.phase)) * 2.2; }
     if (e.type === 'jumper' || e.leaper) {
       e.leapCd -= DT;
@@ -1841,7 +1862,7 @@ function draw() {
     g.globalAlpha = c.open ? Math.max(0, c.life) : 1; g.drawImage(im, Math.round(c.x - im.width / 2), Math.round(c.y - im.height + bob)); g.globalAlpha = 1;
   }
   // 太极八卦阵 (ground)
-  for (const z of S.pushes) { const k = z.t / z.dur, a = Math.min(1, z.t / 0.12) * (z.t > z.dur ? Math.max(0, 1 - (z.t - z.dur) / 0.25) : 1); yinyang(z.x, z.y - 2, z.R * Math.min(1, 0.4 + z.t / 0.15), z.rot * (z.two ? 1 : 1) + k * 0.5, 0.72 * a); }
+  for (const q of S.palms) drawPalm(q);
   for (const z of S.taijis) {
     const fade = Math.min(1, (z.dur - z.t) * 3), s = z.r / 64;
     g.save(); g.translate(Math.round(z.x), Math.round(z.y - 2)); g.scale(1, 0.75); g.globalAlpha = 0.85 * fade;
@@ -2002,6 +2023,7 @@ function draw() {
     if (it.p) {
       g.fillStyle = 'rgba(14,8,24,.5)'; g.beginPath(); g.ellipse(P.x, P.y, 8, 2.5, 0, 0, 7); g.fill();
       const bob = P.moving ? Math.round(Math.abs(Math.sin(P.walk * 12)) * -1.5) : 0;
+      for (const a of S.afterimgs) if (a.t >= 0) { const ai = a.face < 0 ? flipped('taoist') : IMG.taoist; g.globalAlpha = 0.45 * (1 - a.t / 0.45); g.drawImage(ai, Math.round(a.x - ai.width / 2), Math.round(a.y - ai.height + 3)); g.globalAlpha = 1; }
       const held = P.breath > 0 ? 2.8 - P.breath : 0, tk = held > 1.7 ? 'taoistR2' : held > 0.7 ? 'taoistR1' : 'taoist';
       const im = P.face < 0 ? flipped(tk) : IMG[tk];
       if (P.inv > 0 && P.inv < 50 && Math.floor(P.inv * 20) % 2) continue;
