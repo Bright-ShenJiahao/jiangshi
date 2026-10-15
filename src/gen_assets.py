@@ -1,6 +1,6 @@
 import base64, io, json
 from PIL import Image
-import map_gen4
+import map_gen5
 
 g = {}
 exec(open('sprites.py').read().split('\nsheet()')[0], g)
@@ -20,7 +20,7 @@ sprites = {
     'ghost': g['ghost']().img(),
     'king': g['king']().img(),
     'walker': wg['walker']().img(),
-    'villager': map_gen4.villager_spr(g),
+    'villager': map_gen5.villager_spr(g),
 }
 exec(open('story_sprites.py').read(), g)
 g['PAL']['P'] = (236, 112, 104)
@@ -39,6 +39,10 @@ def _redface(im, k):
             elif a_ and (r, g_, b_) == S2: px_[x, y] = to[1] + (a_,)
     return out
 sprites['taoistR1'] = _redface(sprites['taoist'], 1); sprites['taoistR2'] = _redface(sprites['taoist'], 2)
+exec(open('new_chars.py').read(), g)
+sprites.update({'renZ': g['ren_zombie']().img(), 'simu': g['simu']().img(), 'corpse': g['corpse']().img(), 'believer': g['believer']().img(),
+                'thrall': g['believer'](False, True).img(), 'bananaG': g['banana_ghost']().img(), 'bananaT': g['banana_ghost'](True).img(),
+                'bikeG': g['qiusheng_bike_bride']().img(), 'bike': g['qiusheng_bike'](False).img(), 'operaDan': g['opera_dan']().img(), 'operaJing': g['opera_jing']().img()})
 exec(open('monsters2.py').read(), g)
 sprites.update({'vampire': g['vampire']().img(), 'ghostR': g['red_ghost'](g), 'jumperM': g['hairy'](g['zombie']('m', 'M').img()),
                 'chest': g['chest']().img(), 'chestB': g['chest'](True).img()})
@@ -49,7 +53,7 @@ import qrcode
 _q = qrcode.QRCode(border=2, box_size=1, error_correction=qrcode.constants.ERROR_CORRECT_M)
 _q.add_data('https://jiangshidaozhang.netlify.app/'); _q.make(fit=True)
 sprites['qr'] = _q.make_image(fill_color='black', back_color='white').convert('RGBA')
-bg, objsprites, data = map_gen4.build()
+bg, objsprites, data = map_gen5.build()
 sprites.update(objsprites)
 assets = {k: b64(v) for k, v in sprites.items()}
 assets['bg'] = b64(bg.convert('RGB'))

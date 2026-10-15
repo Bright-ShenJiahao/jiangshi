@@ -48,6 +48,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
 .btn:focus-visible, .opt:focus-visible, #breath:focus-visible { outline: 3px solid var(--jade); outline-offset: 2px; }
 .opts { display: grid; gap: 10px; margin-top: 14px; }
+.reroll { margin-top: 4px; justify-self: center; background: transparent; border: 2px dashed var(--line); color: var(--talisman); font: 16px var(--display); padding: 6px 16px; cursor: pointer; }
 .opt { display: grid; grid-template-columns: 52px 1fr auto; gap: 12px; align-items: center; text-align: left; background: var(--ink); border: 3px solid var(--line); padding: 10px 12px; color: var(--text); font: 17px var(--display); cursor: pointer; }
 .opt:hover { border-color: var(--talisman); }
 .opt.ult { position: relative; background: linear-gradient(135deg, #5a1424, #2a0c1a); border-color: #e8b830; animation: ultglow 1.6s ease-in-out infinite; overflow: hidden; }
@@ -101,6 +102,9 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 #pTip { margin: 0; color: var(--talisman); font-size: 17px; text-align: center; }
 .pBtns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .pBtns .btn { text-decoration: none; }
+#rumor { position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 150px); transform: translateX(-50%); width: min(94vw, 520px); text-align: center; pointer-events: none; z-index: 6; }
+#rumor span { display: inline-block; background: rgba(14, 6, 16, .86); border: 2px solid #8a2a2a; box-shadow: 0 0 0 2px var(--ink); color: #f4e4d0; font-size: 17px; line-height: 1.5; padding: 6px 14px; }
+#rumor span.red { color: #ff8a7a; border-color: #c8302c; }
 #tip { position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 92px); transform: translateX(-50%); width: min(92vw, 460px); text-align: center; pointer-events: none; }
 #tip span { display: inline-block; background: rgba(26, 14, 30, .88); border: 2px solid var(--talisman); box-shadow: 0 0 0 2px var(--ink); color: var(--paper); font-size: 17px; line-height: 1.5; padding: 8px 14px; animation: tipin .35s ease-out; }
 @keyframes tipin { from { transform: translateY(-8px); opacity: 0; } }
@@ -158,6 +162,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
   <button id="ult" hidden>雷<small>Q</small></button>
   <div id="banner" hidden></div>
   <div id="tip" hidden><span id="tipT"></span></div>
+  <div id="rumor" hidden><span id="rumorT"></span></div>
   <div id="tipArrow" hidden>↘</div>
 
   <div class="modal" id="title">
@@ -235,7 +240,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 const A = /*ASSETS*/{};
 const MAP = /*MAP*/{};
 const VO = /*VO*/{};
-const GRAVES = MAP.graves || [], COFFINS = MAP.coffins || [];
+const GRAVES = MAP.graves || [], COFFINS = MAP.coffins || [], EX = MAP.extX || 0;
 const NIGHT = 300, BOSS_AT = 180, ROOSTER_AT = 270, PARADE_AT = 120;
 // 尸王伤害倍率：普通 ×1.5；困难不再叠加困难的 ×1.5，只额外 ×1.2
 const bossDmg = () => 1.5 * (S.diff === 'hard' ? 1.2 : 1);
@@ -288,6 +293,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyQ') tryUlt();
   if (e.code === 'KeyP' && S && (S.state === 'play' || S.state === 'pause')) togglePause();
   if (S && S.state === 'level' && /^Digit[1-3]$/.test(e.code)) pick(+e.code.slice(5) - 1);
+  if (S && S.state === 'level' && e.code === 'KeyR') reroll();
 });
 addEventListener('keyup', e => { keys[e.code] = false; });
 const joy = { on: false, ox: 0, oy: 0, x: 0, y: 0, id: null };
@@ -302,19 +308,20 @@ $('ult').addEventListener('click', () => tryUlt());
 const NUM = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
 const cn = n => n <= 10 ? NUM[n] : n < 20 ? '十' + (n % 10 ? NUM[n % 10] : '') : NUM[Math.floor(n / 10)] + '十' + (n % 10 ? NUM[n % 10] : '');
 const WEAPONS = {
-  sword: { name: '桃木剑', seal: '剑', w: 1, desc: ['身边两把剑环绕挥砍', '伤害提升', '三把剑', '剑更长', '四把剑，伤害大增'] },
+  sword: { name: '桃木剑', seal: '剑', w: 1, desc: ['身边两把剑环绕挥砍', '伤害提升', '三把剑', '剑更长', '四把剑，伤害大增；斩杀回阳（每秒最多 2 点）'] },
   fu: { name: '镇尸符', seal: '符', w: 1, desc: ['向四周撒出 6 张符：命中必减速，几率贴符定身 2 秒；定住的怪挨打伤害 +25%', '一次 8 张', '定身几率提高', '一次 12 张', '符飞得更远'] },
   coin: { name: '铜钱剑', seal: '钱', w: 1, desc: ['铜钱剑飞出再飞回，来回穿透', '飞得更远', '两把', '伤害提升', '三把，剑更大'] },
   rice: { name: '糯米', seal: '米', w: 1, desc: ['边走边撒糯米，踩到的怪被灼烧', '撒得更宽', '伤害提升', '留得更久', '更宽，伤害大增'] },
   ink: { name: '墨斗线', seal: '墨', w: 1, desc: ['弹出墨线挡住怪物 3 秒，弹开多次后会断；精英和尸王能冲断它', '变成两条平行线', '变成三角形，把你围住', '变成四方形', '四方形更大，伤害提升'] },
   mirror: { name: '金光咒', seal: '金', w: 1, desc: ['每 12 秒凝出金光罩，最多挡 30 点伤害；破碎时炸开震退四周', '护盾上限提高到 40', '金光恢复更快（9 秒）', '炸开范围变大，震退更远', '护盾上限 55，7 秒恢复'] },
+  push: { name: '太极推手', seal: '推', w: 1, desc: ['每 3 秒在身边转出黑白太极图：贴身的怪被带着转半圈、受伤后甩出去，背过身走开 1 秒', '伤害提升', '太极图变大', '间隔缩短到 2.2 秒', '正反各转一次，甩出去的怪撞到别的怪，两只都受伤'] },
   bell: { name: '镇魂铃', seal: '铃', w: 1, desc: ['摇铃发出扇形声波，穿透敌人', '声波更远', '伤害提升，扇面变宽', '间隔缩短', '距离与伤害大增'] },
 };
 const PASSIVES = {
   speed: { name: '神行', seal: '行', desc: '移动速度 +10%' },
-  magnet: { name: '引魂', seal: '引', desc: '吸取阴德范围 +35%' },
-  cd: { name: '法力', seal: '法', desc: '法器间隔 -8%' },
-  hp: { name: '阳气', seal: '阳', desc: '阳气上限 +20，并回满' },
+  magnet: { name: '引魂', seal: '引', desc: '吸取阴德范围 +20%（最多三重）' },
+  cd: { name: '法力', seal: '法', desc: '符、铜钱剑、墨斗、铃、推手、金光咒的间隔 -8%（不影响大招）' },
+  hp: { name: '阳气', seal: '阳', desc: '阳气上限 +20，回复 20 点' },
 };
 const ULTS = {
   thunder: { name: '五雷正法', seal: '雷', desc: ['大招：全屏降下 12 道天雷，会劈焦树、点燃民房', '16 道雷', '24 道雷，伤害提升；尸王在场时三分之一的雷专劈尸王'] },
@@ -327,9 +334,11 @@ const ULTSYN = {
   taiji: { w: 'ink', name: '太极墨阵', text: '墨斗线偶尔画成小太极阵', ch: [0, 0.12, 0.18, 0.25] },
   qiankun: { w: 'coin', name: '剑停回旋', text: '铜钱剑偶尔停在原地旋转攻击', ch: [0, 0.10, 0.15, 0.20] },
 };
+const dimin = n => n <= 12 ? 1 : Math.max(0.4, 1 - 0.05 * (n - 12));   // 大招：同一次命中第 13 只起逐只递减
+const ULTSYN2 = { taiji: { w: 'push', name: '阴阳大圈', text: '太极推手偶尔转出大一号的阴阳圈', ch: [0, 0.15, 0.2, 0.25] } };
 const synCh = k => (S.ult && S.ult.k === k ? ULTSYN[k].ch[S.ult.lv] || 0 : 0);
 function synShow(k, x, y) { S.synSeen = S.synSeen || {}; S.texts.push({ x, y: y - 30, v: ULTSYN[k].name + '！', t: S.synSeen[k] ? 0.7 : 1.4, c: '#ffe070', big: !S.synSeen[k] }); S.synSeen[k] = true; }
-const TAGS = { sword: ['伤害', '近身'], coin: ['伤害', '穿透'], rice: ['伤害', '持续'], bell: ['伤害', '范围'], fu: ['控制'], ink: ['控制', '范围'], mirror: ['防御'] };
+const TAGS = { push: ['控制', '近身'], sword: ['伤害', '近身'], coin: ['伤害', '穿透'], rice: ['伤害', '持续'], bell: ['伤害', '范围'], fu: ['控制'], ink: ['控制', '范围'], mirror: ['防御'] };
 const TAGC = { '伤害': 'dmg', '控制': 'ctl', '防御': 'def', '范围': 'aoe', '被动': 'pas' };
 const DIFF = {
   normal: { name: '普通', hp: 1, dmg: 1, inv: 0.9, spawn: 1, skill: 1, mul: 1 },
@@ -435,10 +444,10 @@ let S = null;
 function newGame(diff = 'normal') {
   S = {
     diff, bossKilled: false, parade: false, state: 'play', t: 0, kills: 0, lv: 1, xp: 0, need: 5, bossSpawned: false, roosterShown: false,
-    p: { x: 700, y: 700 + (MAP.townH || 0), hp: 100, max: 100, face: 1, inv: 0, moving: false, walk: 0, breath: 0, breathCd: 0 },
+    p: { x: 700 + EX, y: 700 + (MAP.townH || 0), hp: 100, max: 100, face: 1, inv: 0, moving: false, walk: 0, breath: 0, breathCd: 0 },
     mods: { speed: 0, magnet: 0, cd: 0, hp: 0, dmg: 0, regen: 0 },
     w: { sword: 1 }, timers: {}, swordAng: 0,
-    objs: (MAP.objs || []).map(o => ({ ...o, burnt: false, state: 'ok', fireT: 0, smoke: 0, tk: 0 })), ult: null, ultCd: 0, sweeps: [], taijis: [], guas: [], shield: 0, shieldT: null, chests: [], lvQueue: 0, eliteT: 60, eliteN: 0, vampOut: false, wgCd: 8, eshots: [], npcs: [], npcT: 15, loot: [], aw: null, awDone: false, yamT: 0, gongVo: 0, dawnT: null, yz: (MAP.yz || []).map(([x, y, o]) => ({ x, y, open: !!o, pre: !!o, t: 0 })), yzT: rnd(40, 60), fish: [], fishT: 2, cam: { x: 0, y: 0 },
+    objs: (MAP.objs || []).map(o => ({ ...o, burnt: false, state: 'ok', fireT: 0, smoke: 0, tk: 0 })), ult: null, ultCd: 0, sweeps: [], taijis: [], pushes: [], ev: {}, allies: [], decor: [], batFx: [], rumorQ: [], guas: [], shield: 0, shieldT: null, chests: [], lvQueue: 0, eliteT: 60, eliteN: 0, vampOut: false, wgCd: 8, eshots: [], npcs: [], npcT: 15, loot: [], aw: null, awDone: false, yamT: 0, gongVo: 0, dawnT: null, yz: (MAP.yz || []).map(([x, y, o]) => ({ x, y, open: !!o, pre: !!o, t: 0 })), yzT: rnd(40, 60), fish: [], fishT: 2, cam: { x: 0, y: 0 },
     food: [], foodT: 18, parts: [], combo: 0, comboT: 0, stop: 0, flash: 0, en: [], shots: [], areas: [], orbs: [], fx: [], texts: [], spawnAcc: 0, nextId: 1, shake: 0,
   };
   for (const k of ['title', 'end', 'levelup', 'pause', 'revive', 'brag', 'tip', 'tipArrow']) $(k).hidden = true;
@@ -448,7 +457,7 @@ function newGame(diff = 'normal') {
   startAmbient();
   $('nameForm').hidden = true; boardNote = ''; myEntry = null;
   $('hud').hidden = false; $('breath').hidden = false; $('ult').hidden = true; $('banner').hidden = true;
-  for (let k = 0; k < 200 && !freeAt(S.p.x, S.p.y); k++) { S.p.x = 700 + rnd(-60, 60); S.p.y = 700 + rnd(-60, 60); }
+  for (let k = 0; k < 200 && !freeAt(S.p.x, S.p.y); k++) { S.p.x = 700 + EX + rnd(-60, 60); S.p.y = 700 + (MAP.townH || 0) + rnd(-60, 60); }
   last = performance.now();
 }
 
@@ -538,6 +547,8 @@ function hurt(e, dmg, kb = 0, fromX = S.p.x, fromY = S.p.y, tag) {
   e.hp -= dmg; e.flash = 0.12; sfx('hit');
   if (kb) { const dx = e.x - fromX, dy = e.y - fromY, l = Math.hypot(dx, dy) || 1, k = e.type === 'king' ? 0.15 : 1; e.kx += dx / l * kb * k; e.ky += dy / l * kb * k; }
   S.texts.push({ x: e.x + rnd(-3, 3), y: e.y - 22, v: Math.round(dmg) + (crit ? '!' : ''), t: crit || weak ? 0.8 : 0.6, c: weak ? '#ff9a3a' : crit ? '#ffd040' : '#ffffff', big: crit || weak });
+  if (e.audience) stageAggro();
+  if (e.onHurt) e.onHurt(e);
   if (e.hp <= 0 && e.type === 'vampire') { vampireEscape(e); return; }
   if (e.hp <= 0 && e.type === 'king' && !e.phase2) { toShasha(e); return; }
   if (e.hp <= 0 && e.skin === 'walkS' && !e.revived) {   // 半腐骷髅：散架后重新拼起来一次
@@ -553,7 +564,8 @@ function hurt(e, dmg, kb = 0, fromX = S.p.x, fromY = S.p.y, tag) {
     if (e.type === 'walker') S.areas.push({ k: 'poison', x: e.x, y: e.y, r: 14, life: 4, tk: 0, seed: Math.random() * 1000 });
     if (e.type === 'king') S.bossKilled = true;
     if (e.type === 'hand') { S.p.grabT = 0; e.gone = true; }
-    if (e.elite && e.skin && Math.random() < 0.5) S.chests.push({ x: e.x, y: e.y, big: false, t: 0 });
+    if (e.elite && e.skin && !e.special && Math.random() < 0.5) S.chests.push({ x: e.x, y: e.y, big: false, t: 0 });
+    if (e.onDie) e.onDie(e);
     const n = e.type === 'king' ? 20 : e.elite ? 3 : 1;
     for (let i = 0; i < n; i++) S.orbs.push({ x: e.x + rnd(-6, 6) * (n > 1), y: e.y + rnd(-6, 6) * (n > 1), v: n > 1 ? 5 : e.xp });
     if (e.type === 'king') { S.food.push({ k: 'pig', x: e.x, y: e.y }); banner('尸煞伏诛！那口气终于散了', 2.8); S.shake = 0.5; sfx('boss'); }
@@ -582,7 +594,13 @@ function updateWeapons() {
         const hx = P.x + Math.cos(a) * s, hy = P.y - 10 + Math.sin(a) * s * 0.75;
         for (const e of S.en) {
           if (e.dead || (e.hitCd['s' + i] || 0) > S.t) continue;
-          if ((e.x - hx) ** 2 + (e.y - 10 - hy) ** 2 < (e.r + 6) ** 2) { hurt(e, dmg, 45); e.hitCd['s' + i] = S.t + 0.45; }
+          if ((e.x - hx) ** 2 + (e.y - 10 - hy) ** 2 < (e.r + 6) ** 2) {
+            hurt(e, dmg, 45); e.hitCd['s' + i] = S.t + 0.45;
+            if (lv >= 5 && e.dead && P.hp < P.max) {   // 五重桃木剑：斩杀回阳，每秒最多 2 点
+              if (S.t - (S.lsT0 || -9) >= 1) { S.lsT0 = S.t; S.lsN = 0; }
+              if (S.lsN < 2) { S.lsN++; P.hp = Math.min(P.max, P.hp + 1); if (Math.random() < 0.3) S.texts.push({ x: P.x + rnd(-6, 6), y: P.y - 30, v: '+1', t: 0.5, c: '#7ef0a0' }); }
+            }
+          }
         }
       }
     }
@@ -612,7 +630,7 @@ function updateWeapons() {
     const add = (pts, closed) => { reels.push(pts[0]); for (let i = 0; i < pts.length - (closed ? 0 : 1); i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; segs.push([a[0], a[1], b[0], b[1]]); } };
     if (lv === 1) add([T(-50, 0), T(50, 0)]);
     else if (lv === 2) { add([T(-55, -22), T(55, -22)]); add([T(-55, 22), T(55, 22)]); }
-    else if (lv === 3) add([0, 1, 2].map(i => T(Math.cos(i * 2.094 - 1.571) * 52, Math.sin(i * 2.094 - 1.571) * 52)), true);
+    else if (lv === 3) add([0, 1, 2].map(i => T(Math.cos(i * 2.094 - 1.571) * 68, Math.sin(i * 2.094 - 1.571) * 68)), true);
     else { const h = lv >= 5 ? 54 : 42; add([T(-h, -h), T(h, -h), T(h, h), T(-h, h)], true); }
     S.areas.push({ k: 'ink', segs, reels, dur: segs.map(() => [0, 3, 5, 7, 9, 11][lv]), snap: segs.map(() => 0), ox: P.x, oy: P.y - 12, life: 0, max: lv >= 4 ? 3.5 : 3, dmg: lv >= 5 ? 20 : 12 }); sfx('throw');
   }
@@ -637,17 +655,72 @@ function updateWeapons() {
     }
   }
   if (W.mirror) {
-    const lv = W.mirror, cd = lv >= 5 ? 7 : lv >= 3 ? 9 : 12;
+    const lv = W.mirror, cd = (lv >= 5 ? 7 : lv >= 3 ? 9 : 12) * cdMul();
     if (S.shield < 1) { S.shieldT = (S.shieldT ?? 1) - DT; if (S.shieldT <= 0) { S.shield = 1; S.shieldT = cd; sfx('pickbig'); } }
     else S.shieldT = Math.min(S.shieldT ?? 1, cd);
   }
+  // 太极推手
+  if (W.push && tick('push', W.push >= 4 ? 2.2 : 3)) {
+    const lv = W.push, sc = S.ult && ULTSYN2[S.ult.k] ? ULTSYN2[S.ult.k].ch[S.ult.lv] || 0 : 0, big = Math.random() < sc;
+    const R = (lv >= 3 ? 48 : 36) * (big ? 1.6 : 1), dmg = lv >= 2 ? 22 : 15;
+    const z = { x: P.x, y: P.y, t: 0, dur: lv >= 5 ? 1.2 : 0.8, R, two: lv >= 5, caught: [], big };
+    for (const e of S.en) {
+      if (e.dead || e.rise > 0 || e.type === 'hand' || e.ally) continue;
+      const dx = e.x - P.x, dy = (e.y - P.y) / 0.75, d = Math.hypot(dx, dy) || 1;
+      if (d > R + e.r) continue;
+      hurt(e, dmg, 0, P.x, P.y);
+      if (e.dead || e.type === 'king' || e.type === 'vampire') continue;
+      if (e.elite) { e.kx += dx / d * 160; e.ky += dy / d * 120; continue; }
+      z.caught.push({ e, a: Math.atan2(dy, dx), d: Math.max(12, d) });
+    }
+    if (big) { S.synSeen = S.synSeen || {}; S.texts.push({ x: P.x, y: P.y - 40, v: '阴阳大圈！', t: S.synSeen.push2 ? 0.7 : 1.4, c: '#ffe070', big: !S.synSeen.push2 }); S.synSeen.push2 = true; }
+    S.pushes.push(z); sfx('pulse');
+  }
+  for (const z of S.pushes) {
+    z.t += DT; z.x = P.x; z.y = P.y;
+    const k = Math.min(1, z.t / z.dur), ez = q => q * q * (3 - 2 * q);
+    z.rot = z.two ? (k < 0.5 ? Math.PI * ez(k * 2) : Math.PI * (1 - ez((k - 0.5) * 2))) : Math.PI * ez(k);
+    for (const c of z.caught) {
+      const e = c.e; if (e.dead) continue;
+      const a = c.a + z.rot; e.x = z.x + Math.cos(a) * c.d; e.y = z.y + Math.sin(a) * c.d * 0.75; e.stun = Math.max(e.stun, 0.05);
+    }
+    if (k >= 1 && !z.done) {
+      z.done = true;
+      for (const c of z.caught) {
+        const e = c.e; if (e.dead) continue;
+        const a = c.a + z.rot, sg = z.two ? -1 : 1, tx = -Math.sin(a) * sg, ty = Math.cos(a) * sg;
+        e.kx += (tx * 0.6 + Math.cos(a)) * 220; e.ky += (ty * 0.6 + Math.sin(a)) * 160; e.fleeT = S.t + 1.0;
+        if (z.two) { e.flungT = S.t + 0.5; e.flungHit = false; }
+        S.texts.push({ x: e.x, y: e.y - 30, v: '晕', t: 0.6, c: '#ffffff' });
+      }
+    }
+  }
+  S.pushes = S.pushes.filter(z => z.t < z.dur + 0.25);
+  for (const e of S.en) {
+    if (!(e.flungT > S.t) || e.flungHit || e.dead) continue;
+    const o = S.en.find(q => q !== e && !q.dead && !q.ally && (q.x - e.x) ** 2 + (q.y - e.y) ** 2 < 14 * 14);
+    if (o) { e.flungHit = true; hurt(e, 10, 0); hurt(o, 10, 40, e.x, e.y); sfx('hit'); }
+  }
+}
+function yinyang(x, y, r, rot, alpha) {
+  g.save(); g.translate(Math.round(x), Math.round(y)); g.scale(1, 0.75); g.rotate(rot); g.globalAlpha = alpha;
+  g.fillStyle = '#f4efe2'; g.beginPath(); g.arc(0, 0, r, 0, 7); g.fill();
+  g.fillStyle = '#1a0e1e'; g.beginPath(); g.arc(0, 0, r, -Math.PI / 2, Math.PI / 2); g.fill();
+  g.fillStyle = '#f4efe2'; g.beginPath(); g.arc(0, -r / 2, r / 2, 0, 7); g.fill();
+  g.fillStyle = '#1a0e1e'; g.beginPath(); g.arc(0, r / 2, r / 2, 0, 7); g.fill();
+  g.beginPath(); g.arc(0, -r / 2, r / 7, 0, 7); g.fill();
+  g.fillStyle = '#f4efe2'; g.beginPath(); g.arc(0, r / 2, r / 7, 0, 7); g.fill();
+  g.strokeStyle = '#1a0e1e'; g.lineWidth = 2; g.beginPath(); g.arc(0, 0, r, 0, 7); g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 1;
+  for (let i = 0; i < 3; i++) { g.beginPath(); g.arc(0, 0, r + 4 + i * 3, i * 2.1, i * 2.1 + 1.2); g.stroke(); }
+  g.restore(); g.globalAlpha = 1;
 }
 
 // ---------- level up ----------
 function options() {
   const pool = [];
   for (const k in WEAPONS) { const lv = S.w[k] || 0; if (lv < 5) pool.push({ kind: 'w', k, lv }); }
-  for (const k in PASSIVES) if (S.mods[k] < 5) pool.push({ kind: 'p', k, lv: S.mods[k] });
+  for (const k in PASSIVES) if (S.mods[k] < (k === 'magnet' ? 3 : 5)) pool.push({ kind: 'p', k, lv: S.mods[k] });
   const out = [];
   while (out.length < 3 && pool.length) {
     const ws = pool.map(o => o.kind === 'w' ? WEAPONS[o.k].w : 1), tot = ws.reduce((a, b) => a + b, 0);
@@ -663,11 +736,15 @@ function levelUp() {
   if (S.ult && (S.lv === 15 || S.lv === 22) && S.ult.lv < 3) { S.ult.lv++; banner(`${ULTS[S.ult.k].name} · ${cn(S.ult.lv)}重`, 2); sfx('ultcard'); }
   const ultPick = S.lv >= 8 && !S.ult;
   sfx('level'); S.state = 'level'; curOpts = ultPick ? Object.keys(ULTS).map(k => ({ kind: 'u', k, lv: 0 })) : options();
+  renderOpts();
+}
+function renderOpts() {
   const box = $('opts'); box.innerHTML = '';
   curOpts.forEach((o, i) => {
     const D = o.kind === 'w' ? WEAPONS[o.k] : o.kind === 'u' ? ULTS[o.k] : o.kind === 'h' ? { name: '调息', seal: '息', desc: '恢复 30 点阳气' } : PASSIVES[o.k];
     let desc = o.kind === 'w' || o.kind === 'u' ? D.desc[o.lv] : D.desc;
-    if (o.kind === 'u' && ULTSYN[o.k]) desc += `<br><span class="syn">附带：${ULTSYN[o.k].text}</span>`;
+    if (o.kind === 'u' && ULTSYN[o.k]) desc += `<br><span class="syn">附带：${ULTSYN[o.k].text}${ULTSYN2[o.k] ? '；' + ULTSYN2[o.k].text : ''}</span>`;
+    if (o.kind === 'w' && S.ult && ULTSYN2[S.ult.k] && ULTSYN2[S.ult.k].w === o.k) desc += `<br><span class="syn">已获${ULTS[S.ult.k].name}加持：${ULTSYN2[S.ult.k].name}</span>`;
     if (o.kind === 'w' && S.ult && ULTSYN[S.ult.k] && ULTSYN[S.ult.k].w === o.k) desc += `<br><span class="syn">已获${ULTS[S.ult.k].name}加持：${ULTSYN[S.ult.k].name}</span>`;
     const b = document.createElement('button'); b.className = o.kind === 'u' ? 'opt ult' : 'opt'; b.id = 'opt' + i;
     const tg = o.kind === 'w' ? TAGS[o.k] || [] : o.kind === 'p' ? ['被动'] : [];
@@ -675,17 +752,25 @@ function levelUp() {
     b.onclick = () => pick(i); box.appendChild(b);
   });
   const hasUlt = curOpts.some(o => o.kind === 'u');
+  if (!hasUlt && S.rerolls > 0) {
+    const rb = document.createElement('button'); rb.className = 'reroll'; rb.textContent = `重抽（剩 ${S.rerolls} 次）· R`;
+    rb.onclick = reroll; box.appendChild(rb);
+  }
   $('lvTitle').textContent = hasUlt ? '天机现世' : '修为精进'; if (hasUlt) sfx('ultcard');
   $('lvSub').innerHTML = hasUlt ? '<b class="ultWarn">大招只能三选一，选定后不能更换</b><br><span class="ultNote">第八重、第十五重、第二十二重时，大招自动升一层</span>' : '选一样法门（按 1 / 2 / 3）';
   $('levelup').hidden = false;
   setTimeout(() => $('opt0') && $('opt0').focus(), 50);
+}
+function reroll() {
+  if (S.state !== 'level' || !(S.rerolls > 0) || curOpts.some(o => o.kind === 'u')) return;
+  S.rerolls--; sfx('pick'); curOpts = options(); renderOpts();
 }
 function pick(i) {
   const o = curOpts[i]; if (!o || S.state !== 'level') return;
   if (o.kind === 'h') S.p.hp = Math.min(S.p.max, S.p.hp + 30);
   else if (o.kind === 'w') S.w[o.k] = (S.w[o.k] || 0) + 1;
   else if (o.kind === 'u') { S.ult = { k: o.k, lv: (S.ult ? S.ult.lv : 0) + 1 }; $('ult').hidden = false; }
-  else { S.mods[o.k]++; if (o.k === 'hp') { S.p.max += 20; S.p.hp = S.p.max; } }
+  else { S.mods[o.k]++; if (o.k === 'hp') { S.p.max += 20; S.p.hp = Math.min(S.p.max, S.p.hp + 20); } }
   $('levelup').hidden = true; S.state = 'play'; last = performance.now();
 }
 function gainXp(v) { S.xp += v; tryLevel(); }
@@ -694,21 +779,23 @@ function tryLevel() {   // 两次升级之间至少隔 3 秒，多余的经验�
   if (S.lvQueue > 0) S.lvQueue--;
   else if (S.xp >= S.need) S.xp -= S.need;
   else return;
-  S.lastLvT = S.t; S.lv++; S.need = 4 + Math.round(S.lv * 2.6); levelUp();
+  S.lastLvT = S.t; S.lv++; S.need = 4 + Math.round(S.lv * 2.6);
+  if (S.lv % 3 === 0) S.rerolls = Math.min(2, (S.rerolls || 0) + 1);
+  levelUp();
 }
 
 // ---------- ultimates ----------
 function tryUlt() {
   if (!S || S.state !== 'play' || !S.ult || S.ultCd > 0) return;
   const P = S.p, { k, lv } = S.ult, C = S.cam;
-  S.ultCd = 30; sfx('ult'); banner(ULTS[k].name, 1.2);
+  S.ultCd = 30; sfx('ult'); banner(ULTS[k].name, 1.2); S.ultId = (S.ultId || 0) + 1; S.ultHits = {};
   if (k === 'thunder') {
     const n = [0, 12, 16, 24][lv];
     const vis = S.en.filter(e => !e.dead && e.x > C.x && e.x < C.x + VW && e.y > C.y && e.y < C.y + VH);
     for (let i = 0; i < n; i++) {
       const king = lv >= 3 && i % 3 === 0 ? vis.find(e => e.type === 'king') : null;
       const t = king || (vis.length ? vis[Math.floor(Math.random() * vis.length)] : null);
-      S.areas.push({ k: 'bolt', x: t ? t.x + rnd(-6, 6) : C.x + rnd(20, VW - 20), y: t ? t.y : C.y + rnd(20, VH - 20), life: -i * (1.5 / n), dmg: lv >= 3 ? 120 : 95, r: 40, done: false, seed: Math.random() });
+      S.areas.push({ k: 'bolt', x: t ? t.x + rnd(-6, 6) : C.x + rnd(20, VW - 20), y: t ? t.y : C.y + rnd(20, VH - 20), life: -i * (1.5 / n), dmg: lv >= 3 ? 120 : 95, r: 40, done: false, seed: Math.random(), ult: S.ultId });
     }
   } else if (k === 'qiankun') {
     const band = lv === 1 ? 0.2 : 0;
@@ -724,7 +811,7 @@ function updateUlts() {
     s.x += s.dir * s.spd * DT;
     for (const e of S.en) {
       if (e.dead || s.hit.has(e.id) || e.y < s.y0 - 10 || e.y > s.y1 + 30 || Math.abs(e.x - s.x) > 12) continue;
-      s.hit.add(e.id); hurt(e, s.dmg, 0); e.kx += s.dir * 240 * (e.type === 'king' ? 0.15 : 1);
+      s.hit.add(e.id); hurt(e, s.dmg * dimin(s.hit.size), 0); e.kx += s.dir * 240 * (e.type === 'king' ? 0.15 : 1);
       if (s.stun) e.stun = Math.max(e.stun, e.type === 'king' || e.elite ? 0.5 : 1);
     }
     if ((s.dir > 0 && s.x > s.x1) || (s.dir < 0 && s.x < s.x0)) {
@@ -738,12 +825,12 @@ function updateUlts() {
     z.r = z.R * Math.min(1, 0.15 + z.t / 1.0);
     z.tk -= DT;
     if (z.tk <= 0) {
-      z.tk = 0.4;
+      z.tk = 0.4; let nh = 0;
       for (const e of S.en) {
         if (e.dead) continue;
         const dx = e.x - z.x, dy = (e.y - z.y) / 0.75, d = Math.hypot(dx, dy) || 1;
         if (d > z.r + e.r) continue;
-        hurt(e, z.dmg, 0, z.x, z.y, 'light'); e.slow = Math.max(e.slow, S.t + 0.5);
+        hurt(e, z.dmg * (z.mini ? 1 : dimin(++nh)), 0, z.x, z.y, 'light'); e.slow = Math.max(e.slow, S.t + 0.5);
         if (e.type !== 'king') { e.kx += dx / d * 70; e.ky += dy / d * 52; }
       }
     }
@@ -886,7 +973,7 @@ function updateWorld() {
   }
   // 义庄：夜里棺材板一块块被掀开
   if (S.yz.some(c => !c.open)) {
-    const nearYZ = (P.x - 1300) ** 2 + (P.y - 190) ** 2 < 340 * 340;
+    const yzc = S.yz.reduce((a, c) => [a[0] + c.x / S.yz.length, a[1] + c.y / S.yz.length], [0, 0]), nearYZ = (P.x - yzc[0]) ** 2 + (P.y - yzc[1]) ** 2 < 340 * 340;
     S.yzT -= DT * (nearYZ ? 3 : 1);
     if (S.yzT <= 0) {
       S.yzT = rnd(35, 55); const cs = S.yz.filter(c => !c.open), c = cs[Math.floor(Math.random() * cs.length)];
@@ -915,7 +1002,7 @@ function updateWorld() {
     if (S.npcs.length < 2 && MAP.road) {
       const road = MAP.road, rn = MAP.roadN, TH = MAP.townH || 0;
       let path;
-      if (TH && P.y < TH + 120) path = Math.random() < 0.5 ? [[30, 262], [740, 262], [1590, 262]] : [[740, 40], [740, 262], [1180, 262], [1590, 262]];
+      if (TH && P.y < TH + 120) path = Math.random() < 0.5 ? [[EX + 300, 262], [EX + 740, 262], [EX + 1590, 262]] : [[EX + 740, 40], [EX + 740, 262], [EX + 1180, 262], [EX + 1590, 262]];
       else path = Math.random() < 0.5 ? road.slice(0, 8) : [[740, TH + 40], rn[1], ...road.slice(0, 5).reverse()];
       if (Math.random() < 0.5 && path[0][1] === 262) path = path.slice().reverse();
       S.npcs.push({ x: path[0][0], y: path[0][1], path, i: 1, st: 'walk', face: 1, t: 0, walk: 0, gongT: 1.5 });
@@ -1110,6 +1197,163 @@ function endGame(win) {
   setTimeout(() => $('againBtn').focus(), 50);
 }
 
+// ---------- 夜里的事件：戏台、四目道长、教堂信徒、任老爷尸变、芭蕉精、秋生、蜻蜓点水穴 ----------
+function rumor(lines, red) { S.rumorQ.push(...lines.map(v => ({ v, red }))); }
+function updateRumor() {
+  const R = S.rumor;
+  if (R && (R.t -= DT) > 0) return;
+  const nx = S.rumorQ.shift();
+  if (!nx) { if (R) { $('rumor').hidden = true; S.rumor = null; } return; }
+  S.rumor = { t: Math.max(2.2, nx.v.length * 0.16) }; $('rumorT').textContent = nx.v; $('rumorT').className = nx.red ? 'red' : ''; $('rumor').hidden = false;
+}
+const near2 = (a, b, r) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 < r * r;
+function updateEvents() {
+  const P = S.p, E = S.ev, me = [P.x, P.y];
+  updateRumor();
+  // --- 蜻蜓点水穴：第一次走近
+  if (MAP.tomb && !E.tomb && near2(me, MAP.tomb, 90)) { E.tomb = 1; rumor(['蜻蜓点水穴'], false); window.sayKey && window.sayKey('tao_tomb'); S.texts.push({ x: MAP.tomb[0], y: MAP.tomb[1] - 60, v: '蜻蜓点水穴', t: 2.5, c: '#ffe070', big: true }); }
+  // --- 戏台：0:50–1:20
+  if (MAP.stage && MAP.seats) {
+    if (S.t >= 50 && !E.opera) {
+      E.opera = 1; E.operaH = window.loopKey ? window.loopKey('opera') : null;
+      for (const [x, y] of MAP.seats) { if (Math.random() < 0.3) continue; const e = spawn('ghost', x, y - 2); if (!e) continue; e.audience = true; e.xp *= 3; e.special = true; }
+      if (P.y < (MAP.townH || 0) + 60) rumor(['戏台那边……锣鼓响了，台下坐满了「人」'], false);
+    }
+    if (E.opera === 1) {
+      const d = Math.hypot(P.x - MAP.stage[0], P.y - MAP.stage[1]);
+      E.operaH && E.operaH.set(Math.max(0, Math.min(0.55, 1 - d / 420)) * (S.t < 80 ? 1 : Math.max(0, 1 - (S.t - 80) / 2)));
+      if (S.t >= 82) { E.opera = 2; E.operaH && E.operaH.stop(); for (const e of S.en) if (e.audience) { e.gone = true; e.dead = 0.01; } }
+    }
+  }
+  // --- 四目道长赶尸回义庄：1:00
+  if (MAP.yzGate && S.t >= 60 && !E.simu) {
+    const [gx, gy] = MAP.yzGate, sx = gx, sy = gy + 34;
+    E.simu = { x: sx, y: sy, st: 'wait', t: 0, corpses: [0, 1, 2, 3].map(i => ({ x: sx + 18 + i * 16, y: sy + 6, ph: i })) };
+    E.simuBes = [];
+    for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283, e = spawnZombie(sx + Math.cos(a) * 46, sy + Math.sin(a) * 34); if (e) { e.goal = [sx + Math.cos(a) * 30, sy + Math.sin(a) * 22]; e.goalT = S.t + 45; e.goalPts = [e.goal, [sx + Math.cos(a + 0.6) * 30, sy + Math.sin(a + 0.6) * 22]]; E.simuBes.push(e); } }
+    rumor(['四目道长：「九叔！快来帮忙啊！」', '义庄出事了！'], true); window.sayKey && window.sayKey('simu1');
+  }
+  if (E.simu && E.simu.st === 'wait') {
+    const M = E.simu; M.t += DT;
+    for (const e of E.simuBes) if (!e.dead && near2(me, [e.x, e.y], 110)) e.goalT = 0;   // 道长靠近，围着的僵尸转头扑道长
+    if (E.simuBes.every(e => e.dead)) {
+      M.st = 'thanks'; M.t = 0; window.sayKey && window.sayKey('simu2');
+      S.texts.push({ x: M.x, y: M.y - 44, v: '多谢！借你几个帮手！', t: 2.2, c: '#ffe070', big: true });
+      M.corpses.forEach((c, i) => S.allies.push({ x: c.x, y: c.y, ph: i, hp: 60, life: 60, cd: 0, i }));
+    } else if (M.t > 45) { M.st = 'leave'; M.t = 0; for (const e of E.simuBes) e.goalT = 0; }
+  }
+  if (E.simu && E.simu.st !== 'wait') { const M = E.simu; M.t += DT; if (M.st === 'leave' || M.t > 2.5) { M.y -= 30 * DT; M.alpha = Math.max(0, 1 - (M.t - (M.st === 'leave' ? 0 : 2.5)) / 1.5); if (M.alpha <= 0) M.st = 'gone'; } }
+  // 借来的尸体：跟着道长，打身边的怪
+  for (const a of S.allies) {
+    a.life -= DT; a.cd -= DT; a.ph += DT * 7;
+    const tg = S.en.filter(e => !e.dead && !e.audience && !e.onBike && e.type !== 'hand' && near2([a.x, a.y], [e.x, e.y], 90)).sort((p, q) => dist2(p, a) - dist2(q, a))[0];
+    const ax = tg ? tg.x : P.x + (a.i % 2 ? -1 : 1) * (18 + (a.i >> 1) * 14), ay = tg ? tg.y : P.y + 10 + (a.i >> 1) * 8;
+    const dx = ax - a.x, dy = ay - a.y, l = Math.hypot(dx, dy) || 1, sp = 46 * Math.max(0, Math.sin(a.ph)) * 2.2;
+    if (l > 8) { a.x += dx / l * Math.min(l, sp * DT); a.y += dy / l * Math.min(l, sp * DT); a.face = Math.sign(dx) || a.face; }
+    if (tg && l < 16 && a.cd <= 0) { a.cd = 0.6; hurt(tg, 14, 30, a.x, a.y); }
+    for (const e of S.en) if (!e.dead && !e.audience && !e.onBike && e.type !== 'ghost' && near2([a.x, a.y], [e.x, e.y], 12)) a.hp -= 8 * DT;
+  }
+  S.allies = S.allies.filter(a => a.life > 0 && a.hp > 0);
+  // --- 教堂：门口跪着三个信徒；1:20 蝙蝠预兆；2:00 前没救就变血仆
+  if (MAP.vhome && !E.church) { const [vx, vy] = MAP.vhome; E.church = { st: 'pray', b: [-22, 0, 22].map((o, i) => ({ x: vx + o, y: vy + 14 + (i % 2) * 4 })) }; }
+  if (E.church) {
+    const C = E.church;
+    if (S.t >= 80 && !C.bats) { C.bats = 1; sfx('wisp'); for (let i = 0; i < 40; i++) S.batFx.push({ x: MAP.vhome[0] + rnd(-20, 20), y: MAP.vhome[1] - 150 + rnd(-10, 10), vx: rnd(-160, 160), vy: rnd(-120, 40), ph: Math.random() * 6, t: rnd(2.5, 4) }); rumor(['教堂那边……蝙蝠成群地飞了出来'], false); }
+    if (C.st === 'pray' && C.b.some(b => near2(me, [b.x, b.y], 70))) {
+      C.st = 'flee'; C.t = 0; sfx('scream');
+      for (const b of C.b) { for (let i = 0; i < 3; i++) S.orbs.push({ x: b.x + rnd(-6, 6), y: b.y + rnd(-4, 4), v: 5 }); b.vx = rnd(-60, 60); b.vy = 60; }
+      S.texts.push({ x: C.b[1].x, y: C.b[1].y - 30, v: '快跑啊！', t: 1.4, c: '#ffffff', big: true });
+    }
+    if (C.st === 'flee') { C.t += DT; for (const b of C.b) { b.x += b.vx * DT; b.y += b.vy * DT; } if (C.t > 2.5) C.st = 'gone'; }
+    if (C.st === 'pray' && S.t >= 120) {
+      C.st = 'gone';
+      if (S.en.some(e => e.type === 'vampire' && !e.dead && !e.escaping)) {
+        for (const b of C.b) { const e = spawn('zombie', b.x, b.y, { elite: true, skin: 'thrall', eliteHp: 3 }); if (e) { e.spd *= 1.4; e.special = true; e.rise = 0.6; } }
+        rumor(['教堂门口的信徒……被吸血伯爵转化成了血仆！'], true); sfx('scream');
+      } else rumor(['教堂门口的信徒自己逃走了'], false);
+    }
+  }
+  for (const b of S.batFx) { b.t -= DT; b.x += b.vx * DT; b.y += b.vy * DT; b.ph += DT * 18; }
+  S.batFx = S.batFx.filter(b => b.t > 0);
+  // --- 任老爷尸变：2:20
+  if (MAP.renDoor && S.t >= 140 && !E.ren) {
+    E.ren = 1; const [rx0, ry0] = MAP.renDoor;
+    rumor(['任府那边……传来敲门声', '任老爷：「爹……是您吗？」', '一声惨叫划破夜空——', '任老爷……尸变了！'], true);
+    [0, 0.5, 1.0].forEach(d => setTimeout(() => sfx('thud'), d * 1000));
+    setTimeout(() => window.sayKey && window.sayKey('ren1', 0.9), 2600);
+    setTimeout(() => { sfx('scream'); S.flash = Math.max(S.flash, 0.06); }, 5200);
+    const e = spawn('zombie', rx0, ry0 + 10, { elite: true, skin: 'renZ', eliteHp: 12 });
+    if (e) {
+      e.renZ = true; e.special = true; e.rise = 7; e.r = 9;
+      e.goalPts = [MAP.citang ? [MAP.citang[0], MAP.citang[1] + 20] : [rx0, ry0 + 60], [rx0, ry0 + 40]]; e.goal = e.goalPts[0]; e.goalT = S.t + 37;
+      e.onDie = q => { S.chests.push({ x: q.x, y: q.y, big: true, t: 0 }); S.texts.push({ x: P.x, y: P.y - 40, v: '任老爷……得罪了。', t: 2.2, c: '#ffe070', big: true }); window.sayKey && window.sayKey('tao_ren'); };
+    }
+    if (near2(me, [rx0, ry0], 320)) S.decor.push({ k: 'king', x: rx0 - 70, y: ry0 + 20, vx: 0, t: 0, life: 3.2, hop: 1 });
+  }
+  // --- 芭蕉林女鬼：走进芭蕉林深处，每局一次
+  const PZ = MAP.plantZone;
+  if (PZ && !E.banana && S.t > 30 && P.x > PZ[0] && P.x < PZ[2] - 90 && P.y > PZ[1] + 60 && P.y < PZ[3]) {
+    E.banana = 1; const a = Math.random() * 6.283;
+    const e = spawn('ghost', Math.max(PZ[0] + 10, P.x + Math.cos(a) * 80), P.y + Math.sin(a) * 60, { elite: true, skin: 'bananaG', eliteHp: 30 });
+    if (e) {
+      e.banana = true; e.special = true; e.dmg = 0; e.charm = 0;
+      e.onHurt = q => { q.charmCd = S.t + 1.2; };
+      e.onDie = q => { S.chests.push({ x: q.x, y: q.y, big: true, t: 0 }); S.decor.push({ k: 'bananaT', x: q.x, y: q.y, t: 0, life: 3 }); S.texts.push({ x: q.x, y: q.y - 40, v: '原来是芭蕉成了精！', t: 2, c: '#7ef0a0', big: true }); };
+      rumor(['芭蕉叶后面……有个女人在招手'], true); sfx('wisp');
+    }
+  }
+  // --- 秋生骑车：2:40，后座坐着穿红嫁衣的女鬼
+  if (MAP.road && S.t >= 160 && !E.bike) {
+    const rd = MAP.road.slice(0, 7), pts = [[WORLD.w - 16, rd[6][1] - 6], ...rd.reverse()];
+    E.bike = { pts, i: 1, x: pts[0][0], y: pts[0][1], ghost: true, st: 'ride', t: 0, mus: window.loopKey ? window.loopKey('bride') : null };
+    const g2 = spawn('ghost', E.bike.x, E.bike.y, { elite: true, skin: 'ghostR', eliteHp: 10 });
+    if (g2) { g2.onBike = true; g2.hidden = true; g2.bride = true; g2.special = true; E.bike.g = g2;
+      g2.onHurt = q => { if (q.onBike && q.hp < q.max * 0.6) { q.onBike = false; q.hidden = false; E.bike.ghost = false; q.kx = rnd(-40, 40); q.ky = 60; S.texts.push({ x: q.x, y: q.y - 36, v: '她从后座跳了下来！', t: 1.6, c: '#ff8a7a', big: true }); sfx('scream'); } };
+      g2.onDie = q => { const B = E.bike; B.st = 'stop'; B.t = 0; S.food.push({ k: 'pig', x: B.x - 14, y: B.y + 8 }); for (let i = 0; i < 12; i++) S.orbs.push({ x: B.x + rnd(-20, 20), y: B.y + rnd(-10, 10), v: 5 }); S.texts.push({ x: B.x, y: B.y - 44, v: '多谢师父！', t: 2, c: '#ffe070', big: true }); window.sayKey && window.sayKey('qiu1'); };
+    }
+    rumor(['叮铃铃——秋生骑着自行车回来了……', '后座上，好像还坐着一个人'], false);
+  }
+  if (E.bike && E.bike.st !== 'gone') {
+    const B = E.bike; B.t += DT;
+    if (B.st === 'ride' || (B.st === 'stop' && B.t > 2.5)) {
+      const [tx, ty] = B.pts[B.i], dx = tx - B.x, dy = ty - B.y, l = Math.hypot(dx, dy);
+      if (l < 4) { if (++B.i >= B.pts.length) { B.st = 'gone'; if (B.g && !B.g.dead && B.g.onBike) { B.g.gone = true; B.g.dead = 0.01; } } }
+      else { const sp = B.st === 'stop' ? 120 : 62; B.x += dx / l * sp * DT; B.y += dy / l * sp * DT; }
+    }
+    if (B.x < (MAP.extX || 0) - 10) B.st = 'gone';
+    if (B.g && B.g.onBike) { B.g.x = B.x + 8; B.g.y = B.y - 2; }
+    B.mus && B.mus.set(B.st === 'gone' ? 0 : Math.max(0, Math.min(0.5, 1 - Math.hypot(P.x - B.x, P.y - B.y) / 380)) * (B.ghost ? 1 : 0.4));
+    if (B.st === 'gone') { B.mus && B.mus.stop(); }
+  }
+  for (const d of S.decor) { d.t += DT; if (d.hop) { d.x += 26 * DT; } }
+  S.decor = S.decor.filter(d => d.t < d.life);
+}
+function bananaAI(e) {
+  const P = S.p, dx = P.x - e.x, dy = P.y - e.y, d = Math.hypot(dx, dy) || 1;
+  const want = d > 100 ? 1 : d < 50 ? -0.6 : 0;
+  e.x += dx / d * 30 * want * DT; e.y += dy / d * 30 * want * DT; e.face = Math.sign(dx);
+  const charming = d < 230 && P.breath <= 0 && !((e.charmCd || 0) > S.t);
+  if (charming) { moveBy(P, -dx / d * 26 * DT, -dy / d * 26 * DT); e.charm = Math.min(1, e.charm + DT * 2); if (Math.random() < DT * 1.5) S.texts.push({ x: P.x + rnd(-8, 8), y: P.y - 36, v: '♥', t: 0.6, c: '#ff8ac8' }); }
+  else e.charm = Math.max(0, e.charm - DT * 3);
+  e.drainT = (e.drainT || 0) - DT;
+  if (d < 28 && e.drainT <= 0 && P.inv <= 0) { e.drainT = 0.8; e.hp = Math.min(e.max, e.hp + 6); if (hurtPlayer(Math.round(5 * DIFF[S.diff].dmg))) return; S.texts.push({ x: P.x, y: P.y - 44, v: '阳气被吸走了！', t: 0.8, c: '#ff8ac8' }); }
+}
+function stageAggro() {
+  if (S.ev.operaAgg) return; S.ev.operaAgg = 1;
+  for (const e of S.en) if (e.audience) { e.audience = false; e.buff = S.t + 6; }
+  S.texts.push({ x: S.p.x, y: S.p.y - 44, v: '看戏的鬼全回过头来了！', t: 1.8, c: '#ff8a7a', big: true }); sfx('scream');
+}
+function drawEventSprites(list) {
+  const E = S.ev;
+  if (MAP.stage) { const [sx, sy] = MAP.stage, sing = E.opera === 1, b = sing ? Math.round(Math.abs(Math.sin(S.t * 3)) * 2) : 0;
+    list.push({ y: sy - 1, f: () => { const a = IMG.operaDan, j = IMG.operaJing; if (a && a.complete) g.drawImage(a, Math.round(sx - 26 - a.width / 2), Math.round(sy - a.height + 2 - b)); if (j && j.complete) g.drawImage(j, Math.round(sx + 22 - j.width / 2), Math.round(sy - j.height + 2 - (sing ? Math.round(Math.abs(Math.cos(S.t * 3)) * 2) : 0))); } }); }
+  if (E.simu && E.simu.st !== 'gone') { const M = E.simu; list.push({ y: M.y, f: () => { g.globalAlpha = M.alpha ?? 1; const im = IMG.simu; g.drawImage(im, Math.round(M.x - im.width / 2), Math.round(M.y - im.height + 2)); if (M.st === 'wait') for (const c of M.corpses) { const ci = IMG.corpse; g.drawImage(ci, Math.round(c.x - ci.width / 2), Math.round(c.y - ci.height + 2 - Math.abs(Math.sin(S.t * 5 + c.ph)) * 3)); } g.globalAlpha = 1; } }); }
+  for (const a of S.allies) list.push({ y: a.y, f: () => { const im = a.face < 0 ? flipped('corpse') : IMG.corpse; g.globalAlpha = Math.min(1, a.life); g.drawImage(im, Math.round(a.x - im.width / 2), Math.round(a.y - im.height + 2 - Math.max(0, Math.sin(a.ph)) * 3)); g.globalAlpha = 1; } });
+  if (E.church && E.church.st !== 'gone') for (const b of E.church.b) list.push({ y: b.y, f: () => { const im = IMG.believer; g.drawImage(im, Math.round(b.x - im.width / 2), Math.round(b.y - im.height + 2)); } });
+  if (E.bike && E.bike.st !== 'gone') { const B = E.bike; list.push({ y: B.y, f: () => { const im = IMG[B.ghost ? 'bikeG' : 'bike']; g.drawImage(im, Math.round(B.x - im.width / 2), Math.round(B.y - im.height + 4 + (Math.floor(S.t * 8) % 2))); } }); }
+  for (const d of S.decor) list.push({ y: d.y, f: () => { const im = IMG[d.k]; if (!im) return; g.globalAlpha = Math.max(0, Math.min(1, (d.life - d.t) * 2)); g.drawImage(im, Math.round(d.x - im.width / 2), Math.round(d.y - im.height + 2 - (d.hop ? Math.abs(Math.sin(d.t * 6)) * 8 : 0))); g.globalAlpha = 1; } });
+}
+
 // ---------- 彩蛋：阿葳队长 ----------
 function updateAwei() {
   const P = S.p, Y = MAP.yamen; if (!Y || S.awDone) { if (S.aw) awStep(); return; }
@@ -1193,11 +1437,12 @@ function update() {
   S.t += DT;
   if (S.t >= 60 && !S.stW) { S.stW = true; banner('尸气渐重……白僵出现了！（怕火怕光）', 2.4); }
   if (S.t >= 126 && !S.stG) { S.stG = true; banner('绿僵出现了！会蓄力扑跳', 2.4); }
-  updateTips(); updateCamp(); updateWeather(); updateFlow(); updateElites(); updateWaterGhost(); updateChests();
+  updateEvents(); updateTips(); updateCamp(); updateWeather(); updateFlow(); updateElites(); updateWaterGhost(); updateChests();
   const rooster = S.t >= ROOSTER_AT;
   if (rooster && !S.roosterShown) { S.roosterShown = true; banner('喔喔喔——鸡鸣将至！', 2.5); sfx('rooster'); }
   if (S.t >= BOSS_AT && !S.bossSpawned) {
     S.bossSpawned = true; const tb = MAP.tomb;
+    const rz = S.en.find(e => e.renZ && !e.dead); if (rz) { rz.goal = [tb[0] + 30, tb[1] + 20]; rz.goalT = S.t + 25; rz.goalPts = null; rz.spd *= 2.2; rz.noclip = true; rumor(['任老爷赶来护父！'], true); }
     if (tb) { const k = spawn('king', tb[0], tb[1] + 6); k.rise = 2.4; k.fromTomb = true; for (let i = 0; i < 40; i++) S.parts.push({ x: tb[0] + rnd(-14, 14), y: tb[1] + 4, vx: rnd(-80, 80), vy: rnd(-160, -60), t: rnd(0.5, 1.1), c: Math.random() < 0.5 ? '#7e6278' : '#4a3650' }); banner('老太爷破坟而出！', 3); }
     else { spawn('king'); banner('尸王出世！', 2.5); }
     S.shake = 0.5; sfx('boss');
@@ -1259,11 +1504,15 @@ function update() {
     e.kx *= 0.86; e.ky *= 0.86;
     if (e.type === 'king') { if (e.phase2 ? shashaAI(e, rooster) : kingAI(e, rooster)) return; continue; }
     if (e.type === 'hand') { handAI(e); continue; }
+    if (e.audience || e.onBike) continue;
+    if (e.banana) { bananaAI(e); continue; }
+    if (e.goal && (e.goalT || 0) > S.t) { const gx = e.goal[0] - e.x, gy = e.goal[1] - e.y, gl = Math.hypot(gx, gy) || 1; if (gl > 10) { e.phase += DT * 7; const st = e.spd * Math.max(0, Math.sin(e.phase)) * 2.2 * DT; if (e.noclip) { e.x += gx / gl * st; e.y += gy / gl * st; } else moveBy(e, gx / gl * st, gy / gl * st); } else if (e.goalPts) { e.goalI = ((e.goalI || 0) + 1) % e.goalPts.length; e.goal = e.goalPts[e.goalI]; } else e.goalT = 0; continue; }
     if (e.type === 'vampire' && vampireAI(e)) continue;
     if (e.stun > 0) continue;
     let tx = P.x - e.x, ty = P.y - e.y;
     const lost = P.breath > 0 && e.type !== 'king' && e.type !== 'vampire';
     if (lost) { tx = e.wx; ty = e.wy; }
+    if (e.fleeT > S.t) { tx = -tx; ty = -ty; }
     const tl = Math.hypot(tx, ty) || 1;
     let sp = e.spd * (rooster ? 0.5 : 1) * (e.slow > S.t ? 0.35 : 1) * (lost && P.breath > 2.0 ? 0 : 1) * (e.type === 'ghost' && S.t < 60 ? 0.8 : 1);
     if ((e.type === 'zombie' && !e.leaper) || e.type === 'king') { e.phase += DT * (e.type === 'king' ? 5 : 7); sp *= Math.max(0, Math.sin(e.phase)) * 2.2; }
@@ -1408,7 +1657,7 @@ function update() {
       a.life += DT;
       if (a.life >= 0.35 && !a.done) {
         a.done = true; sfx('thunder'); if (!a.small) S.flash = Math.max(S.flash, 0.05);
-        for (const e of S.en) if (!e.dead && (e.x - a.x) ** 2 + ((e.y - a.y) * 1.3) ** 2 < a.r * a.r) hurt(e, a.dmg, 90, a.x, a.y, 'light');
+        for (const e of S.en) if (!e.dead && (e.x - a.x) ** 2 + ((e.y - a.y) * 1.3) ** 2 < a.r * a.r) { let m = 1; if (a.ult) { S.ultHits = S.ultHits || {}; S.ultHits[a.ult] = (S.ultHits[a.ult] || 0) + 1; m = dimin(S.ultHits[a.ult]); } hurt(e, a.dmg * m, 90, a.x, a.y, 'light'); }
         S.areas.push({ k: 'scorch', x: a.x, y: a.y, r: a.r * 0.7, life: 3 }); burnAt(a.x, a.y, a.r);
         let from = { x: a.x, y: a.y - 8 }; const hit = new Set();
         for (let c = 0; c < (a.small ? 0 : 3); c++) {
@@ -1441,7 +1690,7 @@ function update() {
   S.food = S.food.filter(f => !f.got);
 
   // orbs
-  const mag = 45 * (1 + 0.35 * S.mods.magnet);
+  const mag = 45 * (1 + 0.2 * S.mods.magnet);
   for (const o of S.orbs) {
     const dx = P.x - o.x, dy = P.y - 8 - o.y, d = Math.hypot(dx, dy);
     if (d < mag || o.pull) { o.pull = true; o.x += dx / d * 180 * DT; o.y += dy / d * 180 * DT; }
@@ -1578,9 +1827,16 @@ function draw() {
     g.globalAlpha = c.open ? Math.max(0, c.life) : 1; g.drawImage(im, Math.round(c.x - im.width / 2), Math.round(c.y - im.height + bob)); g.globalAlpha = 1;
   }
   // 太极八卦阵 (ground)
+  for (const z of S.pushes) { const k = z.t / z.dur, a = Math.min(1, z.t / 0.12) * (z.t > z.dur ? Math.max(0, 1 - (z.t - z.dur) / 0.25) : 1); yinyang(z.x, z.y - 2, z.R * Math.min(1, 0.4 + z.t / 0.15), z.rot * (z.two ? 1 : 1) + k * 0.5, 0.72 * a); }
   for (const z of S.taijis) {
     const fade = Math.min(1, (z.dur - z.t) * 3), s = z.r / 64;
     g.save(); g.translate(Math.round(z.x), Math.round(z.y - 2)); g.scale(1, 0.75); g.globalAlpha = 0.85 * fade;
+    if (z.mini) {   // 太极墨阵：墨黑底、金边
+      g.fillStyle = 'rgba(20,12,26,.55)'; g.beginPath(); g.arc(0, 0, z.r, 0, 7); g.fill();
+      g.strokeStyle = '#e8b430'; g.lineWidth = 2; g.beginPath(); g.arc(0, 0, z.r, 0, 7); g.stroke();
+      g.save(); g.rotate(-z.t * 3.2); g.scale(s * 1.6, s * 1.6); g.drawImage(TAIJI, -16, -16); g.restore();
+      g.restore(); g.globalAlpha = 1; continue;
+    }
     g.fillStyle = 'rgba(255,214,90,.12)'; g.beginPath(); g.arc(0, 0, z.r, 0, 7); g.fill();
     g.save(); g.rotate(z.t * 1.6); g.scale(s, s); g.drawImage(BAGUA, -64, -64); g.restore();
     g.save(); g.rotate(-z.t * 3.2); g.scale(s, s); g.drawImage(TAIJI, -16, -16); g.restore();
@@ -1653,6 +1909,7 @@ function draw() {
     }
   }
   for (const f of S.food) drawFood(f);
+  for (const b of S.batFx) { const w = Math.sin(b.ph) > 0 ? 3 : 1; px(b.x - 3, b.y - w, 2, 1, '#1a0e1e'); px(b.x + 1, b.y - w, 2, 1, '#1a0e1e'); px(b.x - 1, b.y, 2, 2, '#1a0e1e'); }
   for (const l of S.loot) {
     const im = IMG[l.k === 'gong' ? 'gong' : 'pcap'], b = Math.round(Math.sin(S.t * 4 + l.x) * 1);
     if (l.k === 'pcap') { const gr = g.createLinearGradient(0, l.y - 70, 0, l.y); gr.addColorStop(0, 'rgba(255,224,112,0)'); gr.addColorStop(1, 'rgba(255,224,112,.3)'); g.fillStyle = gr; g.fillRect(l.x - 4, l.y - 70, 8, 70); }
@@ -1692,15 +1949,19 @@ function draw() {
   }
 
   // sprites sorted by y
-  const list = S.en.map(e => ({ y: e.y, e })); list.push({ y: P.y, p: true });
+  const list = S.en.filter(e => !e.hidden).map(e => ({ y: e.y, e })); list.push({ y: P.y, p: true });
+  drawEventSprites(list);
   for (const n of S.npcs) list.push({ y: n.y, n });
   if (S.aw) { for (const m of S.aw.men) list.push({ y: m.y, m }); if (S.aw.spook && !S.aw.flee) list.push({ y: S.aw.spook.y, sp: S.aw.spook }); }
   for (const o of S.objs) if (o.x > cx - 90 && o.x < cx + VW + 90 && o.y > cy - 20 && o.y < cy + VH + 260) list.push({ y: o.y, o });
   list.sort((a, b) => a.y - b.y);
   for (const it of list) {
+    if (it.f) { it.f(); continue; }
     if (it.o) {
       const o = it.o, key = o.k === 'tree' ? (o.burnt ? 'treeB' : 'tree') : o.state === 'ruin' ? o.ruin : o.img, im = IMG[key];
+      if (o.k === 'plant' && Math.abs(S.p.x - o.x) < 22 && S.p.y < o.y && S.p.y > o.y - 44) g.globalAlpha = 0.55;
       if (im && im.complete) g.drawImage(im, Math.round(o.x - o.ax), Math.round(o.y - o.ay));
+      g.globalAlpha = 1;
       if (o.state === 'fire') { g.globalAlpha = 0.18 + 0.08 * Math.sin(S.t * 20); g.fillStyle = '#ff7a2a'; g.fillRect(o.rect[0], o.rect[1], o.rect[2] - o.rect[0], o.rect[3] - o.rect[1]); g.globalAlpha = 1; }
       continue;
     }
@@ -2048,7 +2309,7 @@ function handAI(e) {
   if (e.t > (e.grab ? 1.9 : 1.4)) { e.gone = true; if (e.grab) P.grabT = 0; }
 }
 // ---------- 吸血鬼 ----------
-const VHOME = [1395, 446 + (MAP.townH || 0)];
+const VHOME = MAP.vhome || [1395, 446 + (MAP.townH || 0)];
 function spawnVampire() {
   S.vampOut = true; banner('教堂的门开了……吸血伯爵现身！', 2.4); sfx('bell'); setTimeout(() => sfx('bell'), 450);
   const e = spawn('vampire', VHOME[0], VHOME[1]); e.biteCd = 0; e.batCd = rnd(4, 6); e.batT = 0; e.home = true;
@@ -2525,6 +2786,11 @@ function playVoice(idx) {
   return b.duration;
 }
 // 道长倒下时的遗言 + 咳嗽
+window.loopKey = (k) => {   // 循环播放一段小调，返回可调音量的句柄
+  audioInit(); const h = { v: 0, set(v) { h.v = v; if (h.g && AC) h.g.gain.setTargetAtTime(voiceOn && !muted ? v : 0, AC.currentTime, 0.25); }, stop() { h.dead = true; try { h.src && h.src.stop(); } catch (e) {} } };
+  loadVoices().then(() => { const b = VOB[k]; if (!b || !AC || h.dead) return; h.g = AC.createGain(); h.g.gain.value = 0; h.src = AC.createBufferSource(); h.src.buffer = b; h.src.loop = true; h.src.connect(h.g).connect(AC.destination); h.src.start(); h.set(h.v); });
+  return h;
+};
 window.sayKey = (k, vol = 1) => {
   if (!voiceOn || muted) return;
   audioInit();
