@@ -347,6 +347,34 @@ function noise(dur, vol = 0.15, hp = 800, delay = 0) {
   src.buffer = b; f.type = 'highpass'; f.frequency.value = hp; gn.gain.value = vol;
   src.connect(f).connect(gn).connect(AC.destination); src.start(t);
 }
+// ---------- 进地图的恐怖氛围音（实时合成，约 6 秒后淡出）----------
+let AMB = null;
+function stopAmbient() { if (!AMB) return; try { AMB.nodes.forEach(n => n.stop()); } catch (e) {} AMB = null; }
+function startAmbient() {
+  stopAmbient();
+  if (!AC || muted) return;
+  const t0 = AC.currentTime, out = AC.createGain(), nodes = [];
+  out.gain.setValueAtTime(0, t0); out.gain.linearRampToValueAtTime(0.9, t0 + 1.2);
+  out.gain.setValueAtTime(0.9, t0 + 6); out.gain.linearRampToValueAtTime(0, t0 + 8);
+  out.connect(AC.destination);
+  const osc = (type, f, vol, detune = 0) => { const o = AC.createOscillator(), gn = AC.createGain(); o.type = type; o.frequency.value = f; o.detune.value = detune; gn.gain.value = vol; o.connect(gn).connect(out); o.start(t0); o.stop(t0 + 8.2); nodes.push(o); return { o, gn }; };
+  // 低沉嗡鸣：两个略微走音的低音，互相拍出起伏
+  osc('sine', 55, 0.10); osc('sine', 58.3, 0.08); const tri = osc('triangle', 110, 0.025, -12);
+  const lfo = AC.createOscillator(), lg = AC.createGain(); lfo.frequency.value = 0.35; lg.gain.value = 0.02; lfo.connect(lg).connect(tri.gn.gain); lfo.start(t0); lfo.stop(t0 + 8.2); nodes.push(lfo);
+  // 风声：带通滤波的噪声，频率缓慢扫动
+  const n = Math.floor(AC.sampleRate * 8.2), buf = AC.createBuffer(1, n, AC.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  const src = AC.createBufferSource(), bp = AC.createBiquadFilter(), wg = AC.createGain();
+  src.buffer = buf; bp.type = 'bandpass'; bp.Q.value = 3; bp.frequency.setValueAtTime(380, t0); bp.frequency.linearRampToValueAtTime(900, t0 + 3.5); bp.frequency.linearRampToValueAtTime(300, t0 + 8);
+  wg.gain.value = 0.045; src.connect(bp).connect(wg).connect(out); src.start(t0); nodes.push(src);
+  // 远处的铃（不和谐泛音）与木鱼
+  const ping = (f, at, vol, dur) => { const o = AC.createOscillator(), gn = AC.createGain(); o.type = 'sine'; o.frequency.value = f; gn.gain.setValueAtTime(0, t0 + at); gn.gain.linearRampToValueAtTime(vol, t0 + at + 0.01); gn.gain.exponentialRampToValueAtTime(0.0005, t0 + at + dur); o.connect(gn).connect(out); o.start(t0 + at); o.stop(t0 + at + dur + 0.05); nodes.push(o); };
+  for (const at of [0.6, 3.6]) { ping(622, at, 0.05, 2.6); ping(1393, at, 0.025, 1.8); ping(2210, at, 0.012, 1.2); }
+  for (const at of [2.1, 2.45, 5.2]) { ping(420, at, 0.06, 0.12); ping(180, at, 0.05, 0.15); }
+  ping(1180, 1.6, 0.012, 3); ping(1252, 1.7, 0.012, 3);   // 一对刺耳的小二度
+  AMB = { nodes };
+  setTimeout(() => { if (AMB && AMB.nodes === nodes) AMB = null; }, 8500);
+}
 function sfx(k) {
   const now = performance.now(), gap = { wisp: 150, thud: 120, hit: 45, pick: 35, kill: 40, throw: 80, coin: 90, thunder: 200, splash: 400, fire: 600 }[k] || 0;
   if (gap && now - (lastSfx[k] || 0) < gap) return; lastSfx[k] = now;
@@ -380,7 +408,7 @@ function sfx(k) {
     case 'rooster': [[700, 1100, 0.18], [900, 1300, 0.2], [1100, 700, 0.5]].forEach(([a, b, d], i) => tone(a, b, d, 'square', 0.09, [0, 0.22, 0.46][i])); break;
   }
 }
-$('mute').onclick = () => { muted = !muted; $('mute').textContent = muted ? '声音 关' : '声音 开'; };
+$('mute').onclick = () => { muted = !muted; if (muted) stopAmbient(); $('mute').textContent = muted ? '声音 关' : '声音 开'; };
 
 let S = null;
 function newGame(diff = 'normal') {
@@ -396,6 +424,7 @@ function newGame(diff = 'normal') {
   S.tips = $('tipChk').checked; S.tipI = 0; tipT = 0; S.wx = null;
   try { const n = (+localStorage.getItem('ztzh_plays') || 0) + 1; localStorage.setItem('ztzh_plays', n); if (n >= 3) $('tipChk').checked = false; } catch (e) {}
   setWeather(pickWeather(), true); S.wxNext = rnd(50, 90);
+  startAmbient();
   $('nameForm').hidden = true; boardNote = ''; myEntry = null;
   $('hud').hidden = false; $('breath').hidden = false; $('ult').hidden = true; $('banner').hidden = true;
   for (let k = 0; k < 200 && !freeAt(S.p.x, S.p.y); k++) { S.p.x = 700 + rnd(-60, 60); S.p.y = 700 + rnd(-60, 60); }
