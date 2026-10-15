@@ -409,7 +409,7 @@ function spawnElite() {
   S.texts.push({ x: e.x, y: e.y - 40, v: '棺材里有东西！', t: 1.4, c: '#ff8a6a', big: true });
 }
 function spawn(type, x, y, opt = {}) {
-  const T = ETYPE[type], t = S.t, hpMul = type === 'king' ? 1 : 1 + t / 120;
+  const T = ETYPE[type], t = S.t, minion = !['king', 'vampire', 'hand'].includes(type), hpMul = type === 'king' ? 1 : (1 + t / 120) * (minion ? 1.25 : 1);
   if (x === undefined) {
     let ok = false;
     for (let k = 0; k < 10 && !ok; k++) {
@@ -421,8 +421,8 @@ function spawn(type, x, y, opt = {}) {
   }
   const el = !!opt.elite;
   const D = DIFF[S.diff], dh = type === 'king' ? (S.diff === 'hard' ? 1.3 : 1) : D.hp;
-  const e = { id: S.nextId++, type, x, y, hp: T.hp * hpMul * (el ? opt.eliteHp || 5 : 1) * dh, max: T.hp * hpMul * (el ? opt.eliteHp || 5 : 1) * dh, r: el ? 8 : T.r, spd: T.spd * rnd(0.85, 1.15) * (1 + 0.2 * t / 300) * (el ? 1.1 : 1),
-    dmg: Math.round(T.dmg * (1 + 0.5 * t / 300) * (el ? 1.5 : 1) * (type === 'king' ? bossDmg() : D.dmg)), xp: el ? 15 : T.xp, elite: el, castCd: rnd(3, 8), cast: 0, lungeCd: rnd(1, 3), crouch: 0, lunge: 0, auraTk: 0, buff: 0, march: 0, mdir: 1,
+  const e = { id: S.nextId++, type, x, y, hp: T.hp * hpMul * (el ? opt.eliteHp || 5 : 1) * dh, max: T.hp * hpMul * (el ? opt.eliteHp || 5 : 1) * dh, r: el ? 8 : T.r, spd: T.spd * rnd(0.85, 1.15) * (1 + 0.2 * t / 300) * (minion ? 1.05 : 1) * (el ? 1.1 : 1),
+    dmg: Math.round(T.dmg * (1 + 0.5 * t / 300) * (el ? 1.5 : 1) * (minion ? 1.15 : 1) * (type === 'king' ? bossDmg() : D.dmg)), xp: (el ? 15 : T.xp) * (minion ? 1.2 : 1), elite: el, castCd: rnd(3, 8), cast: 0, lungeCd: rnd(1, 3), crouch: 0, lunge: 0, auraTk: 0, buff: 0, march: 0, mdir: 1,
     phase: Math.random() * 6, stun: 0, slow: 0, flash: 0, kx: 0, ky: 0, leap: 0, leapCd: rnd(1.5, 3.5), hitCd: {}, dead: 0, wx: 0, wy: 0, summon: 4, rise: 0, z: 0, st: 'walk', stT: 0, skillCd: 4 };
   if (opt.skin) e.skin = opt.skin;
   S.en.push(e); return e;
@@ -461,6 +461,7 @@ function hurt(e, dmg, kb = 0, fromX = S.p.x, fromY = S.p.y) {
   e.hp -= dmg; e.flash = 0.12; sfx('hit');
   if (kb) { const dx = e.x - fromX, dy = e.y - fromY, l = Math.hypot(dx, dy) || 1, k = e.type === 'king' ? 0.15 : 1; e.kx += dx / l * kb * k; e.ky += dy / l * kb * k; }
   S.texts.push({ x: e.x + rnd(-3, 3), y: e.y - 22, v: Math.round(dmg) + (crit ? '!' : ''), t: crit ? 0.8 : 0.6, c: crit ? '#ffd040' : '#ffffff', big: crit });
+  if (e.hp <= 0 && e.type === 'vampire') { vampireEscape(e); return; }
   if (e.hp <= 0) {
     e.dead = 0.5; S.kills++; sfx('kill');
     e.kx *= 1.6; e.ky = e.ky * 1.6 - 40;
@@ -469,8 +470,7 @@ function hurt(e, dmg, kb = 0, fromX = S.p.x, fromY = S.p.y) {
     if (e.type === 'walker') S.areas.push({ k: 'poison', x: e.x, y: e.y, r: 14, life: 4, tk: 0, seed: Math.random() * 1000 });
     if (e.type === 'king') S.bossKilled = true;
     if (e.type === 'hand') { S.p.grabT = 0; e.gone = true; }
-    if (e.elite || e.type === 'vampire') { S.chests.push({ x: e.x, y: e.y, big: e.type === 'vampire', t: 0 }); }
-    if (e.type === 'vampire') { banner('吸血鬼化为飞灰！', 2.2); sfx('boss'); for (let i = 0; i < 12; i++) S.orbs.push({ x: e.x + rnd(-14, 14), y: e.y + rnd(-10, 10), v: 5 }); }
+    if (e.elite && e.skin && Math.random() < 0.5) S.chests.push({ x: e.x, y: e.y, big: false, t: 0 });
     const n = e.type === 'king' ? 20 : e.elite ? 3 : 1;
     for (let i = 0; i < n; i++) S.orbs.push({ x: e.x + rnd(-6, 6) * (n > 1), y: e.y + rnd(-6, 6) * (n > 1), v: n > 1 ? 5 : e.xp });
     if (e.type === 'king') { S.food.push({ k: 'pig', x: e.x, y: e.y }); banner('尸王伏诛！', 2.5); S.shake = 0.5; sfx('boss'); }
@@ -945,14 +945,14 @@ function update() {
   }
 
   // spawning
-  if (S.en.length < 250) {
-    S.spawnAcc += DT * (0.7 + S.t / 60) * 1.5 * DIFF[S.diff].spawn;
+  if (S.en.length < 200) {
+    S.spawnAcc += DT * (0.7 + S.t / 60) * 1.5 * 0.8 * DIFF[S.diff].spawn;
     while (S.spawnAcc > 1) {
       S.spawnAcc--;
       const r = Math.random();
       if (S.t < 30) spawn(r < 0.75 ? 'ghost' : 'zombie');
       else if (S.t < 60) { if (r < 0.5) spawn('ghost'); else if (r < 0.8) spawnWalker(); else spawn('zombie'); }
-      else if (S.t > 120 && Math.random() < 0.05) spawnElite();
+      else if (S.t > 120 && Math.random() < 0.02) spawnElite();
       else { if (r < 0.18) spawn('jumper'); else if (r < 0.38) spawn('ghost'); else if (r < 0.6) spawnWalker(); else spawn('zombie'); }
     }
     if (Math.floor(S.t) % 45 === 44 && !S['wave' + Math.floor(S.t)]) {
@@ -996,7 +996,7 @@ function update() {
     if (e.type === 'vampire' && vampireAI(e)) continue;
     if (e.stun > 0) continue;
     let tx = P.x - e.x, ty = P.y - e.y;
-    const lost = P.breath > 0 && e.type !== 'king';
+    const lost = P.breath > 0 && e.type !== 'king' && e.type !== 'vampire';
     if (lost) { tx = e.wx; ty = e.wy; }
     const tl = Math.hypot(tx, ty) || 1;
     let sp = e.spd * (rooster ? 0.5 : 1) * (e.slow > S.t ? 0.35 : 1) * (lost && P.breath > 2.0 ? 0 : 1) * (e.type === 'ghost' && S.t < 60 ? 0.8 : 1);
@@ -1630,7 +1630,7 @@ function flowDir(e) {
 function updateElites() {
   if (S.t >= 90 && !S.vampOut) spawnVampire();
   if (S.t < S.eliteT) return;
-  S.eliteT = S.t + 45;
+  S.eliteT = S.t + 60;
   const red = S.eliteN++ % 2 === 0, e = spawn(red ? 'ghost' : 'jumper', undefined, undefined, { elite: true, skin: red ? 'ghostR' : 'jumperM', eliteHp: red ? 15 : 6 });
   if (!e) { S.eliteT = S.t + 3; S.eliteN--; return; }
   banner(red ? '红衣厉鬼出现了！' : '毛僵出现了！', 2); sfx(red ? 'scream' : 'roar');
@@ -1642,8 +1642,8 @@ function updateChests() {
     c.t += DT;
     if (!c.open && c.t > 0.3 && (P.x - c.x) ** 2 + (P.y - c.y) ** 2 < 16 * 16) {
       c.open = true; c.life = 1.2; sfx('ultcard');
-      const n = c.big ? 2 : 1; S.lvQueue += n;
-      banner(c.big ? '大宝箱：修为连升两重！' : '宝箱：修为精进！', 1.6);
+      S.lvQueue += 1;
+      banner(c.big ? '大宝箱：修为精进！' : '宝箱：修为精进！', 1.6);
       for (let i = 0; i < 20; i++) S.parts.push({ x: c.x, y: c.y - 8, vx: rnd(-70, 70), vy: rnd(-120, -40), t: rnd(0.4, 0.8), c: i % 2 ? '#ffe070' : '#fff6c0' });
     }
     if (c.open) c.life -= DT;
@@ -1675,10 +1675,18 @@ function handAI(e) {
 // ---------- 吸血鬼 ----------
 const VHOME = [1395, 446];
 function spawnVampire() {
-  S.vampOut = true; banner('教堂的门开了……', 2.4); sfx('bell'); setTimeout(() => sfx('bell'), 450);
+  S.vampOut = true; banner('教堂的门开了……吸血伯爵现身！', 2.4); sfx('bell'); setTimeout(() => sfx('bell'), 450);
   const e = spawn('vampire', VHOME[0], VHOME[1]); e.biteCd = 0; e.batCd = rnd(4, 6); e.batT = 0; e.home = true;
 }
+function vampireEscape(e) {
+  e.hp = 1; e.escaping = 2.2; e.batT = 99; S.kills++;
+  banner('吸血伯爵逃跑了！', 2.4); sfx('scream'); setTimeout(() => sfx('wisp'), 250);
+  S.chests.push({ x: e.x, y: e.y, big: true, t: 0 });
+  for (let i = 0; i < 12; i++) S.orbs.push({ x: e.x + rnd(-14, 14), y: e.y + rnd(-10, 10), v: 5 });
+  for (let i = 0; i < 24; i++) S.parts.push({ x: e.x + rnd(-8, 8), y: e.y - 14, vx: rnd(-90, 90), vy: rnd(-140, -40), t: rnd(0.5, 0.9), c: '#2a1830' });
+}
 function vampireAI(e) {
+  if (e.escaping) { e.escaping -= DT; e.y -= 120 * DT; e.x += Math.sin(S.t * 9) * 40 * DT; if (e.escaping <= 0) e.gone = true; return true; }
   const P = S.p, dH = Math.hypot(e.x - VHOME[0], e.y - VHOME[1]), dP = Math.hypot(P.x - e.x, P.y - e.y), pH = Math.hypot(P.x - VHOME[0], P.y - VHOME[1]);
   e.biteCd -= DT; e.batCd -= DT;
   if (e.batT > 0) {   // 化成蝙蝠群飞行
@@ -1688,7 +1696,7 @@ function vampireAI(e) {
     if (e.batT <= 0) { for (let i = 0; i < 14; i++) S.parts.push({ x: e.x, y: e.y - 14, vx: rnd(-60, 60), vy: rnd(-60, 20), t: 0.5, c: '#2a1830' }); }
     return true;
   }
-  const chase = P.breath <= 0 && (pH < 230 || dP < 140);
+  const chase = pH < 230 || dP < 140;   // 洋鬼子不吃屏息这一套
   if (dH > 280 || (!chase && dH > 40)) { e.batT = 0.9; e.batHome = true; return true; }
   if (chase && dP > 70 && e.batCd <= 0) { e.batT = 0.8; e.batHome = false; e.batCd = rnd(6, 9); sfx('wisp'); return true; }
   if (chase && dP < 18 && e.biteCd <= 0 && P.inv <= 0) {
