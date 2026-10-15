@@ -900,11 +900,12 @@ async function doShare(text, sub) {
   return (await copyText(text + ' ' + url)) ? 'copied' : 'manual';
 }
 function offerRevive() {
+  if (window.sayDeath) sayDeath();
   S.state = 'dead'; $('revNote').textContent = ''; $('revBtn').disabled = false;
   $('revive').hidden = false; $('breath').hidden = true; $('ult').hidden = true;
 }
 function revive() {
-  const P = S.p; S.revived = true;
+  const P = S.p; S.revived = true; S.didRevive = true;
   P.hp = Math.ceil(P.max / 2); P.inv = 2.5;
   for (const e of S.en) { if (e.dead) continue; const dx = e.x - P.x, dy = e.y - P.y, d = Math.hypot(dx, dy) || 1; if (d < 140) { const k = e.type === 'king' ? 0.2 : 1; e.kx += dx / d * 320 * k; e.ky += dy / d * 320 * k; e.stun = Math.max(e.stun, e.type === 'king' ? 0.5 : 1.5); } }
   S.eshots.length = 0;
@@ -981,6 +982,7 @@ document.addEventListener('contextmenu', e => { if (e.target && e.target.id !== 
 document.addEventListener('selectstart', e => { const t = e.target; if (!(t && (t.tagName === 'INPUT' || t.id === 'pImg'))) e.preventDefault(); });
 
 function endGame(win) {
+  if (!win && S.didRevive && window.sayDeath) sayDeath();
   S.state = 'over';
   $('endT').textContent = win ? '鸡鸣，天亮了！' : '道长……天还没亮';
   const m = Math.floor(S.t / 60), s = Math.floor(S.t % 60);
@@ -2232,6 +2234,19 @@ function playVoice(idx) {
   vSrc = AC.createBufferSource(); vSrc.buffer = b; vSrc.connect(g).connect(AC.destination); vSrc.start();
   return b.duration;
 }
+// 道长倒下时的遗言 + 咳嗽
+window.sayDeath = () => {
+  if (!voiceOn || muted) return;
+  audioInit();
+  loadVoices().then(() => {
+    const b = VOB.death; if (!b || !AC) return;
+    stopVoice(); const g2 = AC.createGain(); g2.gain.value = 1;
+    vSrc = AC.createBufferSource(); vSrc.buffer = b; vSrc.connect(g2).connect(AC.destination); vSrc.start();
+    const d = b.duration + 0.1;
+    noise(0.13, 0.12, 500, d); tone(230, 120, 0.12, 'sawtooth', 0.05, d);
+    noise(0.1, 0.07, 600, d + 0.3); tone(210, 110, 0.1, 'sawtooth', 0.03, d + 0.3);
+  });
+};
 function lineIndex() { let n = 0; for (let i = 0; i < ST.i; i++) n += SCENES[i].lines.length; return n + ST.l; }
 function setLine() {
   const ln = SCENES[ST.i].lines[ST.l];
