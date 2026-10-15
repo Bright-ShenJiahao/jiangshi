@@ -1,6 +1,6 @@
 import base64, io, json
 from PIL import Image
-import map_gen2
+import map_gen4
 
 g = {}
 exec(open('sprites.py').read().split('\nsheet()')[0], g)
@@ -20,12 +20,25 @@ sprites = {
     'ghost': g['ghost']().img(),
     'king': g['king']().img(),
     'walker': wg['walker']().img(),
-    'villager': map_gen2.villager_spr(g),
+    'villager': map_gen4.villager_spr(g),
 }
 exec(open('story_sprites.py').read(), g)
 g['PAL']['P'] = (236, 112, 104)
 sprites.update({'afu': g['afu']().img(), 'afuR': g['afu'](True).img(), 'ren': g['ren']().img(),
                 'coffin': g['coffin']().img(), 'lid': g['coffin_lid']().img(), 'rooster': g['rooster']().img()})
+exec(open('easter_sprites.py').read(), g)
+sprites.update({'cap': g['captain']().img(), 'capN': g['captain'](False).img(), 'sold': g['soldier']().img(),
+                'watch': g['watchman']().img(), 'watchR': g['watchman'](False).img(), 'gong': g['gong']().img(), 'pcap': g['police_cap']().img()})
+def _redface(im, k):
+    out = im.copy(); px_ = out.load(); S1, S2 = (246, 198, 146), (204, 140, 92)
+    to = {1: ((246, 160, 132), (214, 112, 84)), 2: ((240, 112, 100), (196, 70, 64))}[k]
+    for y in range(min(out.height, 26)):
+        for x in range(out.width):
+            r, g_, b_, a_ = px_[x, y]
+            if a_ and (r, g_, b_) == S1: px_[x, y] = to[0] + (a_,)
+            elif a_ and (r, g_, b_) == S2: px_[x, y] = to[1] + (a_,)
+    return out
+sprites['taoistR1'] = _redface(sprites['taoist'], 1); sprites['taoistR2'] = _redface(sprites['taoist'], 2)
 exec(open('monsters2.py').read(), g)
 sprites.update({'vampire': g['vampire']().img(), 'ghostR': g['red_ghost'](g), 'jumperM': g['hairy'](g['zombie']('m', 'M').img()),
                 'chest': g['chest']().img(), 'chestB': g['chest'](True).img()})
@@ -36,7 +49,7 @@ import qrcode
 _q = qrcode.QRCode(border=2, box_size=1, error_correction=qrcode.constants.ERROR_CORRECT_M)
 _q.add_data('https://jiangshidaozhang.netlify.app/'); _q.make(fit=True)
 sprites['qr'] = _q.make_image(fill_color='black', back_color='white').convert('RGBA')
-bg, objsprites, data = map_gen2.build()
+bg, objsprites, data = map_gen4.build()
 sprites.update(objsprites)
 assets = {k: b64(v) for k, v in sprites.items()}
 assets['bg'] = b64(bg.convert('RGB'))
@@ -53,7 +66,7 @@ SITE = 'https://jiangshidaozhang.netlify.app/'
 pub = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'public')
 if os.path.isdir(pub):
     # share cover (used by og:image and WeChat's legacy first-image thumbnail)
-    cov = bg.crop((1030, 870, 1390, 1230 if bg.height >= 1230 else bg.height)).convert('RGBA').resize((360, 360), Image.NEAREST)
+    cov = bg.crop((1030, 1200, 1390, 1560)).convert('RGBA').resize((360, 360), Image.NEAREST)
     shade = Image.new('RGBA', cov.size, (20, 12, 34, 120)); cov = Image.alpha_composite(cov, shade)
     def put(im, x, by, s, flip=False):
         im = im.transpose(Image.FLIP_LEFT_RIGHT) if flip else im

@@ -119,6 +119,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 .rankCols td:last-child { color: var(--talisman); text-align: right; }
 .rankCols tr.me td { background: rgba(240, 192, 32, .16); }
 .rankCols .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 10px 0; }
+.syn { color: #ffe070; }
 .hint { font-size: 13px !important; margin: 8px 0 0 !important; }
 .score { font-size: 18px !important; color: var(--text) !important; }
 .score b { color: var(--talisman); font-size: 30px; font-weight: 400; }
@@ -320,6 +321,14 @@ const ULTS = {
   qiankun: { name: '乾坤剑法', seal: '乾', desc: ['大招：飞剑扫过屏幕中间一大片，推开敌人', '飞剑扫满全屏', '来回扫两遍，扫中定身 1 秒'] },
   taiji: { name: '太极八卦阵', seal: '卦', desc: ['大招：脚下展开旋转的八卦法阵 4 秒，碰到的怪持续受伤并被推开', '法阵更大，并跟着你走', '法阵持续 5 秒，收阵时八道卦象飞射四方'] },
 };
+// 大招加持：选了某个大招，相关法器偶尔触发特性
+const ULTSYN = {
+  thunder: { w: 'fu', name: '引雷', text: '镇尸符偶尔引来小天雷', ch: [0, 0.05, 0.08, 0.12] },
+  taiji: { w: 'ink', name: '太极墨阵', text: '墨斗线偶尔画成小太极阵', ch: [0, 0.12, 0.18, 0.25] },
+  qiankun: { w: 'coin', name: '剑停回旋', text: '铜钱剑偶尔停在原地旋转攻击', ch: [0, 0.10, 0.15, 0.20] },
+};
+const synCh = k => (S.ult && S.ult.k === k ? ULTSYN[k].ch[S.ult.lv] || 0 : 0);
+function synShow(k, x, y) { S.synSeen = S.synSeen || {}; S.texts.push({ x, y: y - 30, v: ULTSYN[k].name + '！', t: S.synSeen[k] ? 0.7 : 1.4, c: '#ffe070', big: !S.synSeen[k] }); S.synSeen[k] = true; }
 const TAGS = { sword: ['伤害', '近身'], coin: ['伤害', '穿透'], rice: ['伤害', '持续'], bell: ['伤害', '范围'], fu: ['控制'], ink: ['控制', '范围'], mirror: ['防御'] };
 const TAGC = { '伤害': 'dmg', '控制': 'ctl', '防御': 'def', '范围': 'aoe', '被动': 'pas' };
 const DIFF = {
@@ -410,6 +419,8 @@ function sfx(k) {
     case 'roar': tone(110, 70, 0.9, 'sawtooth', 0.06); noise(0.6, 0.04, 300); break;
     case 'type': tone(760 + Math.random() * 120, 700, 0.025, 'square', 0.012); break;
     case 'thud': noise(0.15, 0.06, 300); break;
+    case 'gong': [[520, 500], [780, 760], [1130, 1100]].forEach(([a, b], i) => tone(a, b, 1.1, i ? 'triangle' : 'square', [0.05, 0.05, 0.03][i])); noise(0.08, 0.1, 1500); break;
+    case 'gun': noise(0.09, 0.16, 900); tone(220, 60, 0.08, 'square', 0.06); break;
     case 'wisp': tone(520, 300, 0.2, 'sine', 0.03); break;
     case 'ultcard': tone(1046, 1040, 0.6, 'triangle', 0.07); tone(1568, 1560, 0.5, 'sine', 0.04, 0.05); break;
     case 'pulse': tone(200, 900, 0.25, 'triangle', 0.08); break;
@@ -424,10 +435,10 @@ let S = null;
 function newGame(diff = 'normal') {
   S = {
     diff, bossKilled: false, parade: false, state: 'play', t: 0, kills: 0, lv: 1, xp: 0, need: 5, bossSpawned: false, roosterShown: false,
-    p: { x: 700, y: 700, hp: 100, max: 100, face: 1, inv: 0, moving: false, walk: 0, breath: 0, breathCd: 0 },
+    p: { x: 700, y: 700 + (MAP.townH || 0), hp: 100, max: 100, face: 1, inv: 0, moving: false, walk: 0, breath: 0, breathCd: 0 },
     mods: { speed: 0, magnet: 0, cd: 0, hp: 0, dmg: 0, regen: 0 },
     w: { sword: 1 }, timers: {}, swordAng: 0,
-    objs: (MAP.objs || []).map(o => ({ ...o, burnt: false, state: 'ok', fireT: 0, smoke: 0, tk: 0 })), ult: null, ultCd: 0, sweeps: [], taijis: [], guas: [], shield: 0, shieldT: null, chests: [], lvQueue: 0, eliteT: 60, eliteN: 0, vampOut: false, wgCd: 8, eshots: [], npcs: [], npcT: 15, fish: [], fishT: 2, cam: { x: 0, y: 0 },
+    objs: (MAP.objs || []).map(o => ({ ...o, burnt: false, state: 'ok', fireT: 0, smoke: 0, tk: 0 })), ult: null, ultCd: 0, sweeps: [], taijis: [], guas: [], shield: 0, shieldT: null, chests: [], lvQueue: 0, eliteT: 60, eliteN: 0, vampOut: false, wgCd: 8, eshots: [], npcs: [], npcT: 15, loot: [], aw: null, awDone: false, yamT: 0, gongVo: 0, dawnT: null, yz: (MAP.yz || []).map(([x, y, o]) => ({ x, y, open: !!o, pre: !!o, t: 0 })), yzT: rnd(40, 60), fish: [], fishT: 2, cam: { x: 0, y: 0 },
     food: [], foodT: 18, parts: [], combo: 0, comboT: 0, stop: 0, flash: 0, en: [], shots: [], areas: [], orbs: [], fx: [], texts: [], spawnAcc: 0, nextId: 1, shake: 0,
   };
   for (const k of ['title', 'end', 'levelup', 'pause', 'revive', 'brag', 'tip', 'tipArrow']) $(k).hidden = true;
@@ -595,7 +606,7 @@ function updateWeapons() {
       S.areas.push({ k: 'rice', x: P.x + rnd(-2, 2), y: P.y + rnd(-1, 1), r: lv >= 5 ? 17 : lv >= 2 ? 13 : 10, life: lv >= 4 ? 4 : 2.6, dmg: lv >= 5 ? 12 : lv >= 3 ? 8 : 5, tk: rnd(0, 0.3), seed: Math.random() * 1000 });
     }
   }
-  if (W.ink && tick('ink', 6)) {
+  if (W.ink && tick('ink', 6) && !(Math.random() < synCh('taiji') && (S.taijis.push({ x: P.x, y: P.y, t: 0, dur: 3, R: 50, follow: false, gua: false, tk: 0, dmg: W.ink >= 5 ? 20 : 12, mini: true }), synShow('taiji', P.x, P.y), true))) {
     const lv = W.ink, rot = Math.random() * Math.PI, cx = P.x, cy = P.y - 6, segs = [], reels = [];
     const T = (x, y) => [cx + x * Math.cos(rot) - y * Math.sin(rot), cy + (x * Math.sin(rot) + y * Math.cos(rot)) * 0.8];
     const add = (pts, closed) => { reels.push(pts[0]); for (let i = 0; i < pts.length - (closed ? 0 : 1); i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; segs.push([a[0], a[1], b[0], b[1]]); } };
@@ -655,7 +666,9 @@ function levelUp() {
   const box = $('opts'); box.innerHTML = '';
   curOpts.forEach((o, i) => {
     const D = o.kind === 'w' ? WEAPONS[o.k] : o.kind === 'u' ? ULTS[o.k] : o.kind === 'h' ? { name: '调息', seal: '息', desc: '恢复 30 点阳气' } : PASSIVES[o.k];
-    const desc = o.kind === 'w' || o.kind === 'u' ? D.desc[o.lv] : D.desc;
+    let desc = o.kind === 'w' || o.kind === 'u' ? D.desc[o.lv] : D.desc;
+    if (o.kind === 'u' && ULTSYN[o.k]) desc += `<br><span class="syn">附带：${ULTSYN[o.k].text}</span>`;
+    if (o.kind === 'w' && S.ult && ULTSYN[S.ult.k] && ULTSYN[S.ult.k].w === o.k) desc += `<br><span class="syn">已获${ULTS[S.ult.k].name}加持：${ULTSYN[S.ult.k].name}</span>`;
     const b = document.createElement('button'); b.className = o.kind === 'u' ? 'opt ult' : 'opt'; b.id = 'opt' + i;
     const tg = o.kind === 'w' ? TAGS[o.k] || [] : o.kind === 'p' ? ['被动'] : [];
     b.innerHTML = `<span class="seal">${D.seal}</span><span>${D.name}${tg.map(x => `<i class="tag ${TAGC[x] || 'oth'}">${x}</i>`).join('')}<span class="d">${desc}</span></span><span class="lv ${o.lv ? '' : 'new'}">${o.kind === 'h' ? '' : o.kind === 'u' && !o.lv ? '大招' : o.lv ? cn(o.lv) + ' → ' + cn(o.lv + 1) + '重' : '新'}</span>`;
@@ -808,7 +821,8 @@ function kingAI(e, rooster) {
     e.phase += DT * 5; const sp = e.spd * (rooster ? 0.5 : 1) * Math.max(0, Math.sin(e.phase)) * 2.2;
     e.x += dx / d * sp * DT; e.y += dy / d * sp * DT;
     e.skillCd -= DT;
-    if (e.skillCd <= 0 && d < 300) {
+    if (d > 340 && !e.phase2) { e.st = 'leap'; e.stT = 0; e.fired = false; e.chase = true; }
+    else if (e.skillCd <= 0 && d < 300) {
       const r = Math.random(); e.st = r < 0.25 ? 'suck' : r < 0.5 ? 'slash' : r < 0.75 ? 'leap' : 'roar'; e.stT = 0; e.fired = false;
       S.texts.push({ x: e.x, y: e.y - 58, v: { suck: '吸星大法！', slash: '空气斩！', leap: '泰山压顶！', roar: '尸吼！' }[e.st], t: 1.4, c: '#ff8ae0', big: true });
       if (e.st === 'suck') sfx('suck');
@@ -833,10 +847,10 @@ function kingAI(e, rooster) {
     if (e.stT > 1.0) { e.st = 'walk'; e.skillCd = rnd(4, 6) / DIFF[S.diff].skill; }
   } else if (e.st === 'leap') {
     e.stT += DT;
-    if (e.stT < 0.45) { e.tx = P.x; e.ty = P.y; e.sx = e.x; e.sy = e.y; }
+    if (e.stT < 0.45) { const m = e.chase ? Math.min(d, 280) / d : 1; e.tx = e.x + dx * m; e.ty = e.y + dy * m; e.sx = e.x; e.sy = e.y; }
     else if (e.stT < 1.45) { const k = (e.stT - 0.45) / 1.0; e.z = Math.sin(k * Math.PI) * 60; e.x = e.sx + (e.tx - e.sx) * k; e.y = e.sy + (e.ty - e.sy) * k; }
     else {
-      e.z = 0; e.x = e.tx; e.y = e.ty; e.st = 'walk'; e.skillCd = rnd(4, 6) / DIFF[S.diff].skill; sfx('slam'); S.shake = Math.max(S.shake, 0.1);
+      e.z = 0; e.x = e.tx; e.y = e.ty; e.st = 'walk'; if (!e.chase) e.skillCd = rnd(4, 6) / DIFF[S.diff].skill; e.chase = false; sfx('slam'); S.shake = Math.max(S.shake, 0.1);
       for (let i = 0; i < 24; i++) { const an = Math.random() * 6.283; S.parts.push({ x: e.x + Math.cos(an) * 18, y: e.y + Math.sin(an) * 9, vx: Math.cos(an) * 90, vy: Math.sin(an) * 40 - 60, t: rnd(0.4, 0.7), c: '#7e6278' }); }
       S.fx.push({ k: 'pulse', x: e.x, y: e.y, r: 6, R: 60, t: 0, c: '#ff6a8a' });
       for (const o of S.en) if (o !== e && !o.dead && (o.x - e.x) ** 2 + (o.y - e.y) ** 2 < 60 * 60) { const ox = o.x - e.x, oy = o.y - e.y, l = Math.hypot(ox, oy) || 1; o.kx += ox / l * 200; o.ky += oy / l * 200; }
@@ -870,14 +884,41 @@ function updateWorld() {
       if (o.fireT <= 0) { o.state = 'ruin'; o.smoke = 6; o.x0 = x0; }
     }
   }
+  // 义庄：夜里棺材板一块块被掀开
+  if (S.yz.some(c => !c.open)) {
+    const nearYZ = (P.x - 1300) ** 2 + (P.y - 190) ** 2 < 340 * 340;
+    S.yzT -= DT * (nearYZ ? 3 : 1);
+    if (S.yzT <= 0) {
+      S.yzT = rnd(35, 55); const cs = S.yz.filter(c => !c.open), c = cs[Math.floor(Math.random() * cs.length)];
+      c.open = true; c.t = 0; sfx('thud'); if (nearYZ) S.shake = Math.max(S.shake, 0.2);
+      for (let i = 0; i < 18; i++) S.parts.push({ x: c.x + rnd(-14, 14), y: c.y - 2, vx: rnd(-70, 70), vy: rnd(-120, -40), t: rnd(0.4, 0.8), c: Math.random() < 0.5 ? '#78402c' : '#2a1820' });
+      for (let i = 0; i < 3; i++) { const z = spawnZombie(c.x + rnd(-12, 12), c.y + 10 + rnd(0, 6)); if (z) z.rise = 1 + i * 0.4; }
+      if (nearYZ) S.texts.push({ x: c.x, y: c.y - 30, v: '义庄的棺材板……掀开了！', t: 1.6, c: '#ff8a6a', big: true });
+    }
+  }
+  // 地上的锣、警帽
+  for (const l of S.loot) {
+    l.t += DT;
+    if (l.t > 1 && (l.x - P.x) ** 2 + (l.y - P.y) ** 2 < 12 * 12) {
+      l.got = true;
+      if (l.k === 'gong') { sfx('gong'); gainXp(4); S.texts.push({ x: P.x, y: P.y - 34, v: '捡到铜锣 哐～ +阴德', t: 1.4, c: '#ffe070' }); }
+      else { sfx('pickbig'); gainXp(20); S.texts.push({ x: P.x, y: P.y - 34, v: '阿葳队长的帽子 +阴德', t: 1.8, c: '#ffe070', big: true }); }
+      if (S.state !== 'play') break;
+    }
+  }
+  S.loot = S.loot.filter(l => !l.got);
+  updateAwei();
   // villagers
   S.npcT -= DT;
   if (S.npcT <= 0) {
     S.npcT = rnd(35, 55);
     if (S.npcs.length < 2 && MAP.road) {
-      const road = MAP.road, rn = MAP.roadN;
-      const path = Math.random() < 0.5 ? road.slice(0, 8) : [[742, 124], rn[1], ...road.slice(0, 5).reverse()];
-      S.npcs.push({ x: path[0][0], y: path[0][1], path, i: 1, st: 'walk', face: 1, t: 0, walk: 0 });
+      const road = MAP.road, rn = MAP.roadN, TH = MAP.townH || 0;
+      let path;
+      if (TH && P.y < TH + 120) path = Math.random() < 0.5 ? [[30, 262], [740, 262], [1590, 262]] : [[740, 40], [740, 262], [1180, 262], [1590, 262]];
+      else path = Math.random() < 0.5 ? road.slice(0, 8) : [[740, TH + 40], rn[1], ...road.slice(0, 5).reverse()];
+      if (Math.random() < 0.5 && path[0][1] === 262) path = path.slice().reverse();
+      S.npcs.push({ x: path[0][0], y: path[0][1], path, i: 1, st: 'walk', face: 1, t: 0, walk: 0, gongT: 1.5 });
     }
   }
   for (const n of S.npcs) {
@@ -886,8 +927,24 @@ function updateWorld() {
       const [tx, ty] = n.path[n.i], dx = tx - n.x, dy = ty - n.y, d = Math.hypot(dx, dy);
       if (d < 3) { if (++n.i >= n.path.length) n.gone = true; }
       else { n.x += dx / d * 24 * DT; n.y += dy / d * 24 * DT; if (Math.abs(dx) > 1) n.face = Math.sign(dx); }
+      const onScr = n.x > S.cam.x - 20 && n.x < S.cam.x + VW + 20 && n.y > S.cam.y - 10 && n.y < S.cam.y + VH + 30;
+      n.gongT -= DT;
+      if (n.gongT <= 0) {
+        n.gongT = 6;
+        if (onScr) {
+          sfx('gong'); n.hit = 0.25;
+          if (S.gongVo < 2 && window.sayKey) { S.gongVo++; setTimeout(() => window.sayKey('gong1', 0.9), 450); S.texts.push({ x: n.x, y: n.y - 36, v: '天干物燥——小心火烛——', t: 3, c: '#ffe9a0', big: true }); }
+          else S.texts.push({ x: n.x, y: n.y - 34, v: '咚——哐！', t: 1.2, c: '#ffe070' });
+        }
+      }
+      n.hit = Math.max(0, (n.hit || 0) - DT);
       const z = S.en.find(e => !e.dead && !e.rise && (e.x - n.x) ** 2 + (e.y - n.y) ** 2 < 90 * 90);
-      if (z) { n.st = 'flee'; n.from = z; sfx('scream'); S.texts.push({ x: n.x, y: n.y - 34, v: '救命啊！', t: 1.4, c: '#ffffff', big: true }); }
+      if (z) {
+        n.st = 'flee'; n.from = z; sfx('gong'); sfx('scream'); S.texts = S.texts.filter(t => !(t.v[0] === '天' || t.v[0] === '咚'));
+        S.loot.push({ k: 'gong', x: n.x + n.face * 8, y: n.y + 2, t: 0 });
+        S.texts.push({ x: n.x, y: n.y - 46, v: '哐！', t: 1, c: '#ffe070', big: true });
+        S.texts.push({ x: n.x, y: n.y - 34, v: '僵……僵尸啊！', t: 1.6, c: '#ffffff', big: true });
+      }
     } else {
       n.t += DT;
       const ox = n.x - n.from.x, oy = n.y - n.from.y, l = Math.hypot(ox, oy) || 1;
@@ -1053,18 +1110,99 @@ function endGame(win) {
   setTimeout(() => $('againBtn').focus(), 50);
 }
 
+// ---------- 彩蛋：阿葳队长 ----------
+function updateAwei() {
+  const P = S.p, Y = MAP.yamen; if (!Y || S.awDone) { if (S.aw) awStep(); return; }
+  const near = (P.x - Y[0]) ** 2 + (P.y - Y[1]) ** 2 < 80 * 80;
+  S.yamT = near ? S.yamT + DT : Math.max(0, S.yamT - DT * 2);
+  if (S.yamT < 3) return;
+  const crowd = S.en.filter(e => !e.dead && !e.rise && (e.x - Y[0]) ** 2 + (e.y - Y[1]) ** 2 < 170 * 170).length;
+  if (crowd < 12) return;
+  S.awDone = true; sfx('thud'); S.shake = Math.max(S.shake, 0.15);
+  const d = [Y[0], Y[1] - 8];
+  S.aw = { t: 0, door: d, tracers: [], spook: null, men: [
+    { k: 'cap', x: d[0], y: d[1], tx: d[0], ty: d[1] + 22, face: 1, cd: 0.4 },
+    { k: 'sold', x: d[0], y: d[1], tx: d[0] - 34, ty: d[1] + 30, face: -1, cd: 0.2 },
+    { k: 'sold', x: d[0], y: d[1], tx: d[0] + 34, ty: d[1] + 30, face: 1, cd: 0.5 },
+    { k: 'sold', x: d[0], y: d[1], tx: d[0] + 2, ty: d[1] + 46, face: 1, cd: 0.8 }] };
+  S.texts.push({ x: d[0], y: d[1] - 40, v: '衙门的门开了！', t: 1.4, c: '#ffffff', big: true });
+}
+function awStep() {
+  const A = S.aw; A.t += DT;
+  for (const m of A.men) {
+    const dx = m.tx - m.x, dy = m.ty - m.y, d = Math.hypot(dx, dy);
+    if (d > 1.5) { const sp = A.flee ? 50 : 60; m.x += dx / d * Math.min(d, sp * DT); m.y += dy / d * Math.min(d, sp * DT); m.walk = (m.walk || 0) + DT; if (Math.abs(dx) > 1) m.face = Math.sign(dx); }
+    else if (A.flee) m.gone = true;
+  }
+  if (A.t > 0.7 && !A.yell) { A.yell = true; window.sayKey && window.sayKey('cap1', 1); const c = A.men[0]; S.texts.push({ x: c.x, y: c.y - 44, v: '开枪！给我打！', t: 1.8, c: '#ffd040', big: true }); }
+  if (A.t > 1.0 && A.t < 4.2) {
+    for (const m of A.men) {
+      m.cd -= DT; if (m.cd > 0) continue;
+      m.cd = m.k === 'cap' ? 0.55 : 0.4;
+      const tg = S.en.filter(e => !e.dead && !e.rise && e.type !== 'king' && (e.x - m.x) ** 2 + (e.y - m.y) ** 2 < 240 * 240).sort((a, b) => dist2(a, m) - dist2(b, m))[0];
+      if (!tg) continue;
+      m.face = tg.x < m.x ? -1 : 1; sfx('gun');
+      A.tracers.push({ x1: m.x + m.face * 12, y1: m.y - (m.k === 'cap' ? 17 : 14), x2: tg.x, y2: tg.y - 10, t: 0.08 });
+      hurt(tg, m.k === 'cap' ? 30 : 40, 50, m.x, m.y);
+    }
+  }
+  if (A.t > 4.2 && !A.spook) { const c = A.men[0]; A.spook = { x: c.x + 95, y: c.y + 30, sx: c.x + 95, sy: c.y + 30, ph: 0 }; S.texts.push({ x: A.spook.x, y: A.spook.y - 36, v: '嗯？', t: 1, c: '#ffffff' }); }
+  if (A.spook && !A.flee) {
+    const k = A.spook, c = A.men[0]; k.ph += DT * 7; const dx = c.x + 18 - k.x, dy = c.y - k.y, d = Math.hypot(dx, dy) || 1;
+    k.x += dx / d * 80 * Math.max(0, Math.sin(k.ph)) * 2.2 * DT; k.y += dy / d * 80 * Math.max(0, Math.sin(k.ph)) * 2.2 * DT;
+    if (d < 26 || A.t > 6.5) {
+      A.flee = true; window.sayKey && window.sayKey('cap2', 1); sfx('scream');
+      S.texts.push({ x: c.x, y: c.y - 44, v: '鬼……鬼啊！', t: 2, c: '#ffffff', big: true });
+      S.loot.push({ k: 'pcap', x: c.x + 10, y: c.y + 6, t: 0 }); c.noHat = true;
+      for (const m of A.men) { m.tx = A.door[0] + rnd(-4, 4); m.ty = A.door[1] - 2; }
+      const z = spawnZombie(k.x, k.y); if (z) z.skin = 'zG';
+    }
+  }
+  for (const t of A.tracers) t.t -= DT; A.tracers = A.tracers.filter(t => t.t > 0);
+  A.men = A.men.filter(m => !m.gone);
+  if (A.flee && !A.men.length) S.aw = null;
+}
+// ---------- 彩蛋：天亮报晓 ----------
+function startDawn() {
+  S.dawnT = 0; S.t = NIGHT; S.p.inv = 99; sfx('rooster');
+  const pf = MAP.paifang || [S.p.x, S.p.y - 60];
+  S.dawn = { x: pf[0], y: pf[1] - 84, gx: pf[0] + 40, gy: pf[1] + 10, crow: false };
+  for (const e of S.en) if (!e.dead) { e.stun = 99; e.sinkD = rnd(1.4, 2.6); }
+  $('breath').hidden = true; $('ult').hidden = true;
+}
+function updateDawn() {
+  S.dawnT += DT; const D = S.dawn, T = S.dawnT;
+  if (T > 1.3 && !D.crow) { D.crow = true; sfx('rooster'); banner('喔喔喔——天亮了！', 2.4); S.texts.push({ x: D.x, y: D.y - 24, v: '喔喔喔——！', t: 2, c: '#ffe070', big: true }); }
+  for (const e of S.en) {
+    if (e.dead || T < e.sinkD) continue;
+    e.rise = Math.min(1, (e.rise || 0) + DT * 0.9); e.dawnSunk = true;
+    if (Math.random() < DT * 10) S.parts.push({ x: e.x + rnd(-6, 6), y: e.y - 1, vx: rnd(-20, 20), vy: rnd(-40, -10), t: 0.5, c: '#7e6278' });
+  }
+  for (const q of S.parts) { q.t -= DT; q.x += q.vx * DT; q.y += q.vy * DT; q.vy += (q.g ?? 220) * DT; }
+  S.parts = S.parts.filter(q => q.t > 0);
+  for (const t of S.texts) { t.t -= DT; t.y -= 18 * DT; } S.texts = S.texts.filter(t => t.t > 0);
+  S.flash = Math.max(0, S.flash - DT); S.shake = Math.max(0, S.shake - DT);
+  if (T > 4.4) { S.dawnT = null; S.en = S.en.filter(e => !e.dawnSunk); endGame(true); }
+}
+
 // ---------- update ----------
 let DT = 0, last = performance.now();
 function update() {
   const P = S.p;
+  if (S.dawnT != null) { updateDawn(); return; }
   S.t += DT;
   if (S.t >= 60 && !S.stW) { S.stW = true; banner('尸气渐重……白僵出现了！（怕火怕光）', 2.4); }
   if (S.t >= 126 && !S.stG) { S.stG = true; banner('绿僵出现了！会蓄力扑跳', 2.4); }
   updateTips(); updateCamp(); updateWeather(); updateFlow(); updateElites(); updateWaterGhost(); updateChests();
   const rooster = S.t >= ROOSTER_AT;
   if (rooster && !S.roosterShown) { S.roosterShown = true; banner('喔喔喔——鸡鸣将至！', 2.5); sfx('rooster'); }
-  if (S.t >= BOSS_AT && !S.bossSpawned) { S.bossSpawned = true; spawn('king'); banner('尸王出世！', 2.5); S.shake = 0.4; sfx('boss'); }
-  if (S.t >= NIGHT) { endGame(true); return; }
+  if (S.t >= BOSS_AT && !S.bossSpawned) {
+    S.bossSpawned = true; const tb = MAP.tomb;
+    if (tb) { const k = spawn('king', tb[0], tb[1] + 6); k.rise = 2.4; k.fromTomb = true; for (let i = 0; i < 40; i++) S.parts.push({ x: tb[0] + rnd(-14, 14), y: tb[1] + 4, vx: rnd(-80, 80), vy: rnd(-160, -60), t: rnd(0.5, 1.1), c: Math.random() < 0.5 ? '#7e6278' : '#4a3650' }); banner('老太爷破坟而出！', 3); }
+    else { spawn('king'); banner('尸王出世！', 2.5); }
+    S.shake = 0.5; sfx('boss');
+  }
+  if (S.t >= NIGHT) { startDawn(); return; }
   if (S.t >= BOSS_AT - 10 && !S.bossWarn) { S.bossWarn = true; banner('地下有动静……尸王要出来了！', 2.5); sfx('roar'); S.shake = 0.25; }
   if (S.t >= PARADE_AT && !S.parade) {
     S.parade = true; banner('百鬼夜行！', 2.5);
@@ -1198,6 +1336,12 @@ function update() {
   for (const s of S.shots) {
     s.life -= DT;
     if (s.k === 'fu') s.spin += DT * 10;
+    if (s.k === 'csword' && s.spinT > 0) {
+      s.spinT -= DT; s.rot = (s.rot || 0) + DT * 22; s.tk = (s.tk || 0) - DT; s.life = Math.max(s.life, 1);
+      if (s.tk <= 0) { s.tk = 0.25; for (const e of S.en) if (!e.dead && (e.x - s.x) ** 2 + (e.y - 10 - s.y) ** 2 < 24 * 24) hurt(e, s.dmg * 0.5, 20, s.x, s.y); }
+      if (s.spinT <= 0) { s.out = false; s.hit.clear(); }
+      continue;
+    }
     if (s.k === 'csword') {
       s.t += DT;
       if (s.out && s.t >= s.outT) { s.out = false; s.hit.clear(); }
@@ -1211,7 +1355,9 @@ function update() {
       if (e.dead || s.hit.has(e.id)) continue;
       if ((e.x - s.x) ** 2 + (e.y - 10 - s.y) ** 2 < (e.r + (s.k === 'csword' ? (s.big ? 10 : 7) : 4)) ** 2) {
         hurt(e, s.dmg, s.k === 'csword' ? 35 : 10, s.x, s.y); s.hit.add(e.id);
-        if (s.k === 'fu') { e.slow = S.t + 2; if (e.type !== 'vampire' && Math.random() < s.chance) { e.stun = Math.max(e.stun, e.type === 'king' || e.elite ? 1 : 2); e.fuStun = 1; } }
+        if (s.k === 'csword' && s.out && !s.spun && Math.random() < synCh('qiankun')) { s.spun = true; s.spinT = 1.5; s.rot = 0; s.tk = 0; synShow('qiankun', s.x, s.y); break; }
+        if (s.k === 'fu') { e.slow = S.t + 2; if (e.type !== 'vampire' && Math.random() < s.chance) { e.stun = Math.max(e.stun, e.type === 'king' || e.elite ? 1 : 2); e.fuStun = 1; }
+          const cY = synCh('thunder'); if (cY && S.t > (S.synBoltT || 0) && Math.random() < cY) { S.synBoltT = S.t + 0.8; S.areas.push({ k: 'bolt', x: e.x, y: e.y, life: 0.15, dmg: 30, r: 24, done: false, seed: Math.random(), small: true }); synShow('thunder', e.x, e.y); } }
         if (s.pierce-- <= 0) { s.life = 0; break; }
       }
     }
@@ -1261,11 +1407,11 @@ function update() {
     } else if (a.k === 'bolt') {
       a.life += DT;
       if (a.life >= 0.35 && !a.done) {
-        a.done = true; sfx('thunder'); S.flash = Math.max(S.flash, 0.05);
+        a.done = true; sfx('thunder'); if (!a.small) S.flash = Math.max(S.flash, 0.05);
         for (const e of S.en) if (!e.dead && (e.x - a.x) ** 2 + ((e.y - a.y) * 1.3) ** 2 < a.r * a.r) hurt(e, a.dmg, 90, a.x, a.y, 'light');
         S.areas.push({ k: 'scorch', x: a.x, y: a.y, r: a.r * 0.7, life: 3 }); burnAt(a.x, a.y, a.r);
         let from = { x: a.x, y: a.y - 8 }; const hit = new Set();
-        for (let c = 0; c < 3; c++) {
+        for (let c = 0; c < (a.small ? 0 : 3); c++) {
           const nx = S.en.filter(e => !e.dead && !hit.has(e.id) && (e.x - from.x) ** 2 + (e.y - from.y) ** 2 < 80 * 80 && (e.x - a.x) ** 2 + (e.y - a.y) ** 2 > (a.r * 0.8) ** 2).sort((p, q) => dist2(p, from) - dist2(q, from))[0];
           if (!nx) break; hit.add(nx.id);
           S.fx.push({ k: 'chain', x1: from.x, y1: from.y, x2: nx.x, y2: nx.y - 10, t: 0 });
@@ -1302,6 +1448,23 @@ function update() {
     if (d < 7) { o.got = true; sfx(o.v >= 4 ? 'pickbig' : 'pick'); gainXp(o.v); if (S.state !== 'play') break; }
   }
   S.orbs = S.orbs.filter(o => !o.got);
+  S.orbMT = (S.orbMT || 0) - DT;
+  if (S.orbMT <= 0) {   // 阴德合并：同一片的小颗并成大颗；离得远又放太久的慢慢沉下去
+    S.orbMT = 1;
+    for (const o of S.orbs) {
+      o.age = (o.age || 0) + 1;
+      if (o.pull || o.sink != null) continue;
+      if (o.age > 75 && (o.x - P.x) ** 2 + (o.y - P.y) ** 2 > 420 * 420) { o.sink = 1.2; continue; }
+    }
+    if (S.orbs.length > 25) {
+      const cell = {};
+      for (const o of S.orbs) { if (o.pull || o.sink != null || o.got) continue; const k = Math.floor(o.x / 28) + ',' + Math.floor(o.y / 28), m = cell[k];
+        if (m) { m.v += o.v; o.got = true; m.x = (m.x + o.x) / 2; m.y = (m.y + o.y) / 2; m.age = Math.min(m.age, o.age); m.pop = 0.3; } else cell[k] = o; }
+      S.orbs = S.orbs.filter(o => !o.got);
+    }
+  }
+  for (const o of S.orbs) { if (o.pop) o.pop = Math.max(0, o.pop - DT); if (o.sink != null) { o.sink -= DT; if (o.sink <= 0) o.got = true; } }
+  S.orbs = S.orbs.filter(o => !o.got);
 
   for (const q of S.parts) { q.t -= DT; q.x += q.vx * DT; q.y += q.vy * DT; q.vy += (q.g ?? 220) * DT; q.vx *= 0.97; }
   S.parts = S.parts.filter(q => q.t > 0); if (S.parts.length > 700) S.parts.splice(0, S.parts.length - 700);
@@ -1322,8 +1485,12 @@ function drawSword(x, y, a, L = 22) {
   g.restore();
 }
 function drawFood(f) {
-  const x = Math.round(f.x), y = Math.round(f.y), K = '#1a0e1e';
-  g.globalAlpha = 0.25 + 0.15 * Math.sin(S.t * 4 + x); g.fillStyle = '#ffe9a0'; g.beginPath(); g.ellipse(x, y - 1, f.k === 'pig' ? 12 : 8, 5, 0, 0, 7); g.fill(); g.globalAlpha = 1;
+  const K = '#1a0e1e', br = 0.5 + 0.5 * Math.sin(S.t * 3 + f.x);
+  g.globalAlpha = 0.18 + 0.22 * br; g.fillStyle = '#5aff8a'; g.beginPath(); g.ellipse(f.x, f.y - 3, (f.k === 'pig' ? 20 : 15) + br * 3, 9 + br * 2, 0, 0, 7); g.fill();
+  g.globalAlpha = 0.5 + 0.4 * br; g.strokeStyle = '#7effa8'; g.lineWidth = 1; g.beginPath(); g.ellipse(f.x, f.y - 1, (f.k === 'pig' ? 16 : 12) + br * 2, 6 + br, 0, 0, 7); g.stroke(); g.globalAlpha = 1;
+  { const py = Math.round(f.y - 20 - br * 3), qx = Math.round(f.x); px(qx - 3, py - 1, 7, 3, K); px(qx - 1, py - 3, 3, 7, K); px(qx - 2, py, 5, 1, '#7effa8'); px(qx, py - 2, 1, 5, '#7effa8'); }
+  g.save(); g.translate(Math.round(f.x), Math.round(f.y)); g.scale(1.5, 1.5);
+  const x = 0, y = 0;
   if (f.k === 'bun') {
     px(x - 4, y - 4, 9, 6, K); px(x - 3, y - 5, 7, 1, K);
     px(x - 3, y - 4, 7, 4, '#f6f0e0'); px(x - 2, y - 4, 4, 1, '#ffffff'); px(x - 3, y, 7, 1, '#d8ccb0'); px(x, y - 3, 1, 1, '#c8302c');
@@ -1335,6 +1502,7 @@ function drawFood(f) {
     px(x + 6, y - 4, 4, 5, K); px(x + 7, y - 3, 2, 3, '#b8541c'); px(x + 9, y - 2, 2, 2, '#d8302c');
     px(x - 6, y + 3, 2, 2, K); px(x + 3, y + 3, 2, 2, K); px(x - 9, y - 4, 2, 2, K);
   }
+  g.restore();
 }
 // 八卦法阵贴图（像素风）
 const GUA = [0, 4, 2, 6, 1, 5, 3, 7];   // 三爻：位为 1 表示阴爻（断）
@@ -1378,8 +1546,10 @@ function drawHand(e) {
 }
 function draw() {
   const P = S.p;
-  let cx = Math.round(Math.max(0, Math.min(WORLD.w - VW, P.x - VW / 2)));
-  let cy = Math.round(Math.max(0, Math.min(WORLD.h - VH, P.y - 10 - VH / 2)));
+  let fx = P.x, fy = P.y - 10;
+  if (S.dawnT != null) { const k = Math.min(1, S.dawnT / 0.9) * (S.dawnT > 3.2 ? Math.max(0, 1 - (S.dawnT - 3.2) / 0.9) : 1), e2 = k * k * (3 - 2 * k); fx += (S.dawn.x - fx) * e2; fy += (S.dawn.y + 40 - fy) * e2; }
+  let cx = Math.round(Math.max(0, Math.min(WORLD.w - VW, fx - VW / 2)));
+  let cy = Math.round(Math.max(0, Math.min(WORLD.h - VH, fy - VH / 2)));
   if (VW > WORLD.w) cx = Math.round((WORLD.w - VW) / 2);
   if (VH > WORLD.h) cy = Math.round((WORLD.h - VH) / 2);
   S.cam.x = cx; S.cam.y = cy;
@@ -1388,9 +1558,22 @@ function draw() {
   g.save(); g.translate(-cx, -cy);
   g.drawImage(IMG.bg, 0, 0);
 
+  // 义庄被掀开的棺材
+  for (const c of S.yz) {
+    if (!c.open || c.pre) continue;
+    c.t += DT; const x = c.x, y = c.y, K = '#1a0e1e', poly = (pts, col) => { g.fillStyle = col; g.beginPath(); g.moveTo(x + pts[0][0], y + pts[0][1]); for (const q of pts) g.lineTo(x + q[0], y + q[1]); g.fill(); };
+    poly([[-13, -2], [12, -5], [13, 1], [-12, 4]], '#140a10');
+    const k = Math.min(1, c.t / 0.35), lx = k * 6, ly = -k * 10 + Math.sin(k * Math.PI) * -10;
+    poly([[-6 + lx, -4 + ly], [22 + lx, -8 + ly], [24 + lx, -2 + ly], [-4 + lx, 2 + ly]], K);
+    poly([[-5 + lx, -3 + ly], [21 + lx, -7 + ly], [22 + lx, -3 + ly], [-4 + lx, 1 + ly]], '#643626');
+  }
   // 宝箱
   for (const c of S.chests) {
     const im = IMG[c.big ? 'chestB' : 'chest'], bob = c.open ? -Math.min(10, c.t * 0) : Math.round(Math.sin(S.t * 4) * 1.5);
+    if (!c.open) { const ph = c.big ? 150 : 110, pw = c.big ? 14 : 10, gr = g.createLinearGradient(0, c.y - ph, 0, c.y);
+      gr.addColorStop(0, 'rgba(255,224,112,0)'); gr.addColorStop(1, 'rgba(255,224,112,' + (0.32 + 0.12 * Math.sin(S.t * 3)) + ')');
+      g.fillStyle = gr; g.fillRect(c.x - pw / 2, c.y - ph, pw, ph); g.fillStyle = 'rgba(255,250,210,.35)'; g.fillRect(c.x - 1, c.y - ph * 0.8, 2, ph * 0.8);
+      for (let k2 = 0; k2 < 3; k2++) { const q = (S.t * 0.6 + k2 / 3 + c.x * 0.01) % 1; px(c.x + Math.sin(k2 * 2 + S.t * 2) * pw * 0.4, c.y - q * ph, 1, 2, '#fff4b0'); } }
     g.globalAlpha = 0.25 + 0.15 * Math.sin(S.t * 5); g.fillStyle = '#ffe070'; g.beginPath(); g.ellipse(c.x, c.y, 14, 5, 0, 0, 7); g.fill();
     g.globalAlpha = c.open ? Math.max(0, c.life) : 1; g.drawImage(im, Math.round(c.x - im.width / 2), Math.round(c.y - im.height + bob)); g.globalAlpha = 1;
   }
@@ -1463,13 +1646,27 @@ function draw() {
         const pts = []; let x = a.x + (rr() - 0.5) * 30, y = a.y - 240;
         while (y < a.y) { pts.push([x, y]); x += (rr() - 0.5) * 26; y += 16; } pts.push([a.x, a.y]);
         const path = (ps, w1, w2) => { for (const [w, c] of [[w1, '#5ac8ff'], [w2, '#ffffff']]) { g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(ps[0][0], ps[0][1]); for (const q of ps) g.lineTo(q[0], q[1]); g.stroke(); } };
-        path(pts, 7, 3);
+        path(pts, a.small ? 4 : 7, a.small ? 2 : 3);
         for (let b = 0; b < 3; b++) { const st = pts[2 + Math.floor(rr() * (pts.length - 4))]; const br = [st]; let bx = st[0], by = st[1]; const dir = rr() < 0.5 ? -1 : 1; for (let k2 = 0; k2 < 3; k2++) { bx += dir * (8 + rr() * 10); by += 10 + rr() * 6; br.push([bx, by]); } path(br, 3, 1); }
         g.globalAlpha = 1;
       }
     }
   }
   for (const f of S.food) drawFood(f);
+  for (const l of S.loot) {
+    const im = IMG[l.k === 'gong' ? 'gong' : 'pcap'], b = Math.round(Math.sin(S.t * 4 + l.x) * 1);
+    if (l.k === 'pcap') { const gr = g.createLinearGradient(0, l.y - 70, 0, l.y); gr.addColorStop(0, 'rgba(255,224,112,0)'); gr.addColorStop(1, 'rgba(255,224,112,.3)'); g.fillStyle = gr; g.fillRect(l.x - 4, l.y - 70, 8, 70); }
+    g.globalAlpha = 0.3 + 0.15 * Math.sin(S.t * 5); g.fillStyle = '#ffe070'; g.beginPath(); g.ellipse(l.x, l.y, 8, 3, 0, 0, 7); g.fill(); g.globalAlpha = 1;
+    g.drawImage(im, Math.round(l.x - im.width / 2), Math.round(l.y - im.height + 1 + b));
+  }
+  if (S.aw) for (const t of S.aw.tracers) { g.strokeStyle = '#fff6c0'; g.lineWidth = 1; g.beginPath(); g.moveTo(t.x1, t.y1); g.lineTo(t.x2, t.y2); g.stroke(); px(t.x1 - 1, t.y1 - 1, 3, 3, '#ffd040'); }
+  if (S.dawn && S.dawnT != null) {
+    const D = S.dawn, T = S.dawnT, im = IMG.rooster; let rx = D.x, ry = D.y;
+    if (T < 1.0) { const k = Math.max(0, (T - 0.2) / 0.8); rx = D.gx + (D.x - D.gx) * k; ry = D.gy + (D.y - D.gy) * k - Math.sin(k * Math.PI) * 40; }
+    const crowing = T > 1.3 && T < 2.6;
+    if (im && im.complete) { g.save(); g.translate(Math.round(rx), Math.round(ry)); if (crowing) g.rotate(-0.25); g.scale(1.5, 1.5); g.drawImage(im, -9, -18); g.restore(); }
+    if (crowing) for (let k2 = 0; k2 < 3; k2++) { g.globalAlpha = 0.6 * (1 - ((T * 2 + k2 / 3) % 1)); g.strokeStyle = '#ffe070'; g.beginPath(); g.arc(rx + 8, ry - 14, 6 + ((T * 2 + k2 / 3) % 1) * 22, -0.9, 0.3); g.stroke(); g.globalAlpha = 1; }
+  }
   for (const f of S.fish) {
     const k = f.t / 0.8, x = Math.round(f.x + f.dir * k * 16), y = Math.round(f.y - Math.sin(k * Math.PI) * 18);
     g.save(); g.translate(x, y); g.rotate(f.dir * (k - 0.5) * 2.2); g.scale(f.dir, 1);
@@ -1480,13 +1677,24 @@ function draw() {
   // orbs (paper money / 阴德)
   for (const o of S.orbs) {
     const big = o.v >= 4, b = Math.round(Math.sin(S.t * 5 + o.x) * 1.5), x = Math.round(o.x), y = Math.round(o.y) + b;
-    g.globalAlpha = 0.35 + 0.15 * Math.sin(S.t * 6 + o.y); g.fillStyle = big ? '#ffd040' : '#7ef0c0'; g.beginPath(); g.arc(x + 0.5, y + 0.5, big ? 6 : 5, 0, 7); g.fill(); g.globalAlpha = 1;
+    const tier = o.v >= 40 ? 3 : o.v >= 15 ? 2 : 0, sk = o.sink != null ? Math.max(0, o.sink / 1.2) : 1;
+    if (sk < 1) { g.save(); g.beginPath(); g.rect(x - 12, y - 14, 24, 14 + 4 - (1 - sk) * 0); g.clip(); g.translate(0, Math.round((1 - sk) * 9)); g.globalAlpha = sk; }
+    if (tier) {
+      const C = tier === 3 ? ['#ff4a3a', '#ff8a6a', '#ffd0c0'] : ['#ff9a2a', '#ffc060', '#fff0c0'], R = (tier === 3 ? 8 : 6) + (o.pop ? o.pop * 8 : 0);
+      g.globalAlpha *= 0.4 + 0.2 * Math.sin(S.t * 6 + o.y); g.fillStyle = C[0]; g.beginPath(); g.arc(x + 0.5, y + 0.5, R + 3, 0, 7); g.fill(); g.globalAlpha = sk;
+      const h = tier === 3 ? 5 : 4; px(x - h, y - h - 1, h * 2 + 1, h * 2 + 3, '#1a0e1e'); px(x - h - 1, y - h, h * 2 + 3, h * 2 + 1, '#1a0e1e');
+      px(x - h, y - h, h * 2 + 1, h * 2 + 1, C[0]); px(x - h + 1, y - h + 1, h * 2 - 1, h * 2 - 1, C[1]); px(x - 1, y - 1, 3, 3, C[2]); px(x, y, 1, 1, '#1a0e1e');
+    } else {
+    g.globalAlpha = (0.35 + 0.15 * Math.sin(S.t * 6 + o.y)) * sk; g.fillStyle = big ? '#ffd040' : '#7ef0c0'; g.beginPath(); g.arc(x + 0.5, y + 0.5, big ? 6 : 5, 0, 7); g.fill(); g.globalAlpha = sk;
     px(x - 2, y - 3, 5, 7, '#1a0e1e'); px(x - 3, y - 2, 7, 5, '#1a0e1e'); px(x - 2, y - 2, 5, 5, big ? '#ffe070' : '#d8a838'); px(x - 1, y - 1, 3, 3, big ? '#fff4b0' : '#f0c850'); px(x, y, 1, 1, '#1a0e1e');
+    }
+    if (sk < 1) g.restore(); g.globalAlpha = 1;
   }
 
   // sprites sorted by y
   const list = S.en.map(e => ({ y: e.y, e })); list.push({ y: P.y, p: true });
   for (const n of S.npcs) list.push({ y: n.y, n });
+  if (S.aw) { for (const m of S.aw.men) list.push({ y: m.y, m }); if (S.aw.spook && !S.aw.flee) list.push({ y: S.aw.spook.y, sp: S.aw.spook }); }
   for (const o of S.objs) if (o.x > cx - 90 && o.x < cx + VW + 90 && o.y > cy - 20 && o.y < cy + VH + 260) list.push({ y: o.y, o });
   list.sort((a, b) => a.y - b.y);
   for (const it of list) {
@@ -1496,8 +1704,20 @@ function draw() {
       if (o.state === 'fire') { g.globalAlpha = 0.18 + 0.08 * Math.sin(S.t * 20); g.fillStyle = '#ff7a2a'; g.fillRect(o.rect[0], o.rect[1], o.rect[2] - o.rect[0], o.rect[3] - o.rect[1]); g.globalAlpha = 1; }
       continue;
     }
+    if (it.m) {
+      const m = it.m, key = m.k === 'cap' ? (m.noHat ? 'capN' : 'cap') : 'sold', im = m.face < 0 ? flipped(key) : IMG[key];
+      g.fillStyle = 'rgba(14,8,24,.45)'; g.beginPath(); g.ellipse(m.x, m.y, 7, 2, 0, 0, 7); g.fill();
+      g.drawImage(im, Math.round(m.x - im.width / 2), Math.round(m.y - im.height + 2 - Math.abs(Math.sin((m.walk || 0) * (S.aw && S.aw.flee ? 20 : 10))) * 1.5));
+      if (S.aw && S.aw.flee) { px(m.x - 1, m.y - 42, 3, 7, '#1a0e1e'); px(m.x, m.y - 41, 1, 4, '#ffffff'); px(m.x, m.y - 36, 1, 1, '#ffffff'); }
+      continue;
+    }
+    if (it.sp) {
+      const k = it.sp, im = k.x > (S.aw.men[0] || k).x ? flipped('zG') : IMG.zG, hop = Math.round(Math.max(0, Math.sin(k.ph)) * 4);
+      g.fillStyle = 'rgba(14,8,24,.45)'; g.beginPath(); g.ellipse(k.x, k.y, 7, 2, 0, 0, 7); g.fill();
+      g.drawImage(im, Math.round(k.x - im.width / 2), Math.round(k.y - im.height + 2 - hop)); continue;
+    }
     if (it.n) {
-      const n = it.n, im = n.face < 0 ? flipped('villager') : IMG.villager, run = n.st === 'flee';
+      const n = it.n, run = n.st === 'flee', ky = run ? 'watchR' : 'watch', im = n.face < 0 ? flipped(ky) : IMG[ky];
       g.fillStyle = 'rgba(14,8,24,.45)'; g.beginPath(); g.ellipse(n.x, n.y, 6, 2, 0, 0, 7); g.fill();
       if (run && n.t > 4) g.globalAlpha = Math.max(0, 5 - n.t);
       g.drawImage(im, Math.round(n.x - im.width / 2), Math.round(n.y - im.height + 2 - Math.abs(Math.sin(n.walk * (run ? 20 : 9))) * (run ? 2 : 1)));
@@ -1507,12 +1727,18 @@ function draw() {
     if (it.p) {
       g.fillStyle = 'rgba(14,8,24,.5)'; g.beginPath(); g.ellipse(P.x, P.y, 8, 2.5, 0, 0, 7); g.fill();
       const bob = P.moving ? Math.round(Math.abs(Math.sin(P.walk * 12)) * -1.5) : 0;
-      const im = P.face < 0 ? flipped('taoist') : IMG.taoist;
-      if (P.inv > 0 && Math.floor(P.inv * 20) % 2) continue;
+      const held = P.breath > 0 ? 2.8 - P.breath : 0, tk = held > 1.7 ? 'taoistR2' : held > 0.7 ? 'taoistR1' : 'taoist';
+      const im = P.face < 0 ? flipped(tk) : IMG[tk];
+      if (P.inv > 0 && P.inv < 50 && Math.floor(P.inv * 20) % 2) continue;
       if (P.breath > 0) g.globalAlpha = 0.65;
       g.drawImage(im, Math.round(P.x - im.width / 2), Math.round(P.y - im.height + 3 + bob));
       g.globalAlpha = 1;
-      if (P.breath > 0) { px(P.x - 1 + P.face * 5, P.y - 23, 3, 2, '#8fd8f0'); }
+      if (P.breath > 0) {
+        px(P.x - 1 + P.face * 5, P.y - 23, 3, 2, '#8fd8f0');
+        const nd = held > 1.7 ? 3 : held > 0.7 ? 1 : 0;
+        for (let k2 = 0; k2 < nd; k2++) { const q = (S.t * 1.6 + k2 * 0.37) % 1, sx2 = P.x + (k2 % 2 ? -7 : 6) * P.face - (k2 === 2 ? 3 : 0); px(sx2, P.y - 30 + q * 10, 1, 2, '#bfe8ff'); px(sx2, P.y - 28 + q * 10, 1, 1, '#ffffff'); }
+        if (held > 1.7 && Math.floor(S.t * 6) % 2) { px(P.x - 4 * P.face - 8, P.y - 34, 2, 1, '#ff6a6a'); px(P.x + 8 * P.face, P.y - 35, 1, 2, '#ff6a6a'); }
+      }
       if (S.shield > 0) for (let L = 0; L < S.shield; L++) { g.globalAlpha = 0.35 + 0.15 * Math.sin(S.t * 5 + L); g.strokeStyle = L ? '#fff6c0' : '#ffd860'; g.lineWidth = 2; g.beginPath(); g.ellipse(P.x, P.y - 13, 13 + L * 4, 18 + L * 4, 0, 0, 7); g.stroke(); g.globalAlpha = 1; }
       if (P.slowT > 0) { g.globalAlpha = 0.35; g.fillStyle = '#5ac04a'; g.beginPath(); g.ellipse(P.x, P.y - 2, 9, 3, 0, 0, 7); g.fill(); g.globalAlpha = 1; }
       continue;
@@ -1599,7 +1825,7 @@ function draw() {
       px(-2, -3, 5, 7, '#1a0e1e'); px(-1, -2, 3, 5, '#ffe470'); px(0, -1, 1, 3, '#c8302c'); g.restore();
     } else if (s.k === 'csword') {
       const sc = s.big ? 1.4 : 1;
-      g.save(); g.translate(Math.round(s.x), Math.round(s.y)); g.rotate(Math.atan2(s.vy, s.vx) + (s.out ? 0 : Math.PI)); g.scale(sc, sc);
+      g.save(); g.translate(Math.round(s.x), Math.round(s.y)); g.rotate(s.spinT > 0 ? s.rot : Math.atan2(s.vy, s.vx) + (s.out ? 0 : Math.PI)); g.scale(sc, sc);
       g.globalAlpha = 0.3; px(-16, -1, 8, 2, '#ffe9b0'); g.globalAlpha = 1;
       px(-9, -1, 18, 2, '#c8302c');
       for (let c = -8; c <= 8; c += 4) { px(c - 2, -2, 4, 4, '#1a0e1e'); px(c - 1, -1, 2, 2, '#e8b830'); }
@@ -1648,7 +1874,7 @@ function draw() {
   g.restore();
 
   // night tint, lifts toward dawn
-  const dawn = Math.max(0, (S.t - ROOSTER_AT) / (NIGHT - ROOSTER_AT));
+  const dawn = Math.max(0, (S.t - ROOSTER_AT) / (NIGHT - ROOSTER_AT)) + (S.dawnT != null ? Math.min(0.8, Math.max(0, S.dawnT - 1.3) * 0.5) : 0);
   g.fillStyle = `rgba(${Math.round(20 + 120 * dawn)},${Math.round(8 + 60 * dawn)},${Math.round(40 - 10 * dawn)},${0.22 - 0.1 * dawn})`; g.fillRect(0, 0, VW, VH);
   drawWeather();
   const vg = g.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.35, VW / 2, VH / 2, Math.max(VW, VH) * 0.75);
@@ -1822,7 +2048,7 @@ function handAI(e) {
   if (e.t > (e.grab ? 1.9 : 1.4)) { e.gone = true; if (e.grab) P.grabT = 0; }
 }
 // ---------- 吸血鬼 ----------
-const VHOME = [1395, 446];
+const VHOME = [1395, 446 + (MAP.townH || 0)];
 function spawnVampire() {
   S.vampOut = true; banner('教堂的门开了……吸血伯爵现身！', 2.4); sfx('bell'); setTimeout(() => sfx('bell'), 450);
   const e = spawn('vampire', VHOME[0], VHOME[1]); e.biteCd = 0; e.batCd = rnd(4, 6); e.batT = 0; e.home = true;
@@ -2299,6 +2525,15 @@ function playVoice(idx) {
   return b.duration;
 }
 // 道长倒下时的遗言 + 咳嗽
+window.sayKey = (k, vol = 1) => {
+  if (!voiceOn || muted) return;
+  audioInit();
+  loadVoices().then(() => {
+    const b = VOB[k]; if (!b || !AC) return;
+    const g2 = AC.createGain(); g2.gain.value = vol;
+    const src = AC.createBufferSource(); src.buffer = b; src.connect(g2).connect(AC.destination); src.start();
+  });
+};
 window.sayDeath = () => {
   if (!voiceOn || muted) return;
   audioInit();
