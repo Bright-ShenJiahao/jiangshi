@@ -3,7 +3,7 @@ import { getStore } from '@netlify/blobs';
 
 const KEY = 'top';
 const KEEP = 100;          // stored entries
-const SHOW = 20;           // entries returned to the game
+const SHOW = 100;          // entries returned to the game (排行榜分普通/困难两列显示)
 
 const clean = (v) => String(v ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 10);
 const int = (v, lo, hi) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo; };

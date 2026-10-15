@@ -42,9 +42,11 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-renderin
 #combo { display: block; margin-top: 6px; font-size: 22px; color: var(--talisman); text-shadow: 2px 2px 0 var(--seal), 4px 4px 0 var(--ink); min-height: 1em; }
 #stats { text-align: right; font-size: 15px; text-shadow: 2px 2px 0 var(--ink); }
 #breath { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 46px); width: 76px; height: 76px; border-radius: 50%; border: 3px solid var(--ink); background: radial-gradient(circle at 40% 35%, #8fd8f0, #2e6a94); color: var(--ink); font: 20px var(--display); box-shadow: 0 0 0 2px var(--line), 0 4px 0 var(--ink); cursor: pointer; }
-#breath:disabled { background: #3a3150; color: var(--muted); }
+#breath::after, #ult::after { content: ''; position: absolute; inset: -1px; border-radius: 50%; pointer-events: none; background: conic-gradient(rgba(12, 6, 22, .74) calc(var(--p, 0) * 360deg), transparent 0); }
+#breath.rdy, #ult.rdy { animation: rdy .45s ease-out; }
+@keyframes rdy { 0% { box-shadow: 0 0 0 2px var(--line), 0 0 0 0 rgba(255, 240, 160, .9); } 100% { box-shadow: 0 0 0 2px var(--line), 0 0 0 16px rgba(255, 240, 160, 0); } }
 #ult { position: absolute; right: calc(max(16px, env(safe-area-inset-right, 0px)) + 90px); bottom: calc(env(safe-area-inset-bottom, 0px) + 52px); width: 66px; height: 66px; border-radius: 50%; border: 3px solid var(--ink); background: radial-gradient(circle at 40% 35%, #ffe070, #c8302c); color: var(--ink); font: 26px var(--display); box-shadow: 0 0 0 2px var(--line), 0 4px 0 var(--ink); cursor: pointer; line-height: 1; }
-#ult:disabled { background: #3a3150; color: var(--muted); }
+
 #ult small { display: block; font-size: 11px; }
 #breath small { display: block; font-size: 11px; }
 .modal { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(12, 6, 22, .72); padding: 16px max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px)); }
@@ -115,6 +117,20 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 #tip span { display: inline-block; background: rgba(26, 14, 30, .88); border: 2px solid var(--talisman); box-shadow: 0 0 0 2px var(--ink); color: var(--paper); font-size: 17px; line-height: 1.5; padding: 8px 14px; animation: tipin .35s ease-out; }
 @keyframes tipin { from { transform: translateY(-8px); opacity: 0; } }
 #tipArrow { position: absolute; pointer-events: none; right: calc(max(16px, env(safe-area-inset-right, 0px)) + 86px); bottom: calc(env(safe-area-inset-bottom, 0px) + 126px); font-size: 46px; color: var(--talisman); text-shadow: 3px 3px 0 var(--ink); animation: wxbob 0.8s ease-in-out infinite; }
+.ultWarn { color: #ff8a7a; font-weight: 400; }
+.ultNote { font-size: 13px; }
+.btn.rankBtn { display: block; margin: 12px auto 4px; color: var(--paper); border-color: var(--talisman); font-size: 17px; }
+.rankCard { max-width: 640px; }
+.rankCols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; margin-top: 8px; }
+.rankCols h3 { font-weight: 400; font-size: 18px; color: var(--paper); margin: 0 0 4px; text-align: center; letter-spacing: .2em; }
+.rankCols h3.hardT { color: #ff8a7a; }
+.rankCols > div { max-height: min(58vh, 460px); overflow-y: auto; }
+.rankCols table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.rankCols td { padding: 3px 4px; border-bottom: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 7em; }
+.rankCols td:first-child { color: var(--muted); width: 1.6em; }
+.rankCols td:last-child { color: var(--talisman); text-align: right; }
+.rankCols tr.me td { background: rgba(240, 192, 32, .16); }
+.rankCols .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 10px 0; }
 .hint { font-size: 13px !important; margin: 8px 0 0 !important; }
 .score { font-size: 18px !important; color: var(--text) !important; }
 .score b { color: var(--talisman); font-size: 30px; font-weight: 400; }
@@ -171,6 +187,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
       <div class="nameRow"><input id="startName" maxlength="10" placeholder="道长尊姓大名？" autocomplete="off" aria-label="道号"><span id="nameTip"></span></div>
       <div class="diffs"><button class="btn" id="startBtn">开坛 · 普通</button><button class="btn hard" id="hardBtn">开坛 · 困难</button></div>
       <p class="hint">困难：怪更硬更疼、出招更勤，积分 ×1.5</p>
+      <button class="btn ghost rankBtn" id="rankBtn" type="button">功德簿 · 排名</button>
       <div class="chks"><label class="storyChk"><input type="checkbox" id="storyChk"> 播放开场剧情</label><label class="storyChk"><input type="checkbox" id="tipChk"> 新手提示</label></div>
     </div>
   </div>
@@ -185,7 +202,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
   </div>
 
   <div class="modal" id="levelup" hidden>
-    <div class="card"><h2 id="lvTitle">修为精进</h2><p style="margin:0">选一样法门（按 1 / 2 / 3）</p><div class="opts" id="opts"></div></div>
+    <div class="card"><h2 id="lvTitle">修为精进</h2><p style="margin:0" id="lvSub">选一样法门（按 1 / 2 / 3）</p><div class="opts" id="opts"></div></div>
   </div>
 
   <div class="modal" id="end" hidden>
@@ -213,6 +230,13 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
   <div id="wxTip" hidden>
     <svg class="wxArrow" viewBox="0 0 120 140" aria-hidden="true"><path d="M20 130 C 30 70, 60 40, 100 22" fill="none" stroke="#f0c020" stroke-width="8" stroke-linecap="round"/><path d="M78 10 L104 20 L90 44" fill="none" stroke="#f0c020" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <div class="wxCard"><b>点右上角「···」</b><span>选「发送给朋友」或「分享到朋友圈」</span><small id="wxSub">发完回来，点任意处继续</small></div>
+  </div>
+
+  <div class="modal" id="rank" hidden>
+    <div class="card rankCard"><h2>功德簿</h2>
+      <div class="rankCols"><div><h3>普通</h3><div id="rankN"></div></div><div><h3 class="hardT">困难</h3><div id="rankH"></div></div></div>
+      <p class="hint" id="rankNote"></p>
+      <button class="btn" id="rankBack" type="button">返回</button></div>
   </div>
 
   <div class="modal" id="pause" hidden>
@@ -308,7 +332,7 @@ const PASSIVES = {
 const ULTS = {
   thunder: { name: '五雷正法', seal: '雷', desc: ['大招：全屏降下 12 道天雷，会劈焦树、点燃民房', '16 道雷', '24 道雷，伤害提升；尸王在场时三分之一的雷专劈尸王'] },
   qiankun: { name: '乾坤剑法', seal: '乾', desc: ['大招：飞剑扫过屏幕中间一大片，推开敌人', '飞剑扫满全屏', '来回扫两遍，扫中定身 1 秒'] },
-  taiji: { name: '太极八卦阵', seal: '卦', desc: ['大招：脚下展开旋转的八卦法阵 4 秒，碰到的怪持续受伤并被推开', '法阵更大，并跟着你走', '收阵时八道卦象飞射四方，并吸回满地阴德'] },
+  taiji: { name: '太极八卦阵', seal: '卦', desc: ['大招：脚下展开旋转的八卦法阵 4 秒，碰到的怪持续受伤并被推开', '法阵更大，并跟着你走', '法阵持续 5 秒，收阵时八道卦象飞射四方'] },
 };
 const TAGS = { sword: ['伤害', '近身'], coin: ['伤害', '穿透'], rice: ['伤害', '持续'], bell: ['伤害', '范围'], fu: ['控制'], ink: ['控制', '范围'], mirror: ['防御'] };
 const TAGC = { '伤害': 'dmg', '控制': 'ctl', '防御': 'def', '范围': 'aoe', '被动': 'pas' };
@@ -627,11 +651,9 @@ function options() {
   const pool = [];
   for (const k in WEAPONS) { const lv = S.w[k] || 0; if (lv < 5) pool.push({ kind: 'w', k, lv }); }
   for (const k in PASSIVES) if (S.mods[k] < 5) pool.push({ kind: 'p', k, lv: S.mods[k] });
-  if (!S.ult) for (const k in ULTS) pool.push({ kind: 'u', k, lv: 0 });
-  else if (S.ult.lv < 3) pool.push({ kind: 'u', k: S.ult.k, lv: S.ult.lv });
   const out = [];
   while (out.length < 3 && pool.length) {
-    const ws = pool.map(o => o.kind === 'w' ? WEAPONS[o.k].w : o.kind === 'u' ? (S.ult ? 0.42 : 0.14) : 1), tot = ws.reduce((a, b) => a + b, 0);
+    const ws = pool.map(o => o.kind === 'w' ? WEAPONS[o.k].w : 1), tot = ws.reduce((a, b) => a + b, 0);
     let r = Math.random() * tot, i = 0; while (i < ws.length - 1 && r > ws[i]) r -= ws[i++];
     out.push(pool.splice(i, 1)[0]);
   }
@@ -639,8 +661,11 @@ function options() {
   return out;
 }
 let curOpts = [];
+const ULT_LV = [8, 15, 22];   // 第八重选大招，第十五、二十二重自动升层
 function levelUp() {
-  sfx('level'); S.state = 'level'; curOpts = options();
+  if (S.ult && (S.lv === 15 || S.lv === 22) && S.ult.lv < 3) { S.ult.lv++; banner(`${ULTS[S.ult.k].name} · ${cn(S.ult.lv)}重`, 2); sfx('ultcard'); }
+  const ultPick = S.lv >= 8 && !S.ult;
+  sfx('level'); S.state = 'level'; curOpts = ultPick ? Object.keys(ULTS).map(k => ({ kind: 'u', k, lv: 0 })) : options();
   const box = $('opts'); box.innerHTML = '';
   curOpts.forEach((o, i) => {
     const D = o.kind === 'w' ? WEAPONS[o.k] : o.kind === 'u' ? ULTS[o.k] : o.kind === 'h' ? { name: '调息', seal: '息', desc: '恢复 30 点阳气' } : PASSIVES[o.k];
@@ -652,6 +677,7 @@ function levelUp() {
   });
   const hasUlt = curOpts.some(o => o.kind === 'u');
   $('lvTitle').textContent = hasUlt ? '天机现世' : '修为精进'; if (hasUlt) sfx('ultcard');
+  $('lvSub').innerHTML = hasUlt ? '<b class="ultWarn">大招只能三选一，选定后不能更换</b><br><span class="ultNote">第八重、第十五重、第二十二重时，大招自动升一层</span>' : '选一样法门（按 1 / 2 / 3）';
   $('levelup').hidden = false;
   setTimeout(() => $('opt0') && $('opt0').focus(), 50);
 }
@@ -662,11 +688,14 @@ function pick(i) {
   else if (o.kind === 'u') { S.ult = { k: o.k, lv: (S.ult ? S.ult.lv : 0) + 1 }; $('ult').hidden = false; }
   else { S.mods[o.k]++; if (o.k === 'hp') { S.p.max += 20; S.p.hp = S.p.max; } }
   $('levelup').hidden = true; S.state = 'play'; last = performance.now();
-  if (S.xp >= S.need) gainXp(0);
 }
-function gainXp(v) {
-  S.xp += v;
-  if (S.xp >= S.need) { S.xp -= S.need; S.lv++; S.need = 4 + Math.round(S.lv * 2.6); levelUp(); }
+function gainXp(v) { S.xp += v; tryLevel(); }
+function tryLevel() {   // 两次升级之间至少隔 3 秒，多余的经验先存着
+  if (S.state !== 'play' || S.t - (S.lastLvT ?? -9) < 3) return;
+  if (S.lvQueue > 0) S.lvQueue--;
+  else if (S.xp >= S.need) S.xp -= S.need;
+  else return;
+  S.lastLvT = S.t; S.lv++; S.need = 4 + Math.round(S.lv * 2.6); levelUp();
 }
 
 // ---------- ultimates ----------
@@ -686,7 +715,7 @@ function tryUlt() {
     const band = lv === 1 ? 0.2 : 0;
     S.sweeps.push({ dir: 1, x: C.x - 30, x0: C.x - 30, x1: C.x + VW + 30, y0: C.y + VH * band, y1: C.y + VH * (1 - band), spd: (VW + 60) / 1.0, hit: new Set(), dmg: [0, 65, 60, 50][lv], stun: lv >= 3, again: lv >= 3 });
   } else if (k === 'taiji') {
-    S.taijis.push({ x: P.x, y: P.y, t: 0, dur: 4, R: lv >= 2 ? 160 : 120, follow: lv >= 2, gua: lv >= 3, tk: 0, dmg: 30 });
+    S.taijis.push({ x: P.x, y: P.y, t: 0, dur: lv >= 3 ? 5 : 4, R: lv >= 2 ? 160 : 120, follow: lv >= 2, gua: lv >= 3, tk: 0, dmg: 30 });
   }
 }
 function updateUlts() {
@@ -723,7 +752,6 @@ function updateUlts() {
       z.done = true;
       if (z.gua) {
         for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + S.t; S.guas.push({ x: z.x, y: z.y - 8, vx: Math.cos(a) * 260, vy: Math.sin(a) * 200, a, life: 1.1, hit: new Set(), i }); }
-        for (const o of S.orbs) o.pull = true;
         sfx('ult');
       }
     }
@@ -1060,7 +1088,7 @@ function update() {
 
   // spawning
   if (S.en.length < 200) {
-    S.spawnAcc += DT * (0.7 + S.t / 60) * 1.5 * 0.8 * DIFF[S.diff].spawn;
+    S.spawnAcc += DT * (0.7 + S.t / 60) * 1.5 * 0.7 * DIFF[S.diff].spawn;
     while (S.spawnAcc > 1) {
       S.spawnAcc--;
       const r = Math.random();
@@ -1693,7 +1721,7 @@ function setWeather(k, quiet) {
   if (!quiet && k !== 'clear') banner(WEATHER[k], 1.6);
   S.wxNext = S.t + rnd(70, 120);
 }
-function pickWeather() { const ks = ['clear', 'rain', 'storm', 'snow', 'moon', 'wind', 'bats']; let k; do k = ks[Math.floor(Math.random() * ks.length)]; while (S.wx && k === S.wx.k); return k; }
+function pickWeather() { const ks = ['clear', 'rain', 'storm', 'snow', 'wind', 'bats']; let k; do k = ks[Math.floor(Math.random() * ks.length)]; while (S.wx && k === S.wx.k); return k; }
 function updateWeather() {
   const W = S.wx; if (!W) return;
   if (S.t >= S.wxNext) setWeather(pickWeather());
@@ -1784,7 +1812,7 @@ function updateChests() {
     if (c.open) c.life -= DT;
   }
   S.chests = S.chests.filter(c => !c.open || c.life > 0);
-  if (S.lvQueue > 0 && S.state === 'play') { S.lvQueue--; S.lv++; S.need = 4 + Math.round(S.lv * 2.6); levelUp(); }
+  tryLevel();
 }
 // ---------- 水鬼 ----------
 function nearRiver(x, y, pad) { if (!MAP.river) return false; const b = MAP.bridge; if (y > b[0] - 14 && y < b[1] + 14) return false; return Math.abs(x - riverAt(y)) < (MAP.riverW || 64) / 2 + pad; }
@@ -1844,6 +1872,13 @@ function vampireAI(e) {
 }
 
 const SHI = [['子时', 0], ['丑时', 50], ['寅时', 150], ['卯时', 250]];
+// 冷却：按钮上盖一层像时钟指针一样转动的扇形，转完即可用
+function setCd(el, frac) {
+  frac = Math.max(0, Math.min(1, frac || 0));
+  const was = el.dataset.cd === '1', now = frac > 0;
+  el.style.setProperty('--p', frac.toFixed(3)); el.disabled = now; el.dataset.cd = now ? '1' : '0';
+  if (was && !now) { el.classList.remove('rdy'); void el.offsetWidth; el.classList.add('rdy'); }
+}
 function hud() {
   const P = S.p;
   $('hpb').firstElementChild.style.transform = `scaleX(${P.hp / P.max})`;
@@ -1855,9 +1890,9 @@ function hud() {
   $('till').textContent = `距鸡鸣 ${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')}`;
   $('kills').textContent = S.kills;
   $('combo').textContent = S.combo >= 5 ? (S.combo < 100 ? cn(S.combo) : S.combo) + '连斩' : '';
-  if (S.ult) { const u = $('ult'); u.disabled = S.ultCd > 0; const h = `${ULTS[S.ult.k].seal}<small>${S.ultCd > 0 ? Math.ceil(S.ultCd) + '秒' : 'Q'}</small>`; if (u.innerHTML !== h) u.innerHTML = h; }
-  const b = $('breath'); b.disabled = P.breathCd > 0;
-  b.innerHTML = P.breathCd > 0 ? `${Math.ceil(P.breathCd)}<small>秒</small>` : '屏息<small>空格</small>';
+  if (S.ult) { const u = $('ult'); setCd(u, S.ultCd / 30); const h = `${ULTS[S.ult.k].seal}<small>Q</small>`; if (u.innerHTML !== h) u.innerHTML = h; }
+  const b = $('breath'); setCd(b, P.breathCd / 12);
+  if (!b.innerHTML.startsWith('屏息')) b.innerHTML = '屏息<small>空格</small>';
 }
 
 // title-screen backdrop
@@ -2363,6 +2398,42 @@ const WEB = /^https?:$/.test(location.protocol) && !/claude\.ai|claudeuserconten
 async function webGet() { const r = await fetch('/api/scores', { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); const j = await r.json(); if (!Array.isArray(j)) throw new Error('bad'); return j; }
 async function webPost(rec) { const r = await fetch('/api/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rec) }); if (!r.ok) throw new Error('http ' + r.status); const j = await r.json(); if (!Array.isArray(j)) throw new Error('bad'); return j; }
 function localBoard() { try { return JSON.parse(localStorage.getItem('ztzh_board') || '[]'); } catch (e) { return []; } }
+// ---------- 标题页：功德簿排名（普通 / 困难两列）----------
+async function loadRank() {
+  let rows = null, shared = false;
+  if (DB) { try { const snap = await DB.collection('scores').orderBy('score', 'desc').limit(100).get(); rows = snap.docs.map(d => d.data()).filter(Boolean); shared = true; } catch (e) { rows = null; } }
+  if (!rows && WEB) { try { rows = await webGet(); shared = true; } catch (e) { rows = null; } }
+  if (!rows) rows = localBoard();
+  return { rows, shared };
+}
+async function showRank() {
+  $('title').hidden = true; $('rank').hidden = false;
+  $('rankN').innerHTML = $('rankH').innerHTML = '<div class="empty">读取中……</div>'; $('rankNote').textContent = '';
+  const { rows, shared } = await loadRank();
+  let me = ''; try { me = localStorage.getItem('ztzh_name') || ''; } catch (e) {}
+  const fill = (el, diff) => {
+    const list = rows.filter(r => (r.diff === 'hard') === (diff === 'hard')).sort((a, b) => (b.score || 0) - (a.score || 0));
+    el.textContent = '';
+    if (!list.length) { el.innerHTML = '<div class="empty">还没有人上榜</div>'; return null; }
+    const t = document.createElement('table');
+    list.slice(0, 20).forEach((r, i) => {
+      const tr = document.createElement('tr'); if (me && r.name === me) tr.className = 'me';
+      for (const v of [i + 1, String(r.name || '无名道士').slice(0, 10) + (r.win ? ' ☀' : ''), Number(r.score) || 0]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
+      t.appendChild(tr);
+    });
+    el.appendChild(t);
+    const idx = me ? list.findIndex(r => r.name === me) : -1;
+    return idx >= 0 ? { rank: idx + 1, score: list[idx].score } : null;
+  };
+  const a = fill($('rankN'), 'normal'), b = fill($('rankH'), 'hard');
+  const parts = [];
+  if (a) parts.push(`普通第 ${a.rank} 名（${a.score} 分）`);
+  if (b) parts.push(`困难第 ${b.rank} 名（${b.score} 分）`);
+  $('rankNote').textContent = (shared ? '' : '暂时连不上共享功德簿，以下是本机记录。 ') + (parts.length ? `你（${me}）：` + parts.join('，') : (me ? '你还没上榜，去开坛吧！' : '')) + '　☀ = 撑到天亮';
+}
+$('rankBtn').onclick = () => showRank();
+$('rankBack').onclick = () => { $('rank').hidden = true; $('title').hidden = false; };
+
 async function renderBoard() {
   const box = $('board'); let rows = null, shared = false;
   if (DB) { try { const snap = await DB.collection('scores').orderBy('score', 'desc').limit(10).get(); rows = snap.docs.map(d => d.data()).filter(Boolean); shared = true; } catch (e) { rows = null; } }
