@@ -35,6 +35,7 @@ export default async (req) => {
     score: int(b.score, 0, 200000),
     at: int(b.at, 0, 4102444800000),
     ults: int(b.ults, 0, 9999),
+    hero: b.hero === 'monk' ? 'monk' : 'tao',
   };
   const flagged = int(b.cheat, 0, 9999) > 0;
   // Plausibility: the score must not exceed what the game's own formula allows.
@@ -52,7 +53,7 @@ export default async (req) => {
 
   for (let attempt = 0; attempt < 4; attempt++) {
     const { list, etag } = await read(target);
-    const keyOf = (r) => r.name + '|' + r.diff;
+    const keyOf = (r) => r.name + '|' + r.diff + '|' + (r.hero || 'tao');
     const prev = list.find((r) => keyOf(r) === keyOf(rec));
     let next = list;
     if (!prev || prev.score < rec.score) {

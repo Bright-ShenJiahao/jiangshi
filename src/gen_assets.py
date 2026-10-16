@@ -43,6 +43,7 @@ exec(open('new_chars.py').read(), g)
 sprites.update({'renZ': g['ren_zombie']().img(), 'simu': g['simu']().img(), 'corpse': g['corpse']().img(), 'believer': g['believer']().img(),
                 'thrall': g['believer'](False, True).img(), 'bananaG': g['banana_ghost']().img(), 'bananaT': g['banana_ghost'](True).img(),
                 'bikeG': g['qiusheng_bike_bride']().img(), 'bike': g['qiusheng_bike'](False).img(), 'operaDan': g['opera_dan']().img(), 'operaJing': g['opera_jing']().img(), 'wuW': g['wuchang']().img(), 'wuB': g['wuchang'](False).img()})
+sprites['monk'] = g['monk']('pole').img(); sprites['monkR1'] = _redface(sprites['monk'], 1); sprites['monkR2'] = _redface(sprites['monk'], 2)
 exec(open('monsters2.py').read(), g)
 sprites.update({'vampire': g['vampire']().img(), 'ghostR': g['red_ghost'](g), 'jumperM': g['hairy'](g['zombie']('m', 'M').img()),
                 'chest': g['chest']().img(), 'chestB': g['chest'](True).img()})

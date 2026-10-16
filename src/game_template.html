@@ -48,6 +48,11 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
 .btn:focus-visible, .opt:focus-visible, #breath:focus-visible { outline: 3px solid var(--jade); outline-offset: 2px; }
 .opts { display: grid; gap: 10px; margin-top: 14px; }
+.heroes { display: flex; gap: 10px; justify-content: center; margin: 6px 0 2px; }
+.hero { background: transparent; border: 2px solid var(--line); color: var(--text); font: 16px var(--display); padding: 6px 12px; cursor: pointer; display: grid; gap: 2px; min-width: 128px; }
+.hero small { font-size: 11px; color: var(--muted); }
+.hero.on { border-color: var(--talisman); color: var(--talisman); background: rgba(240,192,32,.08); }
+.hero.lock { opacity: .5; }
 .rankTabs { display: flex; justify-content: center; gap: 8px; margin: -4px 0 10px; }
 .rankTabs button { background: transparent; border: 2px solid var(--line); color: var(--text); font: 15px var(--display); padding: 4px 14px; cursor: pointer; }
 .rankTabs button.on { border-color: var(--talisman); color: var(--talisman); }
@@ -180,6 +185,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
         <span>暂停</span><span>P 键</span>
       </div>
       <div class="nameRow"><input id="startName" maxlength="10" placeholder="道长尊姓大名？" autocomplete="off" aria-label="道号"><span id="nameTip"></span></div>
+      <div class="heroes"><button type="button" class="hero on" id="heroTao"><b>☯ 林道长</b><small>桃木剑 · 镇尸符</small></button><button type="button" class="hero" id="heroMonk"><b>卍 一休大师</b><small id="monkSub">禅杖 · 佛珠 · 木鱼</small></button></div>
       <div class="diffs"><button class="btn" id="startBtn">开坛 · 普通</button><button class="btn hard" id="hardBtn">开坛 · 困难</button></div>
       <p class="hint">困难：怪更硬更疼、出招更勤，积分 ×1.5</p>
       <button class="btn ghost rankBtn" id="rankBtn" type="button">功德簿 · 排名</button>
@@ -311,7 +317,7 @@ $('ult').addEventListener('click', () => tryUlt());
 // ---------- data ----------
 const NUM = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
 const cn = n => n <= 10 ? NUM[n] : n < 20 ? '十' + (n % 10 ? NUM[n % 10] : '') : NUM[Math.floor(n / 10)] + '十' + (n % 10 ? NUM[n % 10] : '');
-const WEAPONS = {
+const WEAPONS_T = {
   sword: { name: '桃木剑', seal: '剑', w: 1, desc: ['身边两把剑环绕挥砍', '伤害提升', '三把剑', '剑更长', '四把剑，伤害大增；斩杀回阳（每秒最多 2 点）'] },
   fu: { name: '镇尸符', seal: '符', w: 1, desc: ['向四周撒出 6 张符：命中必减速，几率贴符定身 2 秒；定住的怪挨打伤害 +25%', '一次 8 张', '定身几率提高', '一次 12 张', '符飞得更远'] },
   coin: { name: '铜钱剑', seal: '钱', w: 1, desc: ['铜钱剑飞出再飞回，来回穿透', '飞得更远', '两把', '伤害提升', '三把，剑更大'] },
@@ -327,23 +333,415 @@ const PASSIVES = {
   cd: { name: '法力', seal: '法', desc: '符、铜钱剑、墨斗、铃、八卦掌、金光咒的间隔 -8%（不影响大招）' },
   hp: { name: '阳气', seal: '阳', desc: '阳气上限 +20，回复 20 点' },
 };
-const ULTS = {
+const ULTS_T = {
   thunder: { name: '五雷正法', seal: '雷', desc: ['大招：全屏降下 12 道天雷，会劈焦树、点燃民房', '16 道雷', '24 道雷，伤害提升；尸王在场时三分之一的雷专劈尸王'] },
   qiankun: { name: '乾坤剑法', seal: '乾', desc: ['大招：飞剑扫过屏幕中间一大片，推开敌人', '飞剑扫满全屏', '来回扫两遍，扫中定身 1 秒'] },
   taiji: { name: '太极八卦阵', seal: '卦', desc: ['大招：脚下展开旋转的八卦法阵 4 秒，碰到的怪持续受伤并被推开', '法阵更大，并跟着你走', '法阵持续 5 秒，收阵时八道卦象飞射四方'] },
 };
 // 大招加持：选了某个大招，相关法器偶尔触发特性
-const ULTSYN = {
+const ULTSYN_T = {
   thunder: { w: 'fu', name: '引雷', text: '镇尸符偶尔引来小天雷', ch: [0, 0.05, 0.08, 0.12] },
   taiji: { w: 'ink', name: '太极墨阵', text: '墨斗线偶尔画成小太极阵', ch: [0, 0.12, 0.18, 0.25] },
   qiankun: { w: 'coin', name: '剑停回旋', text: '铜钱剑偶尔停在原地旋转攻击', ch: [0, 0.10, 0.15, 0.20] },
 };
 const dimin = n => n <= 12 ? 1 : Math.max(0.4, 1 - 0.05 * (n - 12));   // 大招：同一次命中第 13 只起逐只递减
-const ULTSYN2 = { taiji: { w: 'palm', name: '八卦身法', text: '法阵中八卦掌闪避 +10%，掌击偶尔打出连环掌', ch: [0, 0.1, 0.15, 0.2] } };
+const ULTSYN2_T = { taiji: { w: 'palm', name: '八卦身法', text: '法阵中八卦掌闪避 +10%，掌击偶尔打出连环掌', ch: [0, 0.1, 0.15, 0.2] } };
 const synCh = k => (S.ult && S.ult.k === k ? ULTSYN[k].ch[S.ult.lv] || 0 : 0);
 function synShow(k, x, y) { S.synSeen = S.synSeen || {}; S.texts.push({ x, y: y - 30, v: ULTSYN[k].name + '！', t: S.synSeen[k] ? 0.7 : 1.4, c: '#ffe070', big: !S.synSeen[k] }); S.synSeen[k] = true; }
-const TAGS = { palm: ['伤害', '近身'], sword: ['伤害', '近身'], coin: ['伤害', '穿透'], rice: ['伤害', '持续'], bell: ['伤害', '范围'], fu: ['控制'], ink: ['控制', '范围'], mirror: ['防御'] };
+const TAGS_T = { palm: ['伤害', '近身'], sword: ['伤害', '近身'], coin: ['伤害', '穿透'], rice: ['伤害', '持续'], bell: ['伤害', '范围'], fu: ['控制'], ink: ['控制', '范围'], mirror: ['防御'] };
+let WEAPONS = WEAPONS_T, ULTS = ULTS_T, ULTSYN = ULTSYN_T, ULTSYN2 = ULTSYN2_T, TAGS = TAGS_T;
 const TAGC = { '伤害': 'dmg', '控制': 'ctl', '防御': 'def', '范围': 'aoe', '被动': 'pas' };
+// ================= 一休大师（第二位主角）=================
+const WEAPONS_M = {
+  zhang: { name: '禅杖', seal: '杖', w: 1, desc: ['禅杖绕身旋转，两头都能打', '伤害提升', '三股杖头', '禅杖更长', '两根禅杖交叉旋转，伤害大增；锡环震晕贴身小怪'] },
+  gun: { name: '少林棍', seal: '棍', w: 1, desc: ['每 2.2 秒朝前方横扫半圈，扫飞一大片', '扫得更远', '旋风棍：整圈 360° 横扫', '伤害提升，击退更远', '扫完留下一圈棍影风刃，往外再打一次'] },
+  zhu: { name: '佛珠', seal: '珠', w: 1, desc: ['射出一串佛珠，在 3 只怪之间来回弹', '弹 5 只', '两串', '伤害提升', '线断珠散：满天佛珠各自追怪'] },
+  yu: { name: '木鱼', seal: '鱼', w: 1, desc: ['每 3 秒「笃」一声，音波震伤四周并眩晕 0.8 秒', '音波范围更大', '连敲两下', '眩晕 1.2 秒', '一记重敲：大范围震晕，精英减速'] },
+  jing: { name: '经文', seal: '经', w: 1, desc: ['每 2.5 秒朝前甩开经卷：金字贴怪诵经 3 秒，持续掉血、减速；被诵经的怪死时阴德 +15%', '经卷更长', '一次两条，呈 V 字', '持续伤害提升，减速加重', '三条扇形经卷；怪死时金字跳到旁边接着念'] },
+  chu: { name: '降魔杵', seal: '杵', w: 1, desc: ['每 3.5 秒从天砸向怪最密的地方', '伤害提升', '两根', '范围变大', '落地留下降魔印，持续伤害 3 秒'] },
+  bo: { name: '钵', seal: '钵', w: 1, desc: ['每 5 秒抛出钵盂，把附近小怪吸过去定住 3 秒', '吸力范围更大', '收钵时造成伤害', '精英也会被吸过去（只减速）', '血量低于 40% 的小怪直接收进钵里（每次最多 6 只）'] },
+  jia: { name: '袈裟', seal: '袈', w: 1, desc: ['受到伤害 -15%；每 12 秒袈裟一卷，震开贴身的怪', '减伤 20%', '每 10 秒一卷，震得更远', '减伤 25%', '金刚不坏：受到致命伤免死一次（每 50 秒）'] },
+};
+const TAGS_M = { zhang: ['伤害', '近身'], gun: ['伤害', '范围'], zhu: ['伤害', '穿透'], yu: ['控制', '范围'], jing: ['伤害', '持续'], chu: ['伤害', '范围'], bo: ['控制'], jia: ['防御'] };
+const ULTS_M = {
+  foguang: { name: '佛光普照', seal: '佛', desc: ['大招：金光洒满全屏，所有怪受伤；鬼魂双倍', '伤害提升，照到的怪减速 2 秒', '金光持续 3 秒，期间照死的怪阴德翻倍；尸王在场时多照它两下'] },
+  jiasha: { name: '袈裟伏魔功', seal: '伏', desc: ['大招：锦襕袈裟罩住一大片，收回时把怪全拖到身边，眩晕 2.5 秒', '罩满全屏，眩晕 3 秒', '眩晕 3.5 秒，拖来的怪受到伤害 +30%'] },
+  liuzi: { name: '六字大明咒', seal: '咒', desc: ['大招：唵嘛呢叭咪吽，六字化作六道金色音波向外扩散', '音波更远', '音波更远，伤害提升'] },
+};
+const ULTSYN_M = {
+  foguang: { w: 'zhu', name: '金光珠', text: '佛珠偶尔化作金光珠，每弹一下炸开小佛光', ch: [0, 0.10, 0.15, 0.20] },
+  jiasha: { w: 'jia', name: '小伏魔', text: '袈裟一卷时偶尔收拢，把身边小怪拉来眩晕 1 秒', ch: [0, 0.10, 0.15, 0.20] },
+  liuzi: { w: 'yu', name: '真言木鱼', text: '木鱼偶尔念出一个真言字，凑齐六字放出小六字大明咒', ch: [0, 0.10, 0.15, 0.20] },
+};
+const PASS_CD = { tao: '符、铜钱剑、墨斗、铃、八卦掌、金光咒的间隔 -8%（不影响大招）', monk: '棍、佛珠、木鱼、经文、降魔杵、钵、袈裟的间隔 -8%（不影响大招）' };
+const LZ = '唵嘛呢叭咪吽';
+let HERO = 'tao';
+try { HERO = localStorage.getItem('ztzh_hero') === 'monk' ? 'monk' : 'tao'; } catch (e) {}
+function monkUnlocked() {
+  try { if (/[?&]unlock\b/.test(location.search)) localStorage.setItem('ztzh_monk', '1'); return localStorage.getItem('ztzh_monk') === '1'; } catch (e) { return /[?&]unlock\b/.test(location.search); }
+}
+function setHero(h) {
+  HERO = h === 'monk' ? 'monk' : 'tao';
+  const m = HERO === 'monk';
+  WEAPONS = m ? WEAPONS_M : WEAPONS_T; ULTS = m ? ULTS_M : ULTS_T; ULTSYN = m ? ULTSYN_M : ULTSYN_T; ULTSYN2 = m ? {} : ULTSYN2_T; TAGS = m ? TAGS_M : TAGS_T;
+  PASSIVES.cd.desc = PASS_CD[HERO];
+}
+const HK = () => (S && S.hero === 'monk' ? 'monk' : 'taoist');
+const mBig = e => e.type === 'king' || e.type === 'vampire' || e.type === 'hand' || e.type === 'wuchang' || e.special || e.banana || e.audience || e.onBike;
+const mGhost = e => e.type === 'ghost' || e.skin === 'ghostR' || e.banana;
+// 控制递减：2 秒内第二次眩晕减半，第三次免疫；尸王等大怪只减速
+function mStun(e, d, allowElite) {
+  if (e.dead) return false;
+  if (mBig(e) || (e.elite && !allowElite)) { e.pslow = S.t + d; e.pslowK = 0.5; return false; }
+  if (S.t > (e.drT || 0)) e.drN = 0;
+  if ((e.drN || 0) >= 2) return false;
+  e.drN = (e.drN || 0) + 1; e.drT = S.t + 2;
+  e.stun = Math.max(e.stun, d * (e.drN === 2 ? 0.5 : 1) * (e.elite ? 0.5 : 1)); e.mStun = 1; return true;
+}
+function mAim(R) { const P = S.p, t = nearest(1, R)[0]; return t ? Math.atan2((t.y - P.y) / 0.75, t.x - P.x) : (P.face > 0 ? 0 : Math.PI); }
+function mDense(R, avoid) {
+  const P = S.p, c = S.en.filter(e => !e.dead && !(e.batT > 0) && !e.audience && dist2(e, P) < R * R && !(avoid || []).some(q => (q.x - e.x) ** 2 + (q.y - e.y) ** 2 < 50 * 50));
+  let best = null, bn = -1;
+  const step = c.length > 80 ? 3 : c.length > 40 ? 2 : 1;
+  for (let i = 0; i < c.length; i += step) { const a = c[i]; let n = 0; for (const b of c) if ((a.x - b.x) ** 2 + (a.y - b.y) ** 2 < 34 * 34) n++; if (n > bn) { bn = n; best = a; } }
+  return best;
+}
+const inEll = (e, x, y, R) => (e.x - x) ** 2 + ((e.y - y) / 0.75) ** 2 < R * R;
+function mChant(e, lv) {
+  if (e.dead) return;
+  e.chT = S.t + 3; e.chD = [0, 7, 7, 8, 10, 11][lv]; e.chLv = lv;
+  const k = lv >= 4 ? 0.45 : 0.6; e.pslow = S.t + 3; e.pslowK = mBig(e) || e.elite ? 1 - (1 - k) / 2 : k;
+}
+function monkKill(e) {
+  if (e.chT > S.t && e.chLv >= 5) {
+    const n = S.en.filter(q => !q.dead && q !== e && !(q.chT > S.t) && (q.x - e.x) ** 2 + (q.y - e.y) ** 2 < 80 * 80).sort((a, b) => dist2(a, e) - dist2(b, e))[0];
+    if (n) { mChant(n, 5); S.mk.fx.push({ k: 'jump', x1: e.x, y1: e.y - 14, x2: n.x, y2: n.y - 14, t: 0 }); }
+  }
+}
+function mYu(lv, second) {
+  const P = S.p, M = S.mk; let R = lv >= 5 ? 125 : lv >= 2 ? 92 : 72, ch = '';
+  const dmg = [0, 18, 18, 19, 20, 26][lv], st = lv >= 4 ? 1.2 : 0.8;
+  if (!second && Math.random() < synCh('liuzi')) {
+    ch = LZ[M.ch]; M.ch++; R *= 1.3; synShow('liuzi', P.x, P.y);
+    S.texts.push({ x: P.x, y: P.y - 48, v: ch, t: 1.2, c: '#ffd860', big: true });
+  }
+  sfx('muyu'); M.fx.push({ k: 'ring', x: P.x, y: P.y - 4, R, t: 0, gold: !!ch, ch });
+  for (const e of S.en) {
+    if (e.dead || !inEll(e, P.x, P.y, R)) continue;
+    hurt(e, dmg, ch ? 130 : 70);
+    if (lv >= 5 && e.elite) { e.pslow = S.t + 1.5; e.pslowK = 0.5; } else mStun(e, st);
+  }
+  if (M.ch >= 6) { M.ch = 0; S.texts.push({ x: P.x, y: P.y - 60, v: '六字真言！', t: 1.6, c: '#ffe070', big: true }); mLiuzi(S.ult ? S.ult.lv : 1, true); }
+}
+function mLiuzi(lv, mini) {
+  const R = [0, 140, 170, 200][lv] * (mini ? 0.6 : 1), D = [0, 32, 34, 40][lv] * (mini ? 0.5 : 1);
+  for (let i = 0; i < 6; i++) S.mk.lz.push({ i, t: -i * 0.35, R, D, hit: new Set(), ult: !mini });
+}
+function mBead(t, hops, dmg, gold, i) {
+  const P = S.p, a = t ? Math.atan2(t.y - P.y, t.x - P.x) : (P.face > 0 ? 0 : Math.PI);
+  const sp = a + (i - 0.5) * 0.5;
+  return { x: P.x, y: P.y - 12, vx: Math.cos(sp) * 200, vy: Math.sin(sp) * 200, tgt: t, hops, dmg, gold, hit: new Set(), life: t ? 3 : 0.7, trail: [] };
+}
+function mUlt(k, lv) {
+  const P = S.p, C = S.cam, M = S.mk;
+  const vis = S.en.filter(e => !e.dead && !e.audience && e.x > C.x - 10 && e.x < C.x + VW + 10 && e.y > C.y - 10 && e.y < C.y + VH + 24);
+  window.sayKey && window.sayKey('m_amtf', 0.9);
+  if (k === 'foguang') {
+    const D = [0, 105, 120, 135][lv];
+    S.flash = Math.max(S.flash, 0.12); M.fx.push({ k: 'foguang', t: 0, dur: lv >= 3 ? 3 : 1.4 });
+    vis.sort(() => Math.random() - 0.5).forEach((e, i) => {
+      hurt(e, D * dimin(i + 1) * (mGhost(e) ? 2 : 1), 30, P.x, P.y, 'light');
+      if (lv >= 2) { e.pslow = S.t + 2; e.pslowK = 0.5; }
+    });
+    if (lv >= 3) { S.fgT = S.t + 3; M.fgP = [S.t + 1, S.t + 2]; }
+  } else if (k === 'jiasha') {
+    const R = lv >= 2 ? 9999 : 170, st = [0, 2.5, 3, 3.5][lv];
+    const cap = vis.filter(e => e.type !== 'hand' && !(e.batT > 0) && Math.hypot(e.x - P.x, e.y - P.y) < R).slice(0, 70);
+    M.js = { t: 0, lv, st, full: lv >= 2, done: false, list: cap.map((e, i) => ({ e, x0: e.x, y0: e.y, big: mBig(e), el: e.elite, a: i * 2.399, r: 30 + (i % 4) * 9 })) };
+    sfx('whoosh');
+  } else if (k === 'liuzi') mLiuzi(lv, false);
+}
+function updateMonk() {
+  if (S.hero !== 'monk') return;
+  const P = S.p, W = S.w, M = S.mk;
+  // 少林棍
+  if (W.gun && tick('gun', 2.2)) {
+    const lv = W.gun, R = lv >= 2 ? 86 : 70, full = lv >= 3, a = mAim(R + 30), dmg = [0, 17, 18, 19, 23, 25][lv], kb = lv >= 4 ? 140 : 100;
+    sfx('whoosh'); M.fx.push({ k: 'gun', x: P.x, y: P.y - 8, a, R, full, t: 0 });
+    for (const e of S.en) {
+      if (e.dead || !inEll(e, P.x, P.y, R + e.r)) continue;
+      if (!full) { let da = Math.atan2((e.y - P.y) / 0.75, e.x - P.x) - a; da = Math.atan2(Math.sin(da), Math.cos(da)); if (Math.abs(da) > Math.PI / 2) continue; }
+      hurt(e, dmg, kb);
+    }
+    if (lv >= 5) M.waves.push({ x: P.x, y: P.y, r0: R, r1: R + 55, t: 0, dmg: dmg * 0.5, hit: new Set() });
+  }
+  for (const w of M.waves) {
+    w.t += DT; const r = w.r0 + (w.r1 - w.r0) * Math.min(1, w.t / 0.4);
+    for (const e of S.en) if (!e.dead && !w.hit.has(e.id)) { const d = Math.hypot(e.x - w.x, (e.y - w.y) / 0.75); if (Math.abs(d - r) < 10) { w.hit.add(e.id); hurt(e, w.dmg, 40, w.x, w.y); } }
+  }
+  M.waves = M.waves.filter(w => w.t < 0.5);
+  // 佛珠
+  if (W.zhu && tick('zhu', 2.0)) {
+    const lv = W.zhu, gold = Math.random() < synCh('foguang');
+    if (gold) synShow('foguang', P.x, P.y);
+    sfx('coin');
+    if (lv >= 5) { const tg = nearest(8, 220); for (let i = 0; i < 8; i++) M.beads.push(mBead(tg.length ? tg[i % tg.length] : null, 2, 20, gold, i / 3)); }
+    else { const n = lv >= 3 ? 2 : 1, tg = nearest(n, 200); for (let i = 0; i < n; i++) M.beads.push(mBead(tg[i] || tg[0], lv >= 2 ? 5 : 3, lv >= 4 ? 22 : 18, gold, i)); }
+  }
+  for (const b of M.beads) {
+    b.life -= DT; b.trail.unshift([b.x, b.y]); if (b.trail.length > 6) b.trail.pop();
+    if (b.tgt && (b.tgt.dead || b.tgt.gone)) b.tgt = S.en.filter(e => !e.dead && !b.hit.has(e.id) && (e.x - b.x) ** 2 + (e.y - b.y) ** 2 < 120 * 120).sort((p, q) => dist2(p, b) - dist2(q, b))[0];
+    if (b.tgt) {
+      const dx = b.tgt.x - b.x, dy = b.tgt.y - 10 - b.y, l = Math.hypot(dx, dy) || 1;
+      b.vx += (dx / l * 300 - b.vx) * Math.min(1, DT * 9); b.vy += (dy / l * 300 - b.vy) * Math.min(1, DT * 9);
+      if (l < 9) {
+        const e = b.tgt; hurt(e, b.dmg, 15, b.x, b.y); b.hit.add(e.id); b.hops--;
+        if (b.gold) { M.fx.push({ k: 'gburst', x: e.x, y: e.y - 10, t: 0 }); for (const q of S.en) if (!q.dead && q !== e && (q.x - e.x) ** 2 + (q.y - e.y) ** 2 < 28 * 28) hurt(q, 10 * (mGhost(q) ? 2 : 1), 20, e.x, e.y, 'light'); }
+        if (b.hops <= 0) { b.life = 0; continue; }
+        b.tgt = S.en.filter(q => !q.dead && !b.hit.has(q.id) && (q.x - b.x) ** 2 + (q.y - b.y) ** 2 < 110 * 110).sort((p, q) => dist2(p, b) - dist2(q, b))[0];
+        if (!b.tgt) b.life = Math.min(b.life, 0.25);
+      }
+    }
+    b.x += b.vx * DT; b.y += b.vy * DT;
+  }
+  M.beads = M.beads.filter(b => b.life > 0);
+  // 木鱼
+  if (W.yu && tick('yu', 3)) { mYu(W.yu, false); if (W.yu >= 3) M.yu2 = S.t + 0.4; }
+  if (M.yu2 && S.t >= M.yu2) { M.yu2 = 0; if (W.yu) mYu(W.yu, true); }
+  // 经文
+  if (W.jing && tick('jing', 2.5)) {
+    const lv = W.jing, L = lv >= 2 ? 150 : 110, a = mAim(L), angs = lv >= 5 ? [-0.42, 0, 0.42] : lv >= 3 ? [-0.3, 0.3] : [0];
+    sfx('throw');
+    for (const da of angs) {
+      const an = a + da; let ux = Math.cos(an), uy = Math.sin(an) * 0.75; const n = Math.hypot(ux, uy); ux /= n; uy /= n;
+      M.fx.push({ k: 'scroll', x: P.x, y: P.y - 10, ux, uy, L, t: 0 });
+      for (const e of S.en) {
+        if (e.dead) continue;
+        const rx = e.x - P.x, ry = e.y - P.y, al = rx * ux + ry * uy;
+        if (al < 0 || al > L || Math.abs(rx * uy - ry * ux) > 12 + e.r) continue;
+        mChant(e, lv);
+      }
+    }
+  }
+  M.chTk = (M.chTk || 0) - DT;
+  if (M.chTk <= 0) { M.chTk = 0.5; for (const e of S.en) if (!e.dead && e.chT > S.t) hurt(e, e.chD * 0.5); }
+  // 降魔杵
+  if (W.chu && tick('chu', 3.5)) {
+    const lv = W.chu, n = lv >= 3 ? 2 : 1, used = [];
+    for (let i = 0; i < n; i++) {
+      const t = mDense(220, used); const x = t ? t.x : P.x + P.face * 40 + rnd(-20, 20), y = t ? t.y : P.y + rnd(-20, 20);
+      used.push({ x, y }); M.pest.push({ x, y, t: -0.35 - i * 0.15, r: lv >= 4 ? 40 : 30, dmg: lv >= 2 ? 60 : 52, seal: lv >= 5, done: false });
+    }
+  }
+  for (const p of M.pest) {
+    p.t += DT;
+    if (p.t >= 0 && !p.done) {
+      p.done = true; sfx('thud'); S.shake = Math.max(S.shake, 0.12);
+      for (const e of S.en) if (!e.dead && inEll(e, p.x, p.y, p.r + e.r)) hurt(e, p.dmg, 50, p.x, p.y);
+      if (p.seal) M.seals.push({ x: p.x, y: p.y, r: 34, life: 3, tk: 0 });
+    }
+  }
+  M.pest = M.pest.filter(p => p.t < 0.45);
+  for (const s of M.seals) { s.life -= DT; s.tk -= DT; if (s.tk <= 0) { s.tk = 0.5; for (const e of S.en) if (!e.dead && inEll(e, s.x, s.y, s.r)) hurt(e, 5); } }
+  M.seals = M.seals.filter(s => s.life > 0);
+  // 钵
+  if (W.bo && tick('bo', 5)) {
+    const lv = W.bo, t = mDense(110); const x = t ? t.x : P.x + P.face * 60, y = t ? t.y : P.y;
+    M.bowls.push({ x0: P.x, y0: P.y - 14, x, y, t: 0, R: lv >= 2 ? 95 : 80, lv, caught: null }); sfx('throw');
+  }
+  for (const b of M.bowls) {
+    b.t += DT;
+    if (b.t >= 0.4 && !b.caught) {
+      b.caught = []; sfx('suck');
+      for (const e of S.en) {
+        if (e.dead || mBig(e) || e.type === 'hand' || !inEll(e, b.x, b.y, b.R)) continue;
+        if (e.elite) { if (b.lv >= 4) { e.pslow = S.t + 2; e.pslowK = 0.5; b.caught.push({ e, x0: e.x, y0: e.y, half: true }); } continue; }
+        b.caught.push({ e, x0: e.x, y0: e.y });
+      }
+    }
+    if (b.caught && b.t < 1.0) {
+      const k = Math.min(1, (b.t - 0.4) / 0.6), ease = k * k * (3 - 2 * k);
+      b.caught.forEach((c, i) => { if (c.e.dead) return; const m = c.half ? 0.5 : 0.85, ang = i * 2.4, tx = b.x + Math.cos(ang) * 8, ty = b.y + Math.sin(ang) * 6; c.e.x = c.x0 + (tx - c.x0) * ease * m; c.e.y = c.y0 + (ty - c.y0) * ease * m; if (!c.half) c.e.stun = Math.max(c.e.stun, 0.1); });
+    }
+    if (b.caught && b.t >= 1.0 && !b.closed) {
+      b.closed = true; sfx('gong'); let killed = 0;
+      for (const c of b.caught) {
+        const e = c.e; if (e.dead || c.half) continue;
+        if (b.lv >= 5 && killed < 6 && e.hp < e.max * 0.4) { killed++; hurt(e, e.hp * 20 + 50); continue; }
+        if (b.lv >= 3) hurt(e, 20, 0);
+        mStun(e, 3);
+      }
+      if (killed) S.texts.push({ x: b.x, y: b.y - 34, v: '收！', t: 0.9, c: '#ffe070', big: true });
+    }
+  }
+  M.bowls = M.bowls.filter(b => b.t < 1.5);
+  // 袈裟
+  if (W.jia) {
+    M.jiaT -= DT;
+    if (M.jiaT <= 0) {
+      const lv = W.jia; M.jiaT = (lv >= 3 ? 10 : 12) * cdMul(); const dmg = [0, 10, 10, 14, 14, 18][lv];
+      if (Math.random() < synCh('jiasha')) {
+        synShow('jiasha', P.x, P.y); M.fx.push({ k: 'jia', x: P.x, y: P.y, t: 0, inward: true }); sfx('whoosh');
+        let i = 0;
+        for (const e of S.en) {
+          if (e.dead || mBig(e) || e.elite || !inEll(e, P.x, P.y, 78)) continue;
+          const a = i++ * 2.4; e.x = P.x + Math.cos(a) * 20; e.y = P.y + Math.sin(a) * 14; hurt(e, dmg, 0); mStun(e, 1);
+        }
+      } else {
+        M.fx.push({ k: 'jia', x: P.x, y: P.y, t: 0 }); sfx('whoosh');
+        for (const e of S.en) if (!e.dead && inEll(e, P.x, P.y, 38)) hurt(e, dmg, lv >= 3 ? 300 : 220);
+      }
+    }
+  }
+  // 大招：佛光余辉
+  if (M.fgP && M.fgP.length && S.t >= M.fgP[0]) {
+    M.fgP.shift(); const C = S.cam; let i = 0;
+    for (const e of S.en) if (!e.dead && !e.audience && e.x > C.x && e.x < C.x + VW && e.y > C.y && e.y < C.y + VH + 20) hurt(e, (30 + (e.type === 'king' ? 60 : 0)) * dimin(++i) * (mGhost(e) ? 2 : 1), 10, P.x, P.y, 'light');
+    S.flash = Math.max(S.flash, 0.06);
+  }
+  // 大招：袈裟伏魔功
+  if (M.js) {
+    const J = M.js; J.t += DT;
+    if (J.t > 0.35 && J.t < 0.95) {
+      const k = (J.t - 0.35) / 0.6, ease = k * k * (3 - 2 * k);
+      for (const c of J.list) {
+        if (c.e.dead || c.big) continue;
+        const m = c.el ? 0.5 : 1, tx = P.x + Math.cos(c.a) * c.r, ty = P.y + Math.sin(c.a) * c.r * 0.75;
+        c.e.x = c.x0 + (tx - c.x0) * ease * m; c.e.y = c.y0 + (ty - c.y0) * ease * m; c.e.stun = Math.max(c.e.stun, 0.12);
+      }
+    }
+    if (J.t >= 0.95 && !J.done) {
+      J.done = true; sfx('gong'); S.shake = Math.max(S.shake, 0.2);
+      for (const c of J.list) {
+        const e = c.e; if (e.dead) continue;
+        if (c.big) { e.pslow = S.t + 3; e.pslowK = 0.5; continue; }
+        hurt(e, 40, 0); e.stun = Math.max(e.stun, c.el ? 1 : J.st); e.mStun = 1; e.drN = 2; e.drT = S.t + (c.el ? 1 : J.st) + 0.5;
+        if (J.lv >= 3) e.jsT = S.t + J.st + 0.5;
+      }
+    }
+    if (J.t > 1.4) M.js = null;
+  }
+  // 大招：六字大明咒
+  for (const w of M.lz) {
+    const was = w.t; w.t += DT; if (w.t < 0) continue;
+    if (was < 0) { sfx('bell'); S.texts.push({ x: P.x, y: P.y - 56, v: LZ[w.i], t: 0.8, c: '#ffe070', big: true }); }
+    const r = w.R * Math.min(1, w.t / 0.6);
+    for (const e of S.en) if (!e.dead && !w.hit.has(e.id)) { const d = Math.hypot(e.x - P.x, (e.y - P.y) / 0.75); if (d < r && d > r - 22) { w.hit.add(e.id); hurt(e, w.D * (w.ult ? dimin(w.hit.size) : 1), 70, P.x, P.y); } }
+  }
+  M.lz = M.lz.filter(w => w.t < 0.9);
+  for (const f of M.fx) f.t += DT;
+  M.fx = M.fx.filter(f => f.t < (f.k === 'foguang' ? f.dur : f.k === 'scroll' ? 0.7 : f.k === 'jia' ? 0.5 : 0.45));
+}
+// ---------- 一休 · 画面 ----------
+function drawStaff(x, y, a, L) {
+  g.save(); g.translate(Math.round(x), Math.round(y)); g.rotate(a);
+  g.fillStyle = '#1a0e1e'; g.fillRect(0, -2, L + 1, 4);
+  g.fillStyle = '#8a5428'; g.fillRect(1, -1, L - 1, 2); g.fillStyle = '#c88a4a'; g.fillRect(1, -1, L - 1, 1);
+  g.strokeStyle = '#1a0e1e'; g.lineWidth = 3; g.beginPath(); g.arc(L + 3, 0, 4, 0, 7); g.stroke();
+  g.strokeStyle = '#f0c030'; g.lineWidth = 1.5; g.beginPath(); g.arc(L + 3, 0, 4, 0, 7); g.stroke();
+  g.fillStyle = '#ffe070'; g.fillRect(L + 6, -4, 2, 2); g.fillRect(L + 6, 2, 2, 2);
+  g.restore();
+}
+function drawKasaya(cx, cy, w, h, al, amp = 3) {   // 锦襕袈裟：竖条切片随风起伏，边缘抖动
+  if (w < 4 || h < 4) return;
+  g.save(); g.globalAlpha = al;
+  const N = Math.max(6, Math.min(28, Math.round(w / 8))), sw = w / N, x0 = cx - w / 2, y0 = cy - h / 2, T = S.t;
+  const cw = Math.max(10, w / 9), ch = Math.max(8, h / 6);
+  for (let i = 0; i < N; i++) {
+    const u = i / (N - 1), dy = Math.sin(T * 9 + i * 0.7) * amp + Math.sin(T * 5.3 - i * 0.35) * amp * 0.6;
+    const sh = 1 + Math.sin(T * 7 + i * 0.9) * 0.04, hh = h * sh, x = Math.floor(x0 + i * sw), xw = Math.ceil(sw) + 1, y = y0 + dy - (hh - h) / 2;
+    const lit = Math.cos(T * 9 + i * 0.7);   // 波峰亮、波谷暗
+    g.fillStyle = lit > 0.3 ? '#cc2a22' : lit < -0.3 ? '#94181a' : '#b8201c'; g.fillRect(x, Math.round(y), xw, Math.round(hh));
+    g.fillStyle = '#e8b830';
+    for (let r = 0, yy = y; yy <= y + hh; yy += ch * sh, r++) {
+      g.fillRect(x, Math.round(yy), xw, 1);
+      const off = r % 2 ? cw / 2 : 0;
+      for (let gx = x0 + off; gx < x0 + w; gx += cw) if (gx >= x && gx < x + xw) g.fillRect(Math.round(gx), Math.round(yy), 1, Math.ceil(ch * sh));
+    }
+    g.fillRect(x, Math.round(y), xw, 2); g.fillRect(x, Math.round(y + hh - 2), xw, 2);
+    if (i === 0) g.fillRect(x, Math.round(y), 2, Math.round(hh));
+    if (i === N - 1) { g.fillRect(x + xw - 2, Math.round(y), 2, Math.round(hh)); g.strokeStyle = '#ffe070'; g.lineWidth = 2; g.beginPath(); g.arc(x - 6, y + 8, 4, 0, 7); g.stroke(); }
+    if (u > 0.85 || u < 0.15) { g.fillStyle = 'rgba(232,184,48,.9)'; g.fillRect(x, Math.round(y + hh), xw, 1 + Math.round(Math.abs(Math.sin(T * 14 + i)) * 2)); }
+  }
+  g.restore();
+}
+function drawManji(x, y, s, c) {
+  const u = s / 5; g.fillStyle = c;
+  g.fillRect(x - u / 2, y - 2.5 * u, u, 5 * u); g.fillRect(x - 2.5 * u, y - u / 2, 5 * u, u);
+  g.fillRect(x + u / 2, y - 2.5 * u, 2 * u, u); g.fillRect(x + 1.5 * u, y + u / 2, u, 2 * u); g.fillRect(x - 2.5 * u, y + 1.5 * u, 2 * u, u); g.fillRect(x - 2.5 * u, y - 2.5 * u, u, 2 * u);
+}
+function drawMonkWorld() {
+  if (S.hero !== 'monk' || !S.mk) return;
+  const P = S.p, M = S.mk;
+  for (const s of M.seals) { g.globalAlpha = Math.min(0.5, s.life * 0.4); g.strokeStyle = '#ffd860'; g.lineWidth = 2; g.beginPath(); g.ellipse(s.x, s.y, s.r, s.r * 0.75, 0, 0, 7); g.stroke(); drawManji(s.x, s.y - 2, 14, '#ffd860'); g.globalAlpha = 1; }
+  for (const b of M.bowls) {
+    const k = Math.min(1, b.t / 0.4), x = b.x0 + (b.x - b.x0) * k, y = b.y0 + (b.y - b.y0) * k - Math.sin(k * Math.PI) * 30;
+    if (b.caught && !b.closed) { g.globalAlpha = 0.35; g.strokeStyle = '#ffe9b0'; g.lineWidth = 1; for (let i = 0; i < 3; i++) { const r = b.R * (1 - ((b.t * 2 + i / 3) % 1)); g.beginPath(); g.ellipse(b.x, b.y, r, r * 0.75, 0, 0, 7); g.stroke(); } g.globalAlpha = 1; }
+    const yy = b.caught ? b.y - 6 : y;
+    px(x - 7, yy - 4, 14, 6, '#1a0e1e'); px(x - 6, yy - 3, 12, 4, '#6a4a2a'); px(x - 5, yy - 3, 10, 1, '#b08850'); px(x - 4, yy + 1, 8, 2, '#1a0e1e');
+    if (b.closed) { g.globalAlpha = Math.max(0, 1 - (b.t - 1) * 2); g.fillStyle = '#ffe070'; g.beginPath(); g.arc(b.x, b.y - 8, 10, 0, 7); g.fill(); g.globalAlpha = 1; }
+  }
+  for (const f of M.fx) {
+    if (f.k === 'gun') {
+      const k = f.t / 0.45, span = f.full ? Math.PI * 2 : Math.PI, a0 = f.a - span / 2, a1 = a0 + span * Math.min(1, k * 2.5);
+      g.save(); g.translate(f.x, f.y); g.scale(1, 0.75); g.globalAlpha = Math.max(0, 1 - k) * 0.7;
+      g.strokeStyle = '#f4efe2'; g.lineWidth = 7; g.beginPath(); g.arc(0, 0, f.R - 6, a0, a1); g.stroke();
+      g.strokeStyle = '#c88a4a'; g.lineWidth = 2; g.beginPath(); g.arc(0, 0, f.R - 2, a0, a1); g.stroke();
+      g.restore(); g.globalAlpha = 1;
+      if (k < 0.4) drawStaff(f.x, f.y, a1 * 1, f.R - 8);
+    } else if (f.k === 'ring') {
+      const k = f.t / 0.45, r = f.R * (0.3 + 0.7 * k);
+      g.globalAlpha = (1 - k) * 0.8; g.strokeStyle = f.gold ? '#ffd860' : '#e8d8b0'; g.lineWidth = f.gold ? 3 : 2;
+      g.beginPath(); g.ellipse(f.x, f.y, r, r * 0.75, 0, 0, 7); g.stroke(); g.globalAlpha = 1;
+      if (k < 0.5) { px(f.x - 5, P.y - 34, 10, 6, '#1a0e1e'); px(f.x - 4, P.y - 33, 8, 4, '#a0602c'); px(f.x - 2, P.y - 32, 3, 1, '#1a0e1e'); }
+    } else if (f.k === 'scroll') {
+      const k = Math.min(1, f.t / 0.2), L = f.L * k, al = f.t > 0.4 ? Math.max(0, 1 - (f.t - 0.4) / 0.3) : 1;
+      g.save(); g.translate(f.x, f.y); g.rotate(Math.atan2(f.uy, f.ux)); g.globalAlpha = al;
+      g.fillStyle = '#1a0e1e'; g.fillRect(0, -6, L, 12); g.fillStyle = '#f4e4b8'; g.fillRect(1, -5, L - 2, 10);
+      g.fillStyle = '#c8302c'; g.fillRect(0, -5, 2, 10); g.fillRect(L - 3, -6, 3, 12);
+      g.fillStyle = '#5a3a1a'; for (let x = 6; x < L - 4; x += 5) { g.fillRect(x, -3, 3, 1); g.fillRect(x, 0, 2, 1); g.fillRect(x + 1, 2, 2, 1); }
+      g.restore(); g.globalAlpha = 1;
+    } else if (f.k === 'jump') {
+      const k = f.t / 0.45; drawManji(f.x1 + (f.x2 - f.x1) * k, f.y1 + (f.y2 - f.y1) * k - Math.sin(k * Math.PI) * 12, 6, '#ffd860');
+    } else if (f.k === 'gburst') {
+      const k = f.t / 0.45; g.globalAlpha = 1 - k; g.fillStyle = '#ffe070'; g.beginPath(); g.ellipse(f.x, f.y, 6 + 22 * k, (6 + 22 * k) * 0.75, 0, 0, 7); g.fill(); g.globalAlpha = 1;
+    } else if (f.k === 'jia') {
+      const k = f.t / 0.5, s = f.inward ? 80 * (1 - k) + 16 : 16 + 30 * k;
+      g.save(); g.translate(P.x, P.y - 12); g.rotate(k * 3); drawKasaya(0, 0, s * 1.4, s, 0.75 * (1 - k), 2); g.restore();
+    } else if (f.k === 'foguang') {
+      const k = f.t / f.dur, al = Math.min(1, f.t * 4) * Math.max(0, 1 - k);
+      g.globalAlpha = al * 0.35; g.fillStyle = '#ffd860';
+      for (let i = 0; i < 9; i++) { const x = S.cam.x + (i + 0.5) * VW / 9 + Math.sin(S.t + i) * 8; g.beginPath(); g.moveTo(x - 6, S.cam.y - 10); g.lineTo(x + 6, S.cam.y - 10); g.lineTo(x + 26, S.cam.y + VH + 20); g.lineTo(x - 26, S.cam.y + VH + 20); g.fill(); }
+      g.globalAlpha = al * 0.55; drawManji(P.x, P.y - 70, 70, '#ffe070'); g.globalAlpha = 1;
+    }
+  }
+  if (M.js) {
+    const J = M.js, out = Math.min(1, J.t / 0.35), back = J.t > 0.35 ? Math.min(1, (J.t - 0.35) / 0.6) : 0, sz = J.full ? 1 : 0.55;
+    const w = (40 + (VW * 1.1 * sz - 40) * out) * (1 - back * 0.85), h = (30 + (VH * 1.1 * sz - 30) * out) * (1 - back * 0.85);
+    drawKasaya(P.x + Math.sin(J.t * 9) * 3 * (1 - back), P.y - 14 - Math.sin(J.t * 6) * 4, w, h, J.t > 1.0 ? Math.max(0, 1 - (J.t - 1.0) / 0.4) * 0.8 : 0.72, J.done ? 2 : 4 + 6 * out * (1 - back));
+  }
+  for (const w of M.lz) {
+    if (w.t < 0) continue; const r = w.R * Math.min(1, w.t / 0.6), al = Math.max(0, 1 - w.t / 0.9);
+    g.globalAlpha = al; g.strokeStyle = '#ffe070'; g.lineWidth = 3; g.beginPath(); g.ellipse(P.x, P.y - 4, r, r * 0.75, 0, 0, 7); g.stroke();
+    g.globalAlpha = al * 0.4; g.lineWidth = 8; g.stroke(); g.globalAlpha = 1;
+  }
+  for (const b of M.beads) {
+    for (let i = b.trail.length - 1; i >= 0; i--) { const [x, y] = b.trail[i]; px(x - 2, y - 2, 4, 4, '#1a0e1e'); px(x - 1, y - 1, 3, 3, b.gold ? '#ffd860' : '#8a4a24'); }
+    px(b.x - 2, b.y - 2, 5, 5, '#1a0e1e'); px(b.x - 1, b.y - 1, 3, 3, b.gold ? '#fff0a0' : '#b06830');
+  }
+  for (const e of S.en) {
+    if (e.dead) continue;
+    if (e.chT > S.t) { g.globalAlpha = 0.8; drawManji(e.x, e.y - (e.elite ? 44 : 34) + Math.sin(S.t * 4 + e.id) * 1.5, 5, '#ffd860'); g.globalAlpha = 1; }
+    if (e.mStun && e.stun > 0) { for (let i = 0; i < 3; i++) { const a = S.t * 5 + i * 2.1; px(e.x + Math.cos(a) * 7 - 1, e.y - (e.elite ? 40 : 30) + Math.sin(a) * 2, 2, 2, '#fff0a0'); } } else if (e.mStun && e.stun <= 0) e.mStun = 0;
+  }
+}
+function drawMonkHud() {
+  if (S.hero !== 'monk' || !S.mk || !S.ult || S.ult.k !== 'liuzi' || !S.w.yu) return;
+  g.font = 'bold 9px monospace'; g.textAlign = 'center';
+  let s = ''; for (let i = 0; i < 6; i++) s += i < S.mk.ch ? LZ[i] : '·';
+  g.fillStyle = 'rgba(14,8,24,.6)'; g.fillRect(VW / 2 - 34, 30, 68, 13);
+  g.fillStyle = '#ffd860'; g.fillText(s, VW / 2, 40);
+}
 const DIFF = {
   normal: { name: '普通', hp: 1, dmg: 1, inv: 0.9, spawn: 1, skill: 1, mul: 1 },
   hard: { name: '困难', hp: 1.5, dmg: 1.5, inv: 0.6, spawn: 1.25, skill: 1.6, mul: 1.5 },
@@ -434,6 +832,8 @@ function sfx(k) {
     case 'type': tone(760 + Math.random() * 120, 700, 0.025, 'square', 0.012); break;
     case 'thud': noise(0.15, 0.06, 300); break;
     case 'gong': [[520, 500], [780, 760], [1130, 1100]].forEach(([a, b], i) => tone(a, b, 1.1, i ? 'triangle' : 'square', [0.05, 0.05, 0.03][i])); noise(0.08, 0.1, 1500); break;
+    case 'muyu': tone(700, 560, 0.07, 'triangle', 0.16); noise(0.03, 0.08, 1800); tone(1400, 1100, 0.04, 'sine', 0.05); break;
+    case 'whoosh': noise(0.22, 0.12, 700); tone(300, 120, 0.2, 'sine', 0.04); break;
     case 'chain': for (let i = 0; i < 6; i++) { noise(0.05, 0.07, 2600, i * 0.08); tone(1900 - i * 110, 1600 - i * 110, 0.05, 'square', 0.03, i * 0.08); } break;
     case 'gun': noise(0.09, 0.16, 900); tone(220, 60, 0.08, 'square', 0.06); break;
     case 'wisp': tone(520, 300, 0.2, 'sine', 0.03); break;
@@ -458,7 +858,7 @@ const GUARD = (() => {
       const P = S.p;
       if (S.t - lastT > 1.5) flagCheat();
       lastT = S.t;
-      if (P.max > 100 + hpPicks * 20 + 0.5 || P.hp > P.max + 0.5) flagCheat();
+      if (P.max > (S.hero === 'monk' ? 95 : 100) + hpPicks * 20 + 0.5 || P.hp > P.max + 0.5) flagCheat();
       let sum = 0; for (const k in S.w) { const v = S.w[k] || 0; if (v > 5) flagCheat(); sum += v; }
       if (sum > wPicks + 1) flagCheat();
     },
@@ -493,11 +893,13 @@ function wuAI(e) {
   return false;
 }
 function newGame(diff = 'normal') {
+  setHero(HERO);
   S = {
+    hero: HERO, mk: { fx: [], beads: [], seals: [], bowls: [], pest: [], waves: [], lz: [], ch: 0, jiaT: 6, rezT: -99 },
     diff, bossKilled: false, parade: false, state: 'play', t: 0, kills: 0, lv: 1, xp: 0, need: 5, bossSpawned: false, roosterShown: false,
-    p: { x: 700 + EX, y: 700 + (MAP.townH || 0), hp: 100, max: 100, face: 1, inv: 0, moving: false, walk: 0, breath: 0, breathCd: 0 },
+    p: { x: 700 + EX, y: 700 + (MAP.townH || 0), hp: HERO === 'monk' ? 95 : 100, max: HERO === 'monk' ? 95 : 100, face: 1, inv: 0, moving: false, walk: 0, breath: 0, breathCd: 0 },
     mods: { speed: 0, magnet: 0, cd: 0, hp: 0, dmg: 0, regen: 0 },
-    w: { sword: 1 }, timers: {}, swordAng: 0,
+    w: HERO === 'monk' ? { zhang: 1 } : { sword: 1 }, timers: {}, swordAng: 0,
     objs: (MAP.objs || []).map(o => ({ ...o, burnt: false, state: 'ok', fireT: 0, smoke: 0, tk: 0 })), ult: null, ultCd: 0, sweeps: [], taijis: [], palms: [], afterimgs: [], ev: {}, allies: [], decor: [], batFx: [], rumorQ: [], guas: [], shield: 0, shieldT: null, chests: [], lvQueue: 0, eliteT: 60, eliteN: 0, vampOut: false, wgCd: 8, eshots: [], npcs: [], npcT: 15, loot: [], aw: null, awDone: false, yamT: 0, gongVo: 0, dawnT: null, yz: (MAP.yz || []).map(([x, y, o]) => ({ x, y, open: !!o, pre: !!o, t: 0 })), yzT: rnd(40, 60), fish: [], fishT: 2, cam: { x: 0, y: 0 },
     food: [], foodT: 18, parts: [], combo: 0, comboT: 0, stop: 0, flash: 0, en: [], shots: [], areas: [], orbs: [], fx: [], texts: [], spawnAcc: 0, nextId: 1, shake: 0,
   };
@@ -585,8 +987,10 @@ const shieldCap = () => { const lv = S.w.mirror || 1; return lv >= 5 ? 55 : lv >
 function hurtPlayer(dmg) {
   if (tryDodge()) return false;
   if (S.shield > 0) { const cap = shieldCap(); shieldBurst(); dmg -= cap; if (dmg <= 0) return false; }
+  if (S.hero === 'monk' && S.w.jia) dmg = Math.max(1, Math.round(dmg * (1 - [0, 0.15, 0.2, 0.2, 0.25, 0.25][S.w.jia])));
   const P = S.p; P.hp -= dmg; P.inv = DIFF[S.diff].inv; S.shake = Math.max(S.shake, 0.15); sfx('hurt');
   S.texts.push({ x: P.x, y: P.y - 30, v: '-' + dmg, t: 0.7, c: '#ff6a5a' });
+  if (P.hp <= 0 && S.hero === 'monk' && S.w.jia >= 5 && !S.wcHit && S.t >= S.mk.rezT) { P.hp = 1; P.inv = 1.5; S.mk.rezT = S.t + 50; S.mk.fx.push({ k: 'jia', x: P.x, y: P.y, t: 0, inward: true }); S.texts.push({ x: P.x, y: P.y - 46, v: '金刚不坏！', t: 1.4, c: '#ffe070', big: true }); sfx('gong'); return false; }
   if (P.hp <= 0) { P.hp = 0; if (S.wcHit) { S.soulTaken = true; endGame(false); return true; } if (!S.revived) offerRevive(); else endGame(false); return true; }
   return false;
 }
@@ -597,6 +1001,7 @@ function hurt(e, dmg, kb = 0, fromX = S.p.x, fromY = S.p.y, tag) {
   if (weak) dmg *= 2;
   dmg *= dmgMul() * 0.8; const crit = Math.random() < 0.1; if (crit) { dmg *= 2; S.stop = Math.max(S.stop, 0.03); }
   if (e.stun > 0) dmg *= 1.25;
+  if (e.jsT > S.t) dmg *= 1.3;
   e.hp -= dmg; e.flash = 0.12; sfx('hit');
   if (kb) { const dx = e.x - fromX, dy = e.y - fromY, l = Math.hypot(dx, dy) || 1, k = e.type === 'king' ? 0.15 : e.type === 'wuchang' ? 0 : 1; e.kx += dx / l * kb * k; e.ky += dy / l * kb * k; }
   S.texts.push({ x: e.x + rnd(-3, 3), y: e.y - 22, v: Math.round(dmg) + (crit ? '!' : ''), t: crit || weak ? 0.8 : 0.6, c: weak ? '#ff9a3a' : crit ? '#ffd040' : '#ffffff', big: crit || weak });
@@ -620,9 +1025,10 @@ function hurt(e, dmg, kb = 0, fromX = S.p.x, fromY = S.p.y, tag) {
     if (e.type === 'hand') { S.p.grabT = 0; e.gone = true; }
     if (e.elite && e.skin && !e.special && Math.random() < 0.5) S.chests.push({ x: e.x, y: e.y, big: false, t: 0 });
     if (e.onDie) e.onDie(e);
+    if (S.hero === 'monk') monkKill(e);
     if (e.type === 'wuchang') rumor(['黑白无常……竟被打退了！'], true);
     const n = e.type === 'king' ? 20 : e.elite ? 3 : 1;
-    for (let i = 0; i < n; i++) S.orbs.push({ x: e.x + rnd(-6, 6) * (n > 1), y: e.y + rnd(-6, 6) * (n > 1), v: n > 1 ? 5 : e.xp });
+    for (let i = 0; i < n; i++) S.orbs.push({ x: e.x + rnd(-6, 6) * (n > 1), y: e.y + rnd(-6, 6) * (n > 1), v: (n > 1 ? 5 : e.xp) * (e.chT > S.t ? 1.15 : 1) * (S.fgT > S.t ? 2 : 1) });
     if (e.type === 'king') { S.food.push({ k: 'pig', x: e.x, y: e.y }); banner('尸煞伏诛！那口气终于散了', 2.8); S.shake = 0.5; sfx('boss'); }
   }
 }
@@ -640,8 +1046,8 @@ function tick(name, base) {
 }
 function updateWeapons() {
   const P = S.p, W = S.w;
-  if (W.sword) {
-    const lv = W.sword, n = swordN(lv), len = swordLen(lv), dmg = (lv >= 2 ? 20 : 14) * (lv >= 5 ? 1.4 : 1);
+  if (W.sword || W.zhang) {
+    const lv = W.sword || W.zhang, n = swordN(lv), len = swordLen(lv), dmg = (lv >= 2 ? 20 : 14) * (lv >= 5 ? 1.4 : 1);
     S.swordAng += DT * 4.2;
     for (let i = 0; i < n; i++) {
       const a = S.swordAng + i * Math.PI * 2 / n;
@@ -651,7 +1057,8 @@ function updateWeapons() {
           if (e.dead || (e.hitCd['s' + i] || 0) > S.t) continue;
           if ((e.x - hx) ** 2 + (e.y - 10 - hy) ** 2 < (e.r + 6) ** 2) {
             hurt(e, dmg, 45); e.hitCd['s' + i] = S.t + 0.45;
-            if (lv >= 5 && e.dead && P.hp < P.max) {   // 五重桃木剑：斩杀回阳，每秒最多 2 点
+            if (W.zhang && lv >= 5 && !e.dead && !e.elite && !mBig(e)) e.stun = Math.max(e.stun, 0.3);
+            if (lv >= 5 && W.sword && e.dead && P.hp < P.max) {   // 五重桃木剑：斩杀回阳，每秒最多 2 点
               if (S.t - (S.lsT0 || -9) >= 1) { S.lsT0 = S.t; S.lsN = 0; }
               if (S.lsN < 2) { S.lsN++; P.hp = Math.min(P.max, P.hp + 1); if (Math.random() < 0.3) S.texts.push({ x: P.x + rnd(-6, 6), y: P.y - 30, v: '+1', t: 0.5, c: '#7ef0a0' }); }
             }
@@ -865,6 +1272,7 @@ function tryUlt() {
   const P = S.p, { k, lv } = S.ult, C = S.cam;
   GUARD.ult(); S.ultN = (S.ultN || 0) + 1;
   S.ultCd = 30; sfx('ult'); banner(ULTS[k].name, 1.2); S.ultId = (S.ultId || 0) + 1; S.ultHits = {};
+  if (S.hero === 'monk') { mUlt(k, lv); return; }
   if (k === 'thunder') {
     const n = [0, 12, 16, 24][lv];
     const vis = S.en.filter(e => !e.dead && e.x > C.x && e.x < C.x + VW && e.y > C.y && e.y < C.y + VH);
@@ -1206,7 +1614,7 @@ function makePoster(mode) {
   spr('king', 180, 218, 2, true);
   spr('zombie', 62, 320, 2.5, false); spr('jumper', 300, 316, 2.5, true); spr('walker', 110, 352, 2, false); spr('ghost', 268, 236, 2, true);
   c.fillStyle = 'rgba(255,214,90,.25)'; c.beginPath(); c.ellipse(180, 352, 60, 14, 0, 0, 7); c.fill();
-  spr('taoist', 180, 356, 3, false);
+  spr(HK(), 180, 356, 3, false);
   // title
   c.textAlign = 'center'; c.textBaseline = 'alphabetic';
   c.font = `40px ${F}`; c.fillStyle = '#1a0e1e'; c.fillText('暂时停止呼吸', 183, 53); c.fillStyle = '#c8302c'; c.fillText('暂时停止呼吸', 181, 51); c.fillStyle = '#f4e4a8'; c.fillText('暂时停止呼吸', 179, 49);
@@ -1270,6 +1678,8 @@ function endGame(win) {
   $('endP').textContent = win ? `撑过一整夜，伏尸 ${S.kills} 具，修为 ${cn(S.lv)}重。` : `撑了 ${m} 分 ${s} 秒，伏尸 ${S.kills} 具，修为 ${cn(S.lv)}重。`;
   S.score = Math.round((S.kills + S.lv * 20 + Math.floor(S.t) * 2 + (win ? 1000 : 0) + (S.bossKilled ? 500 : 0)) * DIFF[S.diff].mul);
   S.win = win; $('scoreV').textContent = S.score;
+  if (win) { try { localStorage.setItem('ztzh_monk', '1'); } catch (e) {} }
+  renderHeroes();
   $('endP').textContent += `（${DIFF[S.diff].name}）`;
   if (S.soulTaken) { $('endT').textContent = '阳寿已尽——被黑白无常勾了魂'; $('endP').textContent += '　逆天改命，打入十八层地狱'; }
   else if (S.cheat) $('endP').textContent += '　逆天改命，成绩记入作弊榜';
@@ -1313,7 +1723,7 @@ function updateEvents() {
     E.simu = { x: sx, y: sy, st: 'wait', t: 0, corpses: [0, 1, 2, 3].map(i => ({ x: sx + 18 + i * 16, y: sy + 6, ph: i })) };
     E.simuBes = [];
     for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283, e = spawnZombie(sx + Math.cos(a) * 46, sy + Math.sin(a) * 34); if (e) { e.goal = [sx + Math.cos(a) * 30, sy + Math.sin(a) * 22]; e.goalT = S.t + 45; e.goalPts = [e.goal, [sx + Math.cos(a + 0.6) * 30, sy + Math.sin(a + 0.6) * 22]]; E.simuBes.push(e); } }
-    rumor(['四目道长：「九叔！快来帮忙啊！」', '义庄出事了！'], true); window.sayKey && window.sayKey('simu1');
+    rumor([S.hero === 'monk' ? '四目道长：「快来人帮帮忙啊！」' : '四目道长：「九叔！快来帮忙啊！」', '义庄出事了！'], true); window.sayKey && window.sayKey(S.hero === 'monk' ? 'simu1m' : 'simu1');
   }
   if (E.simu && E.simu.st === 'wait') {
     const M = E.simu; M.t += DT;
@@ -1573,6 +1983,7 @@ function update() {
   if (S.mods.regen) P.hp = Math.min(P.max, P.hp + 0.6 * S.mods.regen * DT);
 
   updateWeapons();
+  updateMonk();
   updateUlts();
   updateWorld();
 
@@ -2072,8 +2483,8 @@ function draw() {
     if (it.p) {
       g.fillStyle = 'rgba(14,8,24,.5)'; g.beginPath(); g.ellipse(P.x, P.y, 8, 2.5, 0, 0, 7); g.fill();
       const bob = P.moving ? Math.round(Math.abs(Math.sin(P.walk * 12)) * -1.5) : 0;
-      for (const a of S.afterimgs) if (a.t >= 0) { const ai = a.face < 0 ? flipped('taoist') : IMG.taoist; g.globalAlpha = 0.45 * (1 - a.t / 0.45); g.drawImage(ai, Math.round(a.x - ai.width / 2), Math.round(a.y - ai.height + 3)); g.globalAlpha = 1; }
-      const held = P.breath > 0 ? 2.8 - P.breath : 0, tk = held > 1.7 ? 'taoistR2' : held > 0.7 ? 'taoistR1' : 'taoist';
+      for (const a of S.afterimgs) if (a.t >= 0) { const ai = a.face < 0 ? flipped(HK()) : IMG[HK()]; g.globalAlpha = 0.45 * (1 - a.t / 0.45); g.drawImage(ai, Math.round(a.x - ai.width / 2), Math.round(a.y - ai.height + 3)); g.globalAlpha = 1; }
+      const held = P.breath > 0 ? 2.8 - P.breath : 0, tk = HK() + (held > 1.7 ? 'R2' : held > 0.7 ? 'R1' : '');
       const im = P.face < 0 ? flipped(tk) : IMG[tk];
       if (P.inv > 0 && P.inv < 50 && Math.floor(P.inv * 20) % 2) continue;
       if (P.breath > 0) g.globalAlpha = 0.65;
@@ -2156,14 +2567,15 @@ function draw() {
       }
   }
   // swords
-  if (S.w.sword) {
-    const lv = S.w.sword, n = swordN(lv);
+  if (S.w.sword || S.w.zhang) {
+    const lv = S.w.sword || S.w.zhang, n = swordN(lv);
     for (let i = 0; i < n; i++) {
       const a = S.swordAng + i * Math.PI * 2 / n;
       g.globalAlpha = 0.25; g.strokeStyle = '#ffe9b0'; g.lineWidth = 3; g.beginPath(); g.ellipse(P.x, P.y - 10, swordLen(lv) - 2, (swordLen(lv) - 2) * 0.75, 0, a - 1.1, a); g.stroke(); g.globalAlpha = 1;
-      drawSword(P.x + Math.cos(a) * 3, P.y - 10 + Math.sin(a) * 2, Math.atan2(Math.sin(a) * 0.75, Math.cos(a)), swordLen(lv));
+      (S.w.zhang ? drawStaff : drawSword)(P.x + Math.cos(a) * 3, P.y - 10 + Math.sin(a) * 2, Math.atan2(Math.sin(a) * 0.75, Math.cos(a)), swordLen(lv));
     }
   }
+  drawMonkWorld();
   // shots
   for (const s of S.shots) {
     if (s.k === 'fu') {
@@ -2226,6 +2638,7 @@ function draw() {
   const vg = g.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.35, VW / 2, VH / 2, Math.max(VW, VH) * 0.75);
   vg.addColorStop(0, 'rgba(8,4,16,0)'); vg.addColorStop(1, 'rgba(8,4,16,.6)'); g.fillStyle = vg; g.fillRect(0, 0, VW, VH);
   if (P.breath > 0) { g.fillStyle = 'rgba(80,160,220,.12)'; g.fillRect(0, 0, VW, VH); }
+  drawMonkHud();
   if (S.dark > 0) { g.fillStyle = `rgba(0,0,0,${Math.min(0.55, S.dark * 0.4)})`; g.fillRect(0, 0, VW, VH); }
   if (S.flash > 0) { g.fillStyle = `rgba(230,245,255,${Math.min(0.15, S.flash * 3)})`; g.fillRect(0, 0, VW, VH); }
 
@@ -2486,12 +2899,26 @@ function begin(diff) {
   if (!nm) { const el = $('startName'); el.classList.remove('bad'); void el.offsetWidth; el.classList.add('bad'); $('nameTip').textContent = '道长还没留下尊姓大名'; el.focus(); return; }
   PNAME = nm; try { localStorage.setItem('ztzh_name', nm); } catch (e) {}
   audioInit();
-  const play = $('storyChk').checked;
-  whenReady(() => play ? playStory(() => newGame(diff)) : newGame(diff));
+  const play = $('storyChk').checked; let mOnly = false;
+  if (!play && HERO === 'monk') { try { mOnly = localStorage.getItem('ztzh_mscene') !== '1'; } catch (e) {} }
+  whenReady(() => play || mOnly ? playStory(() => newGame(diff), mOnly) : newGame(diff));
 }
 try { $('storyChk').checked = localStorage.getItem('ztzh_story') !== '1'; } catch (e) { $('storyChk').checked = true; }
 $('startBtn').onclick = () => begin('normal');
 $('hardBtn').onclick = () => begin('hard');
+function renderHeroes() {
+  const un = monkUnlocked(); if (!un && HERO === 'monk') HERO = 'tao';
+  $('heroTao').className = 'hero' + (HERO === 'tao' ? ' on' : '');
+  $('heroMonk').className = 'hero' + (HERO === 'monk' ? ' on' : '') + (un ? '' : ' lock');
+  $('monkSub').textContent = un ? '禅杖 · 佛珠 · 木鱼' : '🔒 撑到鸡鸣解锁';
+  $('startName').placeholder = HERO === 'monk' ? '大师法号？' : '道长尊姓大名？';
+}
+$('heroTao').onclick = () => { HERO = 'tao'; try { localStorage.setItem('ztzh_hero', 'tao'); } catch (e) {} renderHeroes(); sfx('pick'); };
+$('heroMonk').onclick = () => {
+  if (!monkUnlocked()) { $('monkSub').textContent = '🔒 先用林道长撑到鸡鸣'; sfx('hurt'); return; }
+  HERO = 'monk'; try { localStorage.setItem('ztzh_hero', 'monk'); } catch (e) {} renderHeroes(); sfx('pick');
+};
+renderHeroes();
 // ---------- 序章 ----------
 let ST = null;
 const playStory = (() => {
@@ -2622,6 +3049,7 @@ function shakeView(a) { sx.translate(Math.round((Math.random() - .5) * a), Math.
 
 // 像素风“说话声”：每个角色一套音色，按字发短促电子音
 const VOICE = {
+  '一休': { rate: 15, lo: 190, hi: 260, glide: .9, dur: .09, wave: 'square', vol: .08, every: 1 },
   '道长': { rate: 17, lo: 150, hi: 210, glide: .82, dur: .085, wave: 'square', vol: .08, every: 1 },
   '阿福': { rate: 25, lo: 480, hi: 680, glide: 1.18, dur: .06, wave: 'square', vol: .06, every: 1 },
   '任老爷': { rate: 15, lo: 230, hi: 300, glide: .9, dur: .09, wave: 'square', vol: .07, every: 1 },
@@ -2835,11 +3263,44 @@ const SCENES = [
     } },
 ];
 
-function playStory(done) {
+const MONK_SCENE = { name: '七 · 援手', lines: [
+    SL('', '僵尸越围越近——忽然，坟头上传来一声大喊。'),
+    SL('一休', '九叔～我来助你！'),
+    SL('道长', '一休？你来做什么！'),
+    SL('一休', '阿弥陀佛，降妖除魔，不分佛道。'),
+    SL('', '九叔元气大伤，先回义庄歇息。今夜，就交给一休大师了。')],
+  draw(l, lt) {
+    const gy = 70, land = l > 1 || (l === 1 && lt > 0.6);
+    sx.save();
+    if (l === 1 && lt > 0.6 && lt < 0.9) shakeView(3);
+    sx.fillStyle = '#0a0614'; sx.fillRect(-4, -4, SW + 8, SH + 8);
+    sky('#06040c', '#100a1e', '#1a1028', gy); moon(120, 22, 10, '#c8c0a8');
+    ground(gy, '#2a2030', '#20182a');
+    for (let i = 0; i < 10; i++) grave(14 + i * 24 + (i % 2) * 6, gy + 14 + (i % 3) * 22 + (i % 2) * 8, '#5a5a70');
+    mist(gy + 30, .1); mist(gy + 60, .1);
+    const push = land ? Math.min(1, (l === 1 ? lt - 0.6 : 9) / 0.4) : 0;
+    for (let i = 0; i < 8; i++) {
+      const a = i / 8 * Math.PI * 2 + .3, r = 58 + push * 46, x = 120 + Math.cos(a) * r * 1.2, y = 112 + Math.sin(a) * r * .5;
+      sSpr(i % 3 ? 'zombie' : 'jumper', x, y + hopY(ST.T + i * .2, 1.5), x > 120, .85);
+    }
+    if (l === 1 && lt > 0.6 && lt < 1.3) { const k = (lt - 0.6) / 0.7; sx.globalAlpha = 1 - k; sx.strokeStyle = '#ffe9b0'; sx.lineWidth = 2; sx.beginPath(); sx.ellipse(136, 122, 10 + 70 * k, (10 + 70 * k) * .4, 0, 0, 7); sx.stroke(); sx.globalAlpha = 1; }
+    const tx = l >= 4 ? 106 - lt * 36 : 106;
+    sSpr('taoist', tx, 122, l >= 4, l >= 4 ? Math.max(0, 1 - lt / 3) : 1);
+    let mx = 42, my = 70;
+    if (l === 1) { const k = Math.min(1, Math.max(0, lt / 0.6)); mx = 42 + (136 - 42) * k; my = 70 + (122 - 70) * k - Math.sin(k * Math.PI) * 30; }
+    else if (l >= 2) { mx = l >= 4 ? 136 - Math.min(16, lt * 8) : 136; my = 122; }
+    if (l > 0 || lt > 0.5) { glow(mx, my - 18, 22, 'rgba(255,210,90,A)'); sSpr('monk', mx, my, l >= 2 && l < 4); }
+    if (!ST.snd.land && land) { ST.snd.land = 1; sfx('slam'); }
+    sx.restore();
+    vignette(.5);
+  } };
+function playStory(done, monkOnly) {
+  if (HERO === 'monk') { if (SCENES[SCENES.length - 1] !== MONK_SCENE) SCENES.push(MONK_SCENE); try { localStorage.setItem('ztzh_mscene', '1'); } catch (e) {} }
+  else if (SCENES[SCENES.length - 1] === MONK_SCENE) SCENES.pop();
   try { localStorage.setItem('ztzh_story', '1'); } catch (e) {}
   $('storyChk').checked = false;
   ['title', 'end'].forEach(k => $(k).hidden = true);
-  ST = { snd: {}, i: 0, l: 0, lt: 0, T: 0, shown: 0, done, fin: false, last: performance.now(), tick: 0 };
+  ST = { snd: {}, i: monkOnly ? SCENES.length - 1 : 0, l: 0, lt: 0, T: 0, shown: 0, done, fin: false, last: performance.now(), tick: 0 };
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   $('story').hidden = false; $('sTitle').hidden = true; $('sbox').hidden = false;
   $('sWho').textContent = ''; $('sTxt').textContent = ''; $('sNext').hidden = true;
@@ -2995,7 +3456,7 @@ async function showRank(board) {
     const t = document.createElement('table');
     list.slice(0, 20).forEach((r, i) => {
       const tr = document.createElement('tr'); if (me && r.name === me) tr.className = 'me';
-      for (const v of [i + 1, String(r.name || '无名道士').slice(0, 10) + (r.win ? ' ☀' : ''), Number(r.score) || 0]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
+      for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : '☯ ') + String(r.name || '无名道士').slice(0, 10) + (r.win ? ' ☀' : ''), Number(r.score) || 0]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
       t.appendChild(tr);
     });
     el.appendChild(t);
@@ -3027,7 +3488,7 @@ async function renderBoard() {
   rows.slice(0, 10).forEach((r, i) => {
     const tr = document.createElement('tr');
     if (myEntry && r.at === myEntry.at && r.name === myEntry.name) tr.className = 'me';
-    for (const v of [i + 1, String(r.name || '无名道士').slice(0, 10), Number(r.score) || 0, r.diff === 'hard' ? '困难' : '普通', r.win ? '天亮' : '倒下']) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
+    for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : '☯ ') + String(r.name || '无名道士').slice(0, 10), Number(r.score) || 0, r.diff === 'hard' ? '困难' : '普通', r.win ? '天亮' : '倒下']) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
     t.appendChild(tr);
   });
   box.appendChild(t);
@@ -3037,7 +3498,7 @@ $('nameForm').addEventListener('submit', ev => ev.preventDefault());
 async function saveRecord(name) {
   if (!S || S.state !== 'over' || S.saved) return;
   S.saved = true;
-  const rec = { name, score: S.score, kills: S.kills, lv: S.lv, t: Math.floor(S.t), win: !!S.win, diff: S.diff, at: Date.now(), ults: S.ultN || 0, cheat: S.cheat || 0 };
+  const rec = { name, score: S.score, kills: S.kills, lv: S.lv, t: Math.floor(S.t), win: !!S.win, diff: S.diff, at: Date.now(), hero: S.hero, ults: S.ultN || 0, cheat: S.cheat || 0 };
   myEntry = rec;
   if (rec.cheat) boardNote = '这一局逆天改命，成绩已记入作弊榜。';
   if (!rec.cheat) try { const arr = localBoard(); arr.push(rec); arr.sort((a, b) => b.score - a.score); localStorage.setItem('ztzh_board', JSON.stringify(arr.slice(0, 20))); } catch (e) {}
