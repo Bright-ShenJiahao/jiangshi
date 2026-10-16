@@ -369,8 +369,8 @@ let WEAPONS = WEAPONS_T, ULTS = ULTS_T, ULTSYN = ULTSYN_T, ULTSYN2 = ULTSYN2_T, 
 const TAGC = { '伤害': 'dmg', '控制': 'ctl', '防御': 'def', '范围': 'aoe', '被动': 'pas' };
 // ================= 一休大师（第二位主角）=================
 const WEAPONS_M = {
-  zhang: { name: '禅杖', seal: '杖', w: 1, desc: ['禅杖绕身旋转，两头都能打', '伤害提升', '三股杖头', '禅杖更长', '两根禅杖交叉旋转，伤害大增；斩杀回阳（每秒最多 2 点），锡环震晕贴身小怪'] },
-  gun: { name: '少林棍', seal: '棍', w: 1, desc: ['每 2.2 秒朝前方横扫半圈，扫飞一大片', '扫得更远', '旋风棍：整圈 360° 横扫', '伤害提升，击退更远', '扫完留下一圈棍影风刃，往外再打一次'] },
+  zhang: { name: '禅杖', seal: '杖', w: 1, desc: ['禅杖绕身旋转，两头都能打', '伤害提升', '三股杖头', '禅杖更长', '两根禅杖交叉旋转，伤害大增；斩杀回阳（每秒最多 2 点），锡环震晕贴身小怪；解锁【武僧觉醒】'] },
+  gun: { name: '少林棍', seal: '棍', w: 1, desc: ['每 2.2 秒朝前方横扫半圈，扫飞一大片', '扫得更远', '旋风棍：整圈 360° 横扫', '伤害提升，击退更远', '扫完留下一圈棍影风刃，往外再打一次；解锁【武僧觉醒】'] },
   zhu: { name: '佛珠', seal: '珠', w: 1, desc: ['射出一串佛珠，在 3 只怪之间来回弹', '弹 5 只', '两串', '伤害提升', '线断珠散：满天佛珠各自追怪'] },
   yu: { name: '木鱼', seal: '鱼', w: 1, desc: ['每 3 秒「笃」一声，音波震伤四周，眩晕 0.8 秒后再迟缓一阵', '音波范围更大', '连敲两下', '眩晕 1.2 秒', '一记重敲：大范围震晕，精英减速'] },
   jing: { name: '经文', seal: '经', w: 1, desc: ['每 2.5 秒朝前甩开经卷：金字贴怪诵经 3 秒，持续掉血、减速；被诵经的怪死时超度，阴德 +25%', '经卷更长', '一次两条，呈 V 字', '持续伤害提升，减速加重', '三条扇形经卷；怪死时金字跳到旁边接着念'] },
@@ -435,12 +435,17 @@ function mChant(e, lv, gold) {
   if (!mBig(e)) e.slow = Math.max(e.slow || 0, S.t + (lv >= 4 ? 3 : 2));
   const k = lv >= 4 ? 0.45 : 0.6; e.pslow = S.t + 3; e.pslowK = mBig(e) || e.elite ? 1 - (1 - k) / 2 : k;
 }
+const awkOK = () => S.hero === 'monk' && ((S.w.zhang || 0) >= 5 || (S.w.gun || 0) >= 5);
 function mBurn(e, d = 3) { if (!e.dead && !e.audience) e.burnT = Math.max(e.burnT || 0, S.t + d); }
 function mRezBurst() {   // 五重袈裟：免死时金刚罩炸开
   const P = S.p; S.mk.fx.push({ k: 'jia', x: P.x, y: P.y, t: 0 }); S.shake = Math.max(S.shake, 0.25); sfx('gong');
   for (const e of S.en) if (!e.dead && !e.audience && inEll(e, P.x, P.y, 85)) { hurt(e, 20, 260); mBurn(e); }
 }
 function monkKill(e) {
+  if (S.mk.awk && S.p.hp < S.p.max) {   // 觉醒：杀怪回 1 点，每秒最多 3 点
+    if (S.t - (S.mk.awkH0 || -9) >= 1) { S.mk.awkH0 = S.t; S.mk.awkHN = 0; }
+    if (S.mk.awkHN < 3) { S.mk.awkHN++; S.p.hp = Math.min(S.p.max, S.p.hp + 1); if (Math.random() < 0.4) S.texts.push({ x: S.p.x + rnd(-6, 6), y: S.p.y - 30, v: '+1', t: 0.5, c: '#7ef0a0' }); }
+  }
   if (e.chT > S.t && S.t > (S.mk.duT || 0)) { S.mk.duT = S.t + 0.6; S.texts.push({ x: e.x, y: e.y - 40, v: '超度', t: 0.8, c: '#ffe070' }); }
   if (e.chT > S.t && e.chLv >= 5) {
     const n = S.en.filter(q => !q.dead && q !== e && !(q.chT > S.t) && (q.x - e.x) ** 2 + (q.y - e.y) ** 2 < 80 * 80).sort((a, b) => dist2(a, e) - dist2(b, e))[0];
@@ -500,11 +505,14 @@ function mUlt(k, lv) {
 function updateMonk() {
   if (S.hero !== 'monk') return;
   const P = S.p, W = S.w, M = S.mk;
-  // 武僧觉醒：阳气低于 30%，输出技能伤害 +15%
-  if (P.hp > 0 && P.hp < P.max * 0.3) {
-    if (!M.awk) { M.awk = 1; S.texts.push({ x: P.x, y: P.y - 52, v: '武僧觉醒！', t: 1.6, c: '#ffe070', big: true }); sfx('pickbig'); S.flash = Math.max(S.flash, 0.06); }
-    if (Math.random() < DT * 12) S.parts.push({ x: P.x + rnd(-8, 8), y: P.y - 2, vx: rnd(-8, 8), vy: rnd(-50, -25), t: rnd(0.4, 0.8), c: Math.random() < 0.5 ? '#ffe070' : '#fff0a0' });
-  } else if (P.hp >= P.max * 0.3) M.awk = 0;
+  // 武僧觉醒：禅杖或少林棍升到 5 级解锁。阳气低于 30% 觉醒，回到 50% 以上结束，结束后 10 秒内不能再次觉醒
+  // 觉醒时：输出 +40%、移速 +15%、杀怪回血（每只 1 点，每秒最多 3 点）
+  if (awkOK() && !M.awkMsg) { M.awkMsg = 1; banner('武僧觉醒已解锁：阳气低于三成时觉醒', 2.6); sfx('pickbig'); }
+  if (M.awk && (P.hp <= 0 || P.hp >= P.max * 0.5)) { M.awk = 0; M.awkCD = S.t + 10; }
+  else if (!M.awk && awkOK() && P.hp > 0 && P.hp < P.max * 0.3 && S.t >= (M.awkCD || 0)) {
+    M.awk = 1; S.texts.push({ x: P.x, y: P.y - 52, v: '武僧觉醒！', t: 1.6, c: '#ffe070', big: true }); sfx('pickbig'); S.flash = Math.max(S.flash, 0.06);
+  }
+  if (M.awk && Math.random() < DT * 12) S.parts.push({ x: P.x + rnd(-8, 8), y: P.y - 2, vx: rnd(-8, 8), vy: rnd(-50, -25), t: rnd(0.4, 0.8), c: Math.random() < 0.5 ? '#ffe070' : '#fff0a0' });
   // 少林棍
   if (W.gun && tick('gun', 2.2)) {
     const lv = W.gun, R = lv >= 2 ? 86 : 70, full = lv >= 3, a = mAim(R + 30), dmg = [0, 17, 18, 21, 25, 28][lv], kb = lv >= 4 ? 140 : 100;
@@ -1156,7 +1164,7 @@ function hurt(e, dmg, kb = 0, fromX = S.p.x, fromY = S.p.y, tag) {
   if (e.dead || e.batT > 0 || (e.phase2 && e.st === 'rise')) return;
   const weak = tag === 'light' && (e.skin === 'zW' || e.phase2);   // 白僵、尸煞怕光
   if (weak) dmg *= 2;
-  dmg *= dmgMul() * 0.8; if (S.hero === 'monk') dmg *= 1.1 * (S.p.hp < S.p.max * 0.3 ? 1.15 : 1); const crit = Math.random() < 0.1; if (crit) { dmg *= 2; S.stop = Math.max(S.stop, 0.03); }
+  dmg *= dmgMul() * 0.8; if (S.hero === 'monk') dmg *= 1.1 * (S.mk.awk ? 1.4 : 1); const crit = Math.random() < 0.1; if (crit) { dmg *= 2; S.stop = Math.max(S.stop, 0.03); }
   if (e.stun > 0) dmg *= 1.25;
   if (e.jsT > S.t) dmg *= 1.3;
   e.hp -= dmg; if (tag !== 'burn') { e.flash = 0.12; sfx('hit'); }
@@ -2140,7 +2148,7 @@ function update() {
   P.moving = ml > 0;
   if (ml) {
     if (P.grabT > 0) P.grabT -= DT;
-    const sp = 62 * (1 + 0.1 * S.mods.speed) * (P.slowT > 0 ? 0.6 : 1) * (P.grabT > 0 ? 0 : 1);
+    const sp = 62 * (1 + 0.1 * S.mods.speed) * (S.mk && S.mk.awk ? 1.15 : 1) * (P.slowT > 0 ? 0.6 : 1) * (P.grabT > 0 ? 0 : 1);
     moveBy(P, mx / ml * sp * DT, my / ml * sp * DT); P.walk += DT;
     if (Math.abs(mx) > 0.2) P.face = Math.sign(mx);
   }
