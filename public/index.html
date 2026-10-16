@@ -128,6 +128,17 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 #tip { position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 92px); transform: translateX(-50%); width: min(92vw, 460px); text-align: center; pointer-events: none; }
 #tip span { display: inline-block; background: rgba(26, 14, 30, .88); border: 2px solid var(--talisman); box-shadow: 0 0 0 2px var(--ink); color: var(--paper); font-size: 17px; line-height: 1.5; padding: 8px 14px; animation: tipin .35s ease-out; }
 @keyframes tipin { from { transform: translateY(-8px); opacity: 0; } }
+#mm { position: absolute; right: max(12px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 72px); display: flex; flex-direction: column; align-items: flex-end; gap: 4px; pointer-events: none; }
+#mm[hidden] { display: none; }
+#mmBtn { pointer-events: auto; width: 34px; height: 34px; font: 16px var(--display); background: var(--ink); color: var(--talisman); border: 2px solid var(--line); cursor: pointer; padding: 0; }
+#mmBtn.alert { animation: mmb .8s steps(2) infinite; }
+@keyframes mmb { 50% { background: var(--seal); } }
+#mmPanel { pointer-events: auto; background: rgba(12, 6, 22, .86); border: 2px solid var(--line); padding: 4px; }
+#mmCv { position: static; inset: auto; display: block; width: 132px; height: 118px; image-rendering: pixelated; }
+#mmT { font-size: 12px; color: var(--talisman); width: 132px; text-align: center; margin-top: 3px; line-height: 1.25; }
+#evArrow { position: absolute; pointer-events: none; transform: translate(-50%, -50%); text-align: center; color: var(--talisman); text-shadow: 2px 2px 0 var(--ink); line-height: 1; }
+#evA { display: inline-block; font-size: 30px; }
+#evArrow b { display: block; font-size: 12px; font-weight: 400; white-space: nowrap; }
 #tipArrow { position: absolute; pointer-events: none; right: calc(max(16px, env(safe-area-inset-right, 0px)) + 86px); bottom: calc(env(safe-area-inset-bottom, 0px) + 126px); font-size: 46px; color: var(--talisman); text-shadow: 3px 3px 0 var(--ink); animation: wxbob 0.8s ease-in-out infinite; }
 .ultWarn { color: #ff8a7a; font-weight: 400; }
 .ultNote { font-size: 13px; }
@@ -186,6 +197,8 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
   <div id="tip" hidden><span id="tipT"></span></div>
   <div id="rumor" hidden><span id="rumorT"></span></div>
   <div id="tipArrow" hidden>↘</div>
+  <div id="mm" hidden><button id="mmBtn" type="button">图</button><div id="mmPanel" hidden><canvas id="mmCv" width="132" height="118"></canvas><div id="mmT"></div></div></div>
+  <div id="evArrow" hidden><span id="evA">➤</span><b id="evL"></b></div>
 
   <div class="modal" id="title">
     <div class="card">
@@ -374,7 +387,7 @@ const WEAPONS_M = {
   jing: { name: '经文', seal: '经', w: 1, desc: ['每 2.5 秒朝前甩开经卷：金字贴怪诵经 3 秒，持续掉血、减速；被诵经的怪死时超度，阴德 +25%', '经卷更长', '一次两条，呈 V 字', '持续伤害提升，减速加重', '三条扇形经卷；怪死时金字跳到旁边接着念'] },
   chu: { name: '降魔杵', seal: '杵', w: 1, desc: ['每 3.5 秒从天砸向怪最密的地方', '伤害提升', '两根', '范围变大', '落地留下降魔印，持续伤害 3 秒'] },
   bo: { name: '钵', seal: '钵', w: 1, desc: ['每 5 秒抛出钵盂，把附近小怪吸过去定住 3 秒', '吸力范围更大', '收钵时造成伤害', '精英也会被吸过去（只减速）', '血量低于 40% 的小怪直接收进钵里（每次最多 6 只）'] },
-  jia: { name: '袈裟', seal: '袈', w: 1, desc: ['受到伤害 -15%；每 12 秒袈裟一卷，震开贴身的怪并点燃佛火（灼烧 3 秒）；贴身打你的怪也会被点燃', '减伤 20%', '每 10 秒一卷，震得更远；金刚不坏：受到致命伤免死一次（每 60 秒）', '减伤 25%', '免死冷却缩短到 40 秒；免死时金刚罩炸开，震退并点燃四周的怪'] },
+  jia: { name: '袈裟', seal: '袈', w: 1, desc: ['受到伤害 -15%，闪避 5%；每 12 秒袈裟一卷，震开贴身的怪并点燃佛火（灼烧 3 秒）；贴身打你的怪也会被点燃', '减伤 20%，闪避 8%', '闪避 10%；每 10 秒一卷，震得更远；金刚不坏：受到致命伤免死一次（每 60 秒）', '减伤 25%，闪避 12%', '闪避 15%；免死冷却缩短到 40 秒；免死时金刚罩炸开，震退并点燃四周的怪'] },
 };
 const TAGS_M = { zhang: ['伤害', '近身'], gun: ['伤害', '范围'], zhu: ['伤害', '穿透'], yu: ['控制', '范围'], jing: ['伤害', '持续'], chu: ['伤害', '范围'], bo: ['控制'], jia: ['防御'] };
 const ULTS_M = {
@@ -498,6 +511,11 @@ function mUlt(k, lv) {
 function updateMonk() {
   if (S.hero !== 'monk') return;
   const P = S.p, W = S.w, M = S.mk;
+  // 武僧觉醒：阳气低于 30%，输出技能伤害 +15%
+  if (P.hp > 0 && P.hp < P.max * 0.3) {
+    if (!M.awk) { M.awk = 1; S.texts.push({ x: P.x, y: P.y - 52, v: '武僧觉醒！', t: 1.6, c: '#ffe070', big: true }); sfx('pickbig'); S.flash = Math.max(S.flash, 0.06); }
+    if (Math.random() < DT * 12) S.parts.push({ x: P.x + rnd(-8, 8), y: P.y - 2, vx: rnd(-8, 8), vy: rnd(-50, -25), t: rnd(0.4, 0.8), c: Math.random() < 0.5 ? '#ffe070' : '#fff0a0' });
+  } else if (P.hp >= P.max * 0.3) M.awk = 0;
   // 少林棍
   if (W.gun && tick('gun', 2.2)) {
     const lv = W.gun, R = lv >= 2 ? 86 : 70, full = lv >= 3, a = mAim(R + 30), dmg = [0, 17, 18, 21, 25, 28][lv], kb = lv >= 4 ? 140 : 100;
@@ -714,6 +732,7 @@ function drawManji(x, y, s, c) {
 function drawMonkWorld() {
   if (S.hero !== 'monk' || !S.mk) return;
   const P = S.p, M = S.mk;
+  if (M.awk) { g.globalAlpha = 0.28 + 0.14 * Math.sin(S.t * 8); g.fillStyle = '#ffd860'; g.beginPath(); g.ellipse(P.x, P.y, 17, 12, 0, 0, 7); g.fill(); g.globalAlpha = 0.7; drawManji(P.x, P.y - 34 + Math.sin(S.t * 4) * 1.5, 5, '#ffe070'); g.globalAlpha = 1; }
   for (const s of M.seals) { g.globalAlpha = Math.min(0.5, s.life * 0.4); g.strokeStyle = '#ffd860'; g.lineWidth = 2; g.beginPath(); g.ellipse(s.x, s.y, s.r, s.r * 0.75, 0, 0, 7); g.stroke(); drawManji(s.x, s.y - 2, 14, '#ffd860'); g.globalAlpha = 1; }
   for (const b of M.bowls) {
     const k = Math.min(1, b.t / 0.4), x = b.x0 + (b.x - b.x0) * k, y = b.y0 + (b.y - b.y0) * k - Math.sin(k * Math.PI) * 30;
@@ -891,7 +910,7 @@ const ETYPE = {
   vampire: { img: 'vampire', hp: 400, spd: 36, dmg: 10, r: 7, xp: 20 },
   hand: { img: 'ghost', hp: 14, spd: 0, dmg: 0, r: 6, xp: 1 },
   king: { img: 'king', hp: 5000, spd: 20, dmg: 25, r: 11, xp: 60 },
-  wuchang: { img: 'wuW', hp: 50000, spd: 46, dmg: 250, r: 9, xp: 200 },
+  wuchang: { img: 'wuW', hp: 1000, spd: 38, dmg: 250, r: 9, xp: 30 },
 };
 
 // ---------- sound (synthesized 8-bit) ----------
@@ -1003,24 +1022,32 @@ function flagCheat() {
   S.cheatT = S.t; S.cheat = (S.cheat || 0) + 1;
   S.dark = 1.6; sfx('gong'); sfx('chain'); S.shake = Math.max(S.shake, 0.3);
   const wc = S.en.filter(e => e.type === 'wuchang' && !e.dead);
-  if (!wc.length) {
+  if (!wc.length && !(S.wuResp && S.wuResp.length)) {
     rumor(['有人逆天改命！！！'], true);
     if (window.sayKey) { sayKey('wu_sting', 0.9); setTimeout(() => sayKey('wu_w1'), 1100); setTimeout(() => sayKey('wu_b1'), 2900); }
     if (!S.wuLoop && window.loopKey) S.wuLoop = loopKey('wu_loop');
-    const C = S.cam;
-    [['wuW', C.x - 20, C.y + VH * 0.3], ['wuB', C.x + VW + 20, C.y + VH * 0.7]].forEach(([sk, x, y]) => {
-      const e = spawn('wuchang', Math.max(10, Math.min(WORLD.w - 10, x)), Math.max(20, Math.min(WORLD.h - 10, y)), { skin: sk });
-      if (e) { e.special = true; e.spd = 58; e.noFrenzy = true; e.wuName = sk === 'wuW' ? '一见生财' : '天下太平'; }
-    });
+    spawnWuchang('wuW'); spawnWuchang('wuB');
   } else {
+    S.wuSpd = (S.wuSpd || 38) * 1.25;
     for (const e of wc) e.spd *= 1.25;
     rumor(['还敢逆天改命？黑白无常更快了！'], true);
   }
 }
+function spawnWuchang(sk) {   // 从屏幕边缘出现，慢慢逼近
+  const C = S.cam, x = sk === 'wuW' ? C.x - 20 : C.x + VW + 20, y = C.y + VH * (sk === 'wuW' ? 0.3 : 0.7);
+  const e = spawn('wuchang', Math.max(10, Math.min(WORLD.w - 10, x)), Math.max(20, Math.min(WORLD.h - 10, y)), { skin: sk });
+  if (e) { e.special = true; e.spd = S.wuSpd || 38; e.noFrenzy = true; e.wuName = sk === 'wuW' ? '一见生财' : '天下太平'; }
+  return e;
+}
 function wuAI(e) {
   const P = S.p, dx = P.x - e.x, dy = P.y - e.y, d = Math.hypot(dx, dy) || 1;
-  e.kx = e.ky = 0; e.stun = 0; e.slow = 0; e.phase += DT * 3; e.face = dx < 0 ? -1 : 1;
-  e.x += dx / d * e.spd * DT; e.y += dy / d * e.spd * DT;
+  e.phase += DT * 3; e.face = dx < 0 ? -1 : 1;
+  // 眩晕最多 0.6 秒，之后 3.6 秒内再眩晕无效；减速、击退照常生效（效果减半）
+  if (e.stun > 0) { if (!e.wStun) { if (S.t < (e.stImm || 0)) e.stun = 0; else { e.stun = Math.min(e.stun, 0.6); e.wStun = 1; e.stImm = S.t + 3.6; } } } else e.wStun = 0;
+  if (e.stun <= 0) {
+    const k = (e.slow > S.t ? 0.6 : 1) * (e.pslow > S.t ? 1 - (1 - (e.pslowK ?? 1)) / 2 : 1);
+    e.x += dx / d * e.spd * k * DT; e.y += dy / d * e.spd * k * DT;
+  }
   if (P.inv <= 0 && d < e.r + 8) {
     S.wcHit = true; const dead = hurtPlayer(e.dmg); S.wcHit = false;
     S.texts.push({ x: P.x, y: P.y - 44, v: '锁魂链！', t: 0.9, c: '#d8d8e8', big: true }); sfx('chain');
@@ -1037,12 +1064,13 @@ function newGame(diff = 'normal') {
     diff, bossKilled: false, parade: false, state: 'play', t: 0, kills: 0, lv: 1, xp: 0, need: 5, bossSpawned: false, roosterShown: false,
     p: { x: 700 + EX, y: 700 + (MAP.townH || 0), hp: 100, max: 100, face: 1, inv: 0, moving: false, walk: 0, breath: 0, breathCd: 0 },
     mods: { speed: 0, magnet: 0, cd: 0, hp: 0, dmg: 0, regen: 0 },
-    w: HERO === 'monk' ? { zhang: 1 } : { sword: 1 }, timers: {}, swordAng: 0,
+    w: HERO === 'monk' ? { zhang: 1, jia: 1 } : { sword: 1 }, timers: {}, swordAng: 0,
     objs: (MAP.objs || []).map(o => ({ ...o, burnt: false, state: 'ok', fireT: 0, smoke: 0, tk: 0 })), ult: null, ultCd: 0, sweeps: [], taijis: [], palms: [], afterimgs: [], ev: {}, allies: [], decor: [], batFx: [], rumorQ: [], guas: [], shield: 0, shieldT: null, chests: [], lvQueue: 0, eliteT: 60, eliteN: 0, vampOut: false, wgCd: 8, eshots: [], npcs: [], npcT: 15, loot: [], aw: null, awDone: false, yamT: 0, gongVo: 0, dawnT: null, yz: (MAP.yz || []).map(([x, y, o]) => ({ x, y, open: !!o, pre: !!o, t: 0 })), yzT: rnd(40, 60), fish: [], fishT: 2, cam: { x: 0, y: 0 },
     food: [], foodT: 18, parts: [], combo: 0, comboT: 0, stop: 0, flash: 0, en: [], shots: [], areas: [], orbs: [], fx: [], texts: [], spawnAcc: 0, nextId: 1, shake: 0,
   };
-  GUARD.reset();
-  for (const k of ['title', 'end', 'levelup', 'pause', 'revive', 'brag', 'tip', 'tipArrow']) $(k).hidden = true;
+  GUARD.reset(); if (HERO === 'monk') GUARD.pickW();   // 一休开局自带袈裟，防作弊的法器计数要把它算进去
+  for (const k of ['title', 'end', 'levelup', 'pause', 'revive', 'brag', 'tip', 'tipArrow', 'mmPanel', 'evArrow']) $(k).hidden = true;
+  $('mm').hidden = false; $('mmBtn').classList.remove('alert');
   S.tips = $('tipChk').checked; S.tipI = 0; tipT = 0; S.wx = null;
   try { const n = (+localStorage.getItem('ztzh_plays') || 0) + 1; localStorage.setItem('ztzh_plays', n); if (n >= 3) $('tipChk').checked = false; } catch (e) {}
   setWeather(pickWeather(), true); S.wxNext = rnd(50, 90);
@@ -1139,11 +1167,11 @@ function hurt(e, dmg, kb = 0, fromX = S.p.x, fromY = S.p.y, tag) {
   if (e.dead || e.batT > 0 || (e.phase2 && e.st === 'rise')) return;
   const weak = tag === 'light' && (e.skin === 'zW' || e.phase2);   // 白僵、尸煞怕光
   if (weak) dmg *= 2;
-  dmg *= dmgMul() * 0.8; if (S.hero === 'monk') dmg *= 1.1; const crit = Math.random() < 0.1; if (crit) { dmg *= 2; S.stop = Math.max(S.stop, 0.03); }
+  dmg *= dmgMul() * 0.8; if (S.hero === 'monk') dmg *= 1.1 * (S.p.hp < S.p.max * 0.3 ? 1.15 : 1); const crit = Math.random() < 0.1; if (crit) { dmg *= 2; S.stop = Math.max(S.stop, 0.03); }
   if (e.stun > 0) dmg *= 1.25;
   if (e.jsT > S.t) dmg *= 1.3;
   e.hp -= dmg; if (tag !== 'burn') { e.flash = 0.12; sfx('hit'); }
-  if (kb) { const dx = e.x - fromX, dy = e.y - fromY, l = Math.hypot(dx, dy) || 1, k = e.type === 'king' ? 0.15 : e.type === 'wuchang' ? 0 : 1; e.kx += dx / l * kb * k; e.ky += dy / l * kb * k; }
+  if (kb) { const dx = e.x - fromX, dy = e.y - fromY, l = Math.hypot(dx, dy) || 1, k = e.type === 'king' ? 0.15 : e.type === 'wuchang' ? 0.25 : 1; e.kx += dx / l * kb * k; e.ky += dy / l * kb * k; }
   if (tag !== 'burn') S.texts.push({ x: e.x + rnd(-3, 3), y: e.y - 22, v: Math.round(dmg) + (crit ? '!' : ''), t: crit || weak ? 0.8 : 0.6, c: weak ? '#ff9a3a' : crit ? '#ffd040' : '#ffffff', big: crit || weak });
   if (e.type === 'wuchang' && S.t > (e.lineT || 0)) { e.lineT = S.t + 4.5; const w1 = Math.random() < 0.5; S.texts.push({ x: e.x, y: e.y - 58, v: w1 ? '区区法器，也想伤我？' : '莫待黑白无常到眼前，方知回头已晚。', t: 2.2, c: '#e8e8f0', big: true }); window.sayKey && sayKey(w1 ? 'wu_b2' : 'wu_w2'); }
   if (e.audience) stageAggro();
@@ -1167,7 +1195,7 @@ function hurt(e, dmg, kb = 0, fromX = S.p.x, fromY = S.p.y, tag) {
     if (e.elite && e.skin && !e.special && Math.random() < 0.5) S.chests.push({ x: e.x, y: e.y, big: false, t: 0 });
     if (e.onDie) e.onDie(e);
     if (S.hero === 'monk') monkKill(e);
-    if (e.type === 'wuchang') { rumor(['黑白无常……竟被打退了！'], true); if (S.t > (S.wuDieT || 0)) { S.wuDieT = S.t + 3; window.sayKey && sayKey('wu_w3'); } }
+    if (e.type === 'wuchang') { (S.wuResp = S.wuResp || []).push({ t: S.t + 25, sk: e.wuName === '一见生财' ? 'wuW' : 'wuB' }); rumor(['黑白无常……竟被打退了！'], true); if (S.t > (S.wuDieT || 0)) { S.wuDieT = S.t + 3; window.sayKey && sayKey('wu_w3'); } }
     const n = e.type === 'king' ? 20 : e.elite ? 3 : 1;
     for (let i = 0; i < n; i++) S.orbs.push({ x: e.x + rnd(-6, 6) * (n > 1), y: e.y + rnd(-6, 6) * (n > 1), v: (n > 1 ? 5 : e.xp) * (e.chT > S.t ? 1.25 : 1) * (S.fgT > S.t ? 2 : 1), du: e.chT > S.t });
     if (e.type === 'king') { S.food.push({ k: 'pig', x: e.x, y: e.y }); banner('尸煞伏诛！那口气终于散了', 2.8); S.shake = 0.5; sfx('boss'); }
@@ -1294,13 +1322,13 @@ function palmBurst() {
   for (const e of S.en) { if (e.dead || e.audience || e.onBike || e.type === 'hand') continue; if ((e.x - P.x) ** 2 + ((e.y - P.y) / 0.75) ** 2 < 92 * 92) { hurt(e, 40, 70); palmSlow(e, Math.max(4, lv)); } }
 }
 function tryDodge() {
-  const lv = S.w.palm || 0; if (!lv) return false;
-  const ch = [0, 0.1, 0.1, 0.15, 0.15, 0.2][lv] + (S.ult && S.ult.k === 'taiji' && S.taijis.some(z => !z.mini) ? 0.1 : 0);
+  const lv = S.w.palm || 0, mj = S.hero === 'monk' ? S.w.jia || 0 : 0; if (!lv && !mj) return false;
+  const ch = (lv ? [0, 0.1, 0.1, 0.15, 0.15, 0.2][lv] + (S.ult && S.ult.k === 'taiji' && S.taijis.some(z => !z.mini) ? 0.1 : 0) : 0) + (mj ? [0, 0.05, 0.08, 0.10, 0.12, 0.15][mj] : 0);
   if (Math.random() >= ch) return false;
   const P = S.p; P.inv = Math.max(P.inv, 0.35);
   for (let i = 1; i <= 3; i++) S.afterimgs.push({ x: P.x - P.face * i * 6, y: P.y, face: P.face, t: -i * 0.03 });
   S.texts.push({ x: P.x, y: P.y - 40, v: '闪', t: 0.7, c: '#ffe070', big: true }); sfx('wisp');
-  const tg = nearest(1, 80)[0]; if (tg) palmStrike(Math.atan2((tg.y - P.y) / 0.75, tg.x - P.x));
+  if (lv) { const tg = nearest(1, 80)[0]; if (tg) palmStrike(Math.atan2((tg.y - P.y) / 0.75, tg.x - P.x)); }
   if (lv >= 5) palmBurst();
   return true;
 }
@@ -1845,6 +1873,10 @@ const near2 = (a, b, r) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 < r * r;
 function updateEvents() {
   const P = S.p, E = S.ev, me = [P.x, P.y];
   updateRumor();
+  if (S.wuResp && S.wuResp.length) {   // 被打退的黑白无常 25 秒后重新出现
+    for (const r of S.wuResp) if (S.t >= r.t) { r.done = true; spawnWuchang(r.sk); rumor(['黑白无常又回来了！'], true); sfx('chain'); }
+    S.wuResp = S.wuResp.filter(r => !r.done);
+  }
   // --- 蜻蜓点水穴：第一次走近
   if (MAP.tomb && !E.tomb && near2(me, MAP.tomb, 90)) { E.tomb = 1; rumor(['蜻蜓点水穴'], false); window.sayKey && window.sayKey('tao_tomb'); S.texts.push({ x: MAP.tomb[0], y: MAP.tomb[1] - 60, v: '蜻蜓点水穴', t: 2.5, c: '#ffe070', big: true }); }
   // --- 戏台：不定时间。人一走近就开唱、台下坐满鬼；再走进座位区，群鬼回头扑上来
@@ -3010,8 +3042,76 @@ function setCd(el, frac) {
   el.style.setProperty('--p', frac.toFixed(3)); el.disabled = now; el.dataset.cd = now ? '1' : '0';
   if (was && !now) { el.classList.remove('rdy'); void el.offsetWidth; el.classList.add('rdy'); }
 }
+// ---------- 小地图：剧情开始时弹出，几秒后缩成按钮，可手动打开；剧情点在屏幕外时边缘有箭头 ----------
+const STORY_DEFS = [
+  { k: 'simu', c: '义', name: '义庄 · 四目道长赶尸', pop: '四目道长在义庄门口被僵尸围住了！' },
+  { k: 'church', c: '教', name: '教堂 · 门口的信徒', pop: '教堂那边有蝙蝠……门口的信徒要出事！' },
+  { k: 'ren', c: '任', name: '任府 · 任老爷尸变', pop: '任老爷被老太爷咬了，尸变了！' },
+  { k: 'bike', c: '秋', name: '公路 · 秋生载着女鬼', pop: '秋生骑车回来了，后座坐着红衣女鬼！' },
+];
+function storyPos(k) {
+  const E = S.ev;
+  if (k === 'simu') return E.simu && E.simu.st === 'wait' ? [E.simu.x, E.simu.y] : null;
+  if (k === 'church') return E.church && E.church.st === 'pray' && S.t >= 80 && MAP.vhome ? [MAP.vhome[0], MAP.vhome[1] + 14] : null;
+  if (k === 'ren') { const z = E.ren && S.en.find(e => e.renZ && !e.dead); return z ? [z.x, z.y] : null; }
+  if (k === 'bike') return E.bike && E.bike.st !== 'gone' ? [E.bike.x, E.bike.y] : null;
+  return null;
+}
+function setMap(open, manual, text) {
+  S.mmOpen = open; S.mmManual = open && manual; $('mmPanel').hidden = !open;
+  if (open && text !== undefined) $('mmT').textContent = text;
+}
+$('mmBtn').onclick = () => {
+  if (!S) return; sfx('pick');
+  if (S.mmOpen) { setMap(false); return; }
+  setMap(true, true, S.mmAct && S.mmAct.length ? S.mmAct.map(a => a.name).join('\n') : '眼下没有剧情');
+  $('mmT').style.whiteSpace = 'pre-line';
+};
+function updateMap() {
+  if (!S || S.state === 'over') return;
+  S.mmSeen = S.mmSeen || {}; S.mmDone = S.mmDone || {};
+  const act = [];
+  for (const d of STORY_DEFS) {
+    const pos = storyPos(d.k); if (!pos) continue;
+    act.push({ ...d, pos });
+    if (!S.mmSeen[d.k]) { S.mmSeen[d.k] = 1; setMap(true, false, d.pop); S.mmClose = S.t + 7; $('mmT').style.whiteSpace = 'normal'; sfx('pick'); }
+    if (!S.mmDone[d.k] && (pos[0] - S.p.x) ** 2 + (pos[1] - S.p.y) ** 2 < 120 * 120) S.mmDone[d.k] = 1;
+  }
+  S.mmAct = act;
+  if (S.mmOpen && !S.mmManual && S.t > S.mmClose) setMap(false);
+  $('mmBtn').classList.toggle('alert', act.some(a => !S.mmDone[a.k]) && !S.mmOpen);
+  if (S.mmOpen) drawMap(act);
+  // 边缘箭头：最近的、没到过的剧情点，且不在屏幕里
+  const C = S.cam, el = $('evArrow'); let best = null, bd = 1e9;
+  for (const a of act) { if (S.mmDone[a.k]) continue; const d = Math.hypot(a.pos[0] - S.p.x, a.pos[1] - S.p.y); if (d < bd) { bd = d; best = a; } }
+  if (!best || S.state !== 'play') { el.hidden = true; return; }
+  const fx = (best.pos[0] - C.x) / VW, fy = (best.pos[1] - C.y) / VH;
+  if (fx > 0.04 && fx < 0.96 && fy > 0.06 && fy < 0.94) { el.hidden = true; return; }
+  const dx = fx - 0.5, dy = fy - 0.5, k = Math.min(0.33 / Math.max(Math.abs(dx), 1e-6), 0.27 / Math.max(Math.abs(dy), 1e-6));   // 竖向留出上方小地图和下方按钮
+  const ax = 50 + dx * k * 100; el.style.left = ax + '%'; el.style.top = Math.max(S.mmOpen && ax > 55 ? 40 : 0, 50 + dy * k * 100) + '%';   // 小地图展开时箭头让开右上角
+  $('evA').style.transform = `rotate(${Math.atan2(dy, dx)}rad)`;
+  $('evL').textContent = best.c + ' ' + best.name.split(' · ')[1] + ' ' + Math.round(bd / 10) + '步';
+  el.hidden = false;
+}
+function drawMap(act) {
+  const cv2 = $('mmCv'), c = cv2.getContext('2d'), W = cv2.width, H = cv2.height, sx = W / WORLD.w, sy = H / WORLD.h;
+  c.imageSmoothingEnabled = false; c.clearRect(0, 0, W, H);
+  if (IMG.bg && IMG.bg.complete) c.drawImage(IMG.bg, 0, 0, WORLD.w, WORLD.h, 0, 0, W, H);
+  c.fillStyle = 'rgba(12,6,22,.38)'; c.fillRect(0, 0, W, H);
+  const C = S.cam; c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1; c.strokeRect(Math.round(C.x * sx) + .5, Math.round(C.y * sy) + .5, Math.round(VW * sx), Math.round(VH * sy));
+  const pulse = 5 + 1.5 * Math.sin(S.t * 6);
+  for (const a of act) {
+    const x = a.pos[0] * sx, y = a.pos[1] * sy;
+    c.fillStyle = S.mmDone[a.k] ? '#a8483c' : '#e83a2a'; c.globalAlpha = 0.5; c.beginPath(); c.arc(x, y, pulse + 3, 0, 7); c.fill(); c.globalAlpha = 1;
+    c.fillStyle = S.mmDone[a.k] ? '#a8483c' : '#e83a2a'; c.beginPath(); c.arc(x, y, 6, 0, 7); c.fill();
+    c.strokeStyle = '#fff'; c.lineWidth = 1; c.stroke();
+    c.fillStyle = '#fff'; c.font = 'bold 9px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(a.c, x, y + 0.5);
+  }
+  c.fillStyle = '#ffe070'; c.beginPath(); c.arc(S.p.x * sx, S.p.y * sy, 3, 0, 7); c.fill(); c.strokeStyle = '#1a0e1e'; c.lineWidth = 1; c.stroke();
+}
 function hud() {
   const P = S.p;
+  updateMap();
   $('hpb').firstElementChild.style.transform = `scaleX(${P.hp / P.max})`;
   $('xpb').firstElementChild.style.transform = `scaleX(${S.xp / S.need})`;
   $('lvl').textContent = `修为 ${cn(S.lv)}重`;
