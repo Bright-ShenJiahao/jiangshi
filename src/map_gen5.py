@@ -117,17 +117,59 @@ def paifang_img():
 
 
 def teahouse_img():
-    """茶楼：两层小楼，挂“茶”字旗"""
-    a, ax, ay = house_img(84, 40, None, True)          # 一楼
-    b, bx, by = house_img(66, 26, None, False)          # 二楼
-    W2, H2 = a.width + 16, a.height + b.height - 8
-    im = Image.new('RGBA', (W2, H2), (0, 0, 0, 0))
-    im.alpha_composite(b, ((W2 - b.width) // 2, 0)); im.alpha_composite(a, (8, b.height - 8))
-    d = ImageDraw.Draw(im)
-    fx = W2 - 10; d.line([(fx, 4), (fx, 44)], fill=K, width=2)
-    d.polygon([(fx - 1, 6), (fx - 16, 8), (fx - 15, 30), (fx - 1, 28)], fill=K); d.polygon([(fx - 2, 7), (fx - 14, 9), (fx - 13, 29), (fx - 2, 27)], fill=(226, 220, 196))
-    d.text((fx - 8, 18), '茶', font=font(10), fill=(180, 30, 30), anchor='mm')
-    return im, 8 + ax + 42, b.height - 8 + ay
+    """酒楼：三层飞檐楼阁，二楼挑出酒旗，门口红灯笼和酒坛，窗里透暖黄灯光"""
+    Wd, Hd = 112, 150
+    im, d = canvas(Wd, Hd)
+    ROOF, ROOF2, ROOFH = (38, 70, 78), (24, 46, 54), (70, 110, 112)
+    WALL, WALL2, PIL, WIN = (132, 72, 52), (104, 54, 42), (160, 48, 42), (255, 208, 100)
+    def eave(x0, x1, y, th=9):          # 飞檐：宽屋顶，两端上翘
+        d.polygon([(x0 - 8, y + th - 2), (x0 + 2, y + th), (x1 - 2, y + th), (x1 + 8, y + th - 2), (x1 + 4, y + th + 2), (x0 - 4, y + th + 2)], fill=K)
+        d.polygon([(x0 + 4, y), (x1 - 4, y), (x1 + 6, y + th - 2), (x0 - 6, y + th - 2)], fill=K)
+        d.polygon([(x0 + 5, y + 1), (x1 - 5, y + 1), (x1 + 4, y + th - 3), (x0 - 4, y + th - 3)], fill=ROOF)
+        for x in range(x0 - 2, x1 + 4, 5): d.line([(x, y + 2), (x - 2, y + th - 3)], fill=ROOFH)
+        d.line([(x0 - 4, y + th - 3), (x1 + 4, y + th - 3)], fill=ROOF2, width=1)
+    def floor(x0, x1, y0, y1, windows, rail=False, lit=True):
+        d.rectangle([x0, y0, x1, y1], fill=K); d.rectangle([x0 + 1, y0 + 1, x1 - 1, y1 - 1], fill=WALL)
+        d.rectangle([x0 + 1, y1 - 4, x1 - 1, y1 - 1], fill=WALL2)
+        for px in (x0 + 2, x1 - 5): d.rectangle([px, y0 + 1, px + 3, y1 - 1], fill=PIL)
+        for wx in windows:
+            d.rectangle([wx, y0 + 6, wx + 11, y1 - 7], fill=K); d.rectangle([wx + 1, y0 + 7, wx + 10, y1 - 8], fill=WIN if lit else (60, 40, 40))
+            d.line([(wx + 6, y0 + 7), (wx + 6, y1 - 8)], fill=K); d.line([(wx + 1, (y0 + y1) // 2), (wx + 10, (y0 + y1) // 2)], fill=K)
+        if rail:
+            d.rectangle([x0 - 3, y1 - 8, x1 + 3, y1 - 6], fill=K); d.rectangle([x0 - 2, y1 - 7, x1 + 2, y1 - 7], fill=PIL)
+            for x in range(x0 - 1, x1 + 2, 4): d.line([(x, y1 - 6), (x, y1 - 1)], fill=K)
+    # 三楼（最窄）
+    eave(34, 78, 4, 10); floor(38, 74, 14, 40, [43, 56], False)
+    d.rectangle([54, 0, 58, 5], fill=K); d.rectangle([55, 1, 57, 4], fill=(232, 180, 48))      # 宝顶
+    # 二楼
+    eave(24, 88, 38, 9); floor(28, 84, 47, 80, [34, 50, 66], True)
+    # 一楼（最宽）
+    eave(14, 98, 78, 10); floor(18, 94, 88, 138, [24, 76], False, True)
+    # 门：大门敞开，里面是亮的
+    dx = 56
+    d.rectangle([dx - 11, 104, dx + 11, 138], fill=K); d.rectangle([dx - 10, 105, dx + 10, 138], fill=(70, 30, 26)); d.rectangle([dx - 7, 108, dx + 7, 138], fill=(255, 190, 90))
+    d.line([(dx, 108), (dx, 138)], fill=K)
+    d.rectangle([dx - 15, 90, dx + 15, 101], fill=K); d.rectangle([dx - 14, 91, dx + 14, 100], fill=(30, 26, 30))      # 匾额
+    d.text((dx, 96), '酒楼', font=font(10), fill=(240, 200, 90), anchor='mm')
+    # 红灯笼
+    for lx in (dx - 24, dx + 24, 30, 82):
+        d.line([(lx, 100 if lx in (dx - 24, dx + 24) else 80), (lx, 104 if lx in (dx - 24, dx + 24) else 86)], fill=K)
+        ly = 104 if lx in (dx - 24, dx + 24) else 86
+        d.rectangle([lx - 4, ly, lx + 4, ly + 9], fill=K); d.rectangle([lx - 3, ly + 1, lx + 3, ly + 8], fill=(214, 52, 42)); d.line([(lx, ly + 1), (lx, ly + 8)], fill=(255, 150, 90))
+    # 酒坛
+    for jx in (6, 100):
+        d.ellipse([jx - 7, 122, jx + 7, 139], fill=K); d.ellipse([jx - 6, 123, jx + 6, 138], fill=(120, 72, 44)); d.rectangle([jx - 4, 119, jx + 4, 124], fill=K); d.rectangle([jx - 3, 120, jx + 3, 123], fill=(190, 40, 40))
+        d.rectangle([jx - 3, 129, jx + 3, 134], fill=(226, 220, 196))
+    # 台阶
+    d.rectangle([dx - 16, 138, dx + 16, 143], fill=K); d.rectangle([dx - 15, 139, dx + 15, 142], fill=(130, 124, 132))
+    # 酒旗：从二楼左侧挑出的竖幡，红底白字，下摆锯齿
+    d.line([(14, 44), (14, 112)], fill=K, width=3); d.line([(14, 46), (2, 46)], fill=K, width=2)
+    pts = [(1, 48), (13, 48), (13, 100), (10, 95), (7, 100), (4, 95), (1, 100)]
+    d.polygon(pts, fill=K)
+    d.polygon([(3, 50), (11, 50), (11, 97), (9, 93), (7, 97), (5, 93), (3, 97)], fill=(198, 44, 40))
+    d.text((7, 66), '酒', font=font(10), fill=(250, 240, 220), anchor='mm')
+    d.text((7, 80), '旗', font=font(1), fill=(198, 44, 40), anchor='mm')
+    return im, Wd // 2, Hd - 4
 
 
 def plant_img(var=0):
@@ -248,6 +290,8 @@ def build(seed=11):
                 block(int(cx - rw / 2 - 2), y, int(cx + rw / 2 + 2), y + 8)
     # 龙吐珠：环中间的圆土丘 + 一颗圆石（珠）
     ly = (LOOP[0] + LOOP[1]) // 2; lx = int(river_x(ly) + loop_off(ly) - 3)
+    PEARL = (lx, ly)
+    _cL, _wL = channels(ly)[0]; HB = [int(_cL - _wL / 2 - 14), ly - 7, int(_cL + _wL / 2 + 16), ly + 7]      # 隐形桥：横跨左边那股河
     d.ellipse([lx - 30, ly - 22, lx + 30, ly + 22], fill=(70, 56, 64)); d.ellipse([lx - 26, ly - 19, lx + 26, ly + 17], fill=(92, 76, 80))
     d.ellipse([lx - 9, ly - 14, lx + 9, ly + 2], fill=K); d.ellipse([lx - 8, ly - 13, lx + 8, ly + 1], fill=(200, 196, 214)); d.ellipse([lx - 5, ly - 11, lx - 1, ly - 7], fill=(250, 250, 255))
     d.text((lx, ly + 10), '珠', font=font(9), fill=(230, 210, 150), anchor='mm')
@@ -511,7 +555,7 @@ def build(seed=11):
     house(692, 36, 96, 40, '祠堂', True, RED)
     # 茶楼
     timg, tax, tay = teahouse_img(); sprites['town_tea'] = timg
-    objs.append(dict(k='house', x=830, y=246, img='town_tea', ax=tax, ay=tay, rect=[780, 136, 880, 246], burn=False)); block(786, 200, 876, 246)
+    objs.append(dict(k='house', x=830, y=246, img='town_tea', ax=tax, ay=tay, rect=[774, 100, 886, 246], burn=False)); block(784, 196, 878, 246)
     # 铺子一排
     house(900, 186, 70, 40, '米铺'); house(984, 186, 86, 40, '棺材铺'); house(1084, 190, 66, 36)
     # 义庄院落
@@ -650,7 +694,7 @@ def build(seed=11):
                 grid[cy * cols + cx] = 1
     river = [round(river_x(y - DY) + EXT, 1) for y in range(0, H2, 8)]
     data = dict(cols=cols, rows=rows, cell=CELL, grid=''.join('1' if v else '0' for v in grid), objs=objs,
-                graves=graves, coffins=coffins, river=river, riverW=RIVER_W, bridge=[BRIDGE[0] + DY, BRIDGE[1] + DY], bats=bats,
+                graves=graves, coffins=coffins, river=river, riverW=RIVER_W, pearl=[PEARL[0] + EXT, PEARL[1] + DY - 6], hb=[HB[0] + EXT, HB[1] + DY, HB[2] + EXT, HB[3] + DY], bridge=[BRIDGE[0] + DY, BRIDGE[1] + DY], bats=bats,
                 road=[(x + EXT, y + DY) for x, y in ROAD], roadN=[(x + EXT, y + DY) for x, y in ROAD_N], w=W2, h=H2, townH=DY, extX=EXT, plants=PL, seats=[(x + EXT, y) for x, y in seats], yzGate=[980 + EXT, 494], renDoor=[430 + EXT, 160], citang=[740 + EXT, 104], vhome=[CHURCH[0] + EXT, CHURCH[1] + 42 + DY], tombPlat=[PX0, PY0, PX1, PY1], plantZone=[30, PY1 + 64, int(rx(1000)) - 30, H2 - 30], tomb=list(TOMB), plantain=[200, DY + 900], stage=[stage[0] + EXT, stage[1]], loop=[LOOP[0] + DY, LOOP[1] + DY], yamen=[644 + EXT, 232], paifang=[740 + EXT, DY + 160],
                 yz=[[860 + EXT, 400, 0], [940 + EXT, 410, 1], [1020 + EXT, 404, 0], [1100 + EXT, 396, 1], [880 + EXT, 448, 0]], town=[30, 30, W2 - 10, DY])
     return im, sprites, data

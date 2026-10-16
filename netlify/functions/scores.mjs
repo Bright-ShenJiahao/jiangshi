@@ -50,7 +50,7 @@ export default async (req) => {
     name: clean(b.name) || '无名道士',
     kills: int(b.kills, 0, 20000),
     lv: int(b.lv, 1, 200),
-    t: int(b.t, 0, 320),
+    t: int(b.t, 0, 420),
     win: b.win === true,
     diff: b.diff === 'hard' ? 'hard' : 'normal',
     score: int(b.score, 0, 200000),
@@ -69,7 +69,7 @@ export default async (req) => {
   if (rec.ults > Math.floor(rec.t / 28) + 1) why.push('ult');
   if (rec.kills > rec.t * 6 + 200) why.push('kills');
   if (rec.lv > 120) why.push('lv2');   // 一局 5 分钟实测能升到 49 重，以前的 45 上限会误伤正常玩家
-  if (rec.t < 300 && rec.win) why.push('win');   // 遮天蔽日最多推迟到 320 秒
+  if (rec.t < 360 && rec.win) why.push('win');   // 一局 6 分钟；遮天蔽日最多推迟到 380 秒
   if (why.length) { rec.cheat = 1; rec.why = why.join(','); }
 
   if (rec.win && !why.length) {   // 只记正常通关的名字；撞车就重试几次，失败也不影响成绩提交
