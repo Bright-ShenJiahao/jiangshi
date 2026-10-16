@@ -1177,7 +1177,7 @@ function newGame(diff = 'normal') {
   for (const k of ['title', 'end', 'levelup', 'pause', 'revive', 'brag', 'tip', 'tipArrow', 'mmPanel', 'evArrow']) $(k).hidden = true;
   $('mm').hidden = false; $('mmBtn').classList.remove('alert');
   S.tips = $('tipChk').checked; S.tipI = 0; tipT = 0; S.wx = null;
-  try { const n = (+localStorage.getItem('ztzh_plays') || 0) + 1; localStorage.setItem('ztzh_plays', n); if (n >= 3) $('tipChk').checked = false; } catch (e) {}
+  try { const n = (+localStorage.getItem('ztzh_plays') || 0) + 1; localStorage.setItem('ztzh_plays', n); } catch (e) {}
   setWeather(pickWeather(), true); S.wxNext = rnd(50, 90);
   startAmbient();
   $('nameForm').hidden = true; boardNote = ''; myEntry = null;
@@ -1992,7 +1992,13 @@ function endGame(win) {
     $('endT').textContent = TT[0]; $('endP').textContent += '　' + TT[1];
   }
   else if (S.cheat) $('endP').textContent += '　逆天改命，成绩标注作弊';
-  { const ec = $('endCheat'); ec.className = S.cheat ? 'bad' : 'ok'; ec.textContent = S.cheat ? '⚠ 本局判定：作弊（成绩会标注【作弊】）' : '✔ 本局判定：未作弊'; }
+  { const ec = $('endCheat'); ec.className = S.cheat ? 'bad' : 'ok'; ec.textContent = S.cheat ? '⚠ 本局判定：作弊（成绩会标注【作弊】）' : '✔ 本局判定：未作弊';
+    if (S.tips) {
+      const done = win || S.t >= 150;
+      ec.className = 'ok';
+      if (done) { try { localStorage.setItem('ztzh_tut2', '1'); } catch (e) {} $('tipChk').checked = false; ec.textContent = '新手教学局，不计入排行。来一次真正的对局吧！记得不要再勾选「新手提示」。'; }
+      else ec.textContent = '新手教学局，不计入排行。再来一次，把义庄、教堂、任府这几件事走完吧。';
+    } }
   renderBoard();
   $('end').hidden = false; $('breath').hidden = true; $('sprint').hidden = true; $('ult').hidden = true;
   $('nameForm').hidden = true; $('brag').hidden = true; saveRecord(PNAME || '无名道士');
@@ -2148,7 +2154,7 @@ function updateChurch2() {
   if (!MAP.vhome || S.state !== 'play') return;
   const P = S.p, me = [P.x, P.y], C = chu2(), V = C.V, E = S.ev;
   // --- 抬棺：70 秒从教堂背后出来，走到后院
-  if (C.st === 'idle' && S.t >= 70) { C.st = 'carry'; C.carry = { x: V[0] + 4, y: V[1] - 182, leg: 0 }; rumor(['教堂后院……有人抬着一口棺材'], false); }
+  if (C.st === 'idle' && S.t >= (S.tips ? 150 : 70)) { C.st = 'carry'; C.carry = { x: V[0] + 4, y: V[1] - 182, leg: 0 }; rumor(['教堂后院……有人抬着一口棺材'], false); }
   if (C.st === 'carry') {
     const c = C.carry, tgt = c.leg === 0 ? [V[0] + 4, C.BY + 26] : [C.slots[4], C.BY + 26], dx = tgt[0] - c.x, dy = tgt[1] - c.y, l = Math.hypot(dx, dy);
     if (near2(me, [c.x, c.y], 52)) {     // 被打断：棺材摔开，信徒四散，狼人奴仆爬出来
@@ -2215,9 +2221,41 @@ function drawChurch2(list) {
     for (const [ox, oy] of [[-20, 12], [0, 16], [20, 12]]) list.push({ y: BY + oy, f: () => { g.save(); g.globalAlpha = Math.max(0, a); const im = IMG.believer; g.drawImage(im, Math.round(x0 + ox - im.width / 2), Math.round(BY + oy - im.height + 2)); g.restore(); } });
   }
 }
+
+// ---------- 新手提示（只在勾选「新手提示」时）：主线引导 + 随机提示去逛没去过的地方 ----------
+function updateGuide() {
+  if (!S.tips) return;
+  const P = S.p, E = S.ev, me = [P.x, P.y], G = S.guide || (S.guide = { s: 0, t: 0, hT: 0, hint: null, done: {} });
+  if (G.s === 0 && S.t >= 4.5) { G.s = 1; showTip('这里阴风阵阵，先回义庄看看', false, 6.5); }
+  else if (G.s === 1 && E.simu && E.simu.st !== 'wait') { G.s = 2; G.t = S.t + 5; }
+  else if (G.s === 2 && S.t >= G.t && E.church) {
+    G.s = 3; G.t = S.t; E.church.batT = S.t; E.church.dl = S.t + 55;
+    spawnVampire(); const v = S.en.find(q => q.type === 'vampire'); if (v) { v.hp = v.max = v.max * 0.5; v.guided = true; }
+    showTip('右边的教堂好奇怪，去看看', false, 6.5);
+  } else if (G.s === 3 && S.t >= G.t + 3 && (!S.en.some(q => q.type === 'vampire' && !q.dead && !q.escaping && !q.gone) || S.t >= G.t + 60)) { G.s = 4; G.t = S.t + 5; }
+  else if (G.s === 4 && S.t >= G.t) { G.s = 5; E.renForce = true; showTip('任府那边传来敲门声，去看看', false, 6.5); G.hT = S.t + 25; }
+  else if (G.s === 5 && E.ren) G.s = 6;
+  // 随机提示：还没发生过的地方
+  const H = G.hint;
+  if (H && (H.ok() || near2(me, H.pos, 110))) G.hint = null;
+  if (G.s >= 5 && !G.hint && S.t >= G.hT && S.t < 210) {
+    G.hT = S.t + rnd(35, 50);
+    const c = [], PZ = MAP.plantZone;
+    if (MAP.stage && !E.opera && !G.done.stage) c.push(['stage', '去戏台看看吧', '戏台那边好像有动静', MAP.stage, () => !!E.opera]);
+    if (PZ && !E.banana && !G.done.banana) c.push(['banana', '去左下角的芭蕉林看看吧', '芭蕉林深处好像有什么', [(PZ[0] + PZ[2] - 90) / 2, (PZ[1] + 60 + PZ[3]) / 2], () => !!E.banana]);
+    if (MAP.river && !E.wg && !G.done.wg) { const rx = riverAt(P.y), side = P.x < rx ? -1 : 1; c.push(['wg', '去河边看看吧', '河边好像有人在哭', [rx + side * ((MAP.riverW || 64) / 2 + 70), P.y], () => !!E.wg]); }
+    if (MAP.yamen && !S.awDone && !G.done.yamen) c.push(['yamen', '去衙门看看吧', '衙门那边好像不太平', MAP.yamen, () => !!S.awDone]);
+    if (c.length) {
+      const [k, tip, nm, pos, ok] = c[Math.floor(Math.random() * c.length)]; G.done[k] = 1;
+      G.hint = { k, pos, ok }; showTip(tip, false, 6);
+      const d = STORY_DEFS.find(q => q.k === 'hint'); d.pop = tip; d.name = '新手提示 · ' + nm;
+      S.mmSeen = S.mmSeen || {}; S.mmDone = S.mmDone || {}; S.mmSeen.hint = 0; S.mmDone.hint = 0;
+    }
+  }
+}
 function updateEvents() {
   const P = S.p, E = S.ev, me = [P.x, P.y];
-  updateRumor(); updatePearl(); updateWG();
+  updateRumor(); updatePearl(); updateWG(); updateGuide();
   if (S.godNext && S.t >= S.godNext.t) { const k = S.godNext.k; S.godNext = null; spawnGod(k, Math.random() * 6.283); }
   updateGodFx();
   // --- 蜻蜓点水穴：第一次走近
@@ -2237,11 +2275,11 @@ function updateEvents() {
     }
   }
   // --- 四目道长赶尸回义庄：1:00
-  if (MAP.yzGate && S.t >= 60 && !E.simu) {
+  if (MAP.yzGate && S.t >= (S.tips ? 5 : 60) && !E.simu) {
     const [gx, gy] = MAP.yzGate, sx = gx, sy = gy + 34;
     E.simu = { x: sx, y: sy, st: 'wait', t: 0, corpses: [0, 1, 2, 3].map(i => ({ x: sx + 18 + i * 16, y: sy + 6, ph: i })) };
     E.simuBes = [];
-    for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283, e = spawnZombie(sx + Math.cos(a) * 46, sy + Math.sin(a) * 34); if (e) { e.goal = [sx + Math.cos(a) * 30, sy + Math.sin(a) * 22]; e.goalT = S.t + 45; e.goalPts = [e.goal, [sx + Math.cos(a + 0.6) * 30, sy + Math.sin(a + 0.6) * 22]]; E.simuBes.push(e); } }
+    const nBes = S.tips ? 4 : 10; for (let i = 0; i < nBes; i++) { const a = i / nBes * 6.283, e = spawnZombie(sx + Math.cos(a) * 46, sy + Math.sin(a) * 34); if (e) { if (S.tips) e.hp = e.max = e.max * 0.6; e.goal = [sx + Math.cos(a) * 30, sy + Math.sin(a) * 22]; e.goalT = S.t + 45; e.goalPts = [e.goal, [sx + Math.cos(a + 0.6) * 30, sy + Math.sin(a + 0.6) * 22]]; E.simuBes.push(e); } }
     rumor([S.hero === 'monk' ? '四目道长：「快来人帮帮忙啊！」' : '四目道长：「九叔！快来帮忙啊！」', '义庄出事了！'], true); window.sayKey && window.sayKey(S.hero === 'monk' ? 'simu1m' : 'simu1');
   }
   if (E.simu && E.simu.st === 'wait') {
@@ -2251,7 +2289,7 @@ function updateEvents() {
       M.st = 'thanks'; M.t = 0; window.sayKey && window.sayKey('simu2');
       S.texts.push({ x: M.x, y: M.y - 44, v: '多谢！借你几个帮手！', t: 2.2, c: '#ffe070', big: true });
       M.corpses.forEach((c, i) => S.allies.push({ x: c.x, y: c.y, ph: i, hp: 60, life: 60, cd: 0, i }));
-    } else if (M.t > 45) { M.st = 'leave'; M.t = 0; for (const e of E.simuBes) e.goalT = 0; }
+    } else if (M.t > (S.tips ? 55 : 45)) { M.st = 'leave'; M.t = 0; for (const e of E.simuBes) e.goalT = 0; }
   }
   if (E.simu && E.simu.st !== 'wait') { const M = E.simu; M.t += DT; if (M.st === 'leave' || M.t > 2.5) { M.y -= 30 * DT; M.alpha = Math.max(0, 1 - (M.t - (M.st === 'leave' ? 0 : 2.5)) / 1.5); if (M.alpha <= 0) M.st = 'gone'; } }
   // 借来的尸体：跟着道长，打身边的怪
@@ -2269,14 +2307,14 @@ function updateEvents() {
   if (MAP.vhome && !E.church) { const [vx, vy] = MAP.vhome; E.church = { st: 'pray', b: [-22, 0, 22].map((o, i) => ({ x: vx + o, y: vy + 14 + (i % 2) * 4 })) }; }
   if (E.church) {
     const C = E.church;
-    if (S.t >= 80 && !C.bats) { C.bats = 1; sfx('wisp'); for (let i = 0; i < 40; i++) S.batFx.push({ x: MAP.vhome[0] + rnd(-20, 20), y: MAP.vhome[1] - 150 + rnd(-10, 10), vx: rnd(-160, 160), vy: rnd(-120, 40), ph: Math.random() * 6, t: rnd(2.5, 4) }); rumor(['教堂那边……蝙蝠成群地飞了出来'], false); }
+    if (S.t >= (C.batT ?? 80) && !C.bats) { C.bats = 1; sfx('wisp'); for (let i = 0; i < 40; i++) S.batFx.push({ x: MAP.vhome[0] + rnd(-20, 20), y: MAP.vhome[1] - 150 + rnd(-10, 10), vx: rnd(-160, 160), vy: rnd(-120, 40), ph: Math.random() * 6, t: rnd(2.5, 4) }); rumor(['教堂那边……蝙蝠成群地飞了出来'], false); }
     if (C.st === 'pray' && C.b.some(b => near2(me, [b.x, b.y], 70))) {
       C.st = 'flee'; C.t = 0; sfx('scream');
       for (const b of C.b) { for (let i = 0; i < 3; i++) S.orbs.push({ x: b.x + rnd(-6, 6), y: b.y + rnd(-4, 4), v: 5 }); b.vx = rnd(-60, 60); b.vy = 60; }
       S.texts.push({ x: C.b[1].x, y: C.b[1].y - 30, v: '快跑啊！', t: 1.4, c: '#ffffff', big: true });
     }
     if (C.st === 'flee') { C.t += DT; for (const b of C.b) { b.x += b.vx * DT; b.y += b.vy * DT; } if (C.t > 2.5) C.st = 'gone'; }
-    if (C.st === 'pray' && S.t >= 120) {
+    if (C.st === 'pray' && S.t >= (C.dl || 120)) {
       C.st = 'gone';
       if (S.en.some(e => e.type === 'vampire' && !e.dead && !e.escaping)) {
         for (const b of C.b) { const e = spawn('zombie', b.x, b.y, { elite: true, skin: 'thrall', eliteHp: 3 }); if (e) { e.spd *= 1.4; e.special = true; e.rise = 0.6; chu2().mobs.push(e); } }
@@ -2288,13 +2326,13 @@ function updateEvents() {
   for (const b of S.batFx) { b.t -= DT; b.x += b.vx * DT; b.y += b.vy * DT; b.ph += DT * 18; }
   S.batFx = S.batFx.filter(b => b.t > 0);
   // --- 任老爷尸变：2:20
-  if (MAP.renDoor && S.t >= 140 && !E.ren) {
+  if (MAP.renDoor && (S.t >= 140 || E.renForce) && !E.ren) {
     E.ren = 1; const [rx0, ry0] = MAP.renDoor;
     rumor(['任府那边……传来敲门声', '任老爷：「爹……是您吗？」', '一声惨叫划破夜空——', '任老爷……尸变了！'], true);
     [0, 0.5, 1.0].forEach(d => setTimeout(() => sfx('thud'), d * 1000));
     setTimeout(() => window.sayKey && window.sayKey('ren1', 0.9), 2600);
     setTimeout(() => { sfx('scream'); S.flash = Math.max(S.flash, 0.06); }, 5200);
-    const e = spawn('zombie', rx0, ry0 + 10, { elite: true, skin: 'renZ', eliteHp: 12 });
+    const e = spawn('zombie', rx0, ry0 + 10, { elite: true, skin: 'renZ', eliteHp: S.tips ? 6 : 12 });
     if (e) {
       e.renZ = true; e.special = true; e.rise = 7; e.r = 9;
       e.goalPts = [MAP.citang ? [MAP.citang[0], MAP.citang[1] + 20] : [rx0, ry0 + 60], [rx0, ry0 + 40]]; e.goal = e.goalPts[0]; e.goalT = S.t + 37;
@@ -3234,7 +3272,7 @@ function draw() {
 // ---------- 新手提示 ----------
 const TOUCH = matchMedia('(pointer: coarse)').matches;
 let tipT = 0;
-try { $('tipChk').checked = (+localStorage.getItem('ztzh_plays') || 0) < 3; } catch (e) { $('tipChk').checked = true; }
+try { let d = localStorage.getItem('ztzh_tut2'); if (d == null && (+localStorage.getItem('ztzh_plays') || 0) >= 3) { d = '1'; localStorage.setItem('ztzh_tut2', '1'); } $('tipChk').checked = d !== '1'; } catch (e) { $('tipChk').checked = true; }
 const TIPS = [
   [1, TOUCH ? '手指按住屏幕拖动 = 走路' : 'WASD / 方向键 = 走路'],
   [5, '法器会自动攻击，你只管走位躲怪'],
@@ -3244,10 +3282,11 @@ const TIPS = [
   [23, '探索一下四周吧，会有新的发现'],
 ];
 function showTip(s, arrow, dur) { $('tipT').textContent = s; $('tipArrow').hidden = !arrow; $('tip').hidden = false; const el = $('tipT'); el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; tipT = dur || 3.6; }
+// 新手局：第一条走路提示之后，先给剧情指引 6 秒，其余提示顺延
 function updateTips() {
   if (tipT > 0) { tipT -= DT; if (tipT <= 0) { $('tip').hidden = true; $('tipArrow').hidden = true; } }
   if (!S.tips) return;
-  while (S.tipI < TIPS.length && S.t >= TIPS[S.tipI][0]) { const [, s, ar] = TIPS[S.tipI++]; showTip(s, ar); }
+  while (S.tipI < TIPS.length && S.t >= TIPS[S.tipI][0] + (S.tipI >= 1 ? 6 : 0)) { const [, s, ar] = TIPS[S.tipI++]; showTip(s, ar); }
   if (S.ult && !S.ultTipShown) { S.ultTipShown = true; showTip(TOUCH ? '右下角出现了大招按钮，点它释放！' : '获得大招！按 Q 或点右下角按钮释放', true, 4.5); }
 }
 // ---------- 阴气聚集（防蹲角落） ----------
@@ -3428,7 +3467,7 @@ function vampireAI(e) {
     e.waveT -= DT;
     if (e.waveT <= 0) {
       const a0 = Math.atan2(P.y - 10 - (e.y - 14), P.x - e.x); sfx('wisp'); sfx('scream');
-      for (let i = -3; i <= 3; i++) { const a = a0 + i * 0.17; S.eshots.push({ k: 'bat', x: e.x, y: e.y - 14, vx: Math.cos(a) * 150, vy: Math.sin(a) * 150, life: 1.7, dmg: Math.round(10 * DIFF[S.diff].dmg), a, ph: Math.random() * 6 }); }
+      const nb = e.guided ? 1 : 3; for (let i = -nb; i <= nb; i++) { const a = a0 + i * 0.17; S.eshots.push({ k: 'bat', x: e.x, y: e.y - 14, vx: Math.cos(a) * 150, vy: Math.sin(a) * 150, life: 1.7, dmg: Math.round(10 * DIFF[S.diff].dmg), a, ph: Math.random() * 6 }); }
       S.texts.push({ x: e.x, y: e.y - 44, v: '蝙蝠冲击波！', t: 1, c: '#ff5a6a', big: true });
     }
     return true;
@@ -3459,15 +3498,17 @@ const STORY_DEFS = [
   { k: 'church', c: '教', name: '教堂 · 门口的信徒', pop: '教堂那边有蝙蝠……门口的信徒要出事！' },
   { k: 'ren', c: '任', name: '任府 · 任老爷尸变', pop: '任老爷被老太爷咬了，尸变了！' },
   { k: 'bike', c: '秋', name: '公路 · 秋生载着女鬼', pop: '秋生骑车回来了，后座坐着红衣女鬼！' },
+  { k: 'hint', c: '引', name: '新手提示', pop: '' },
   { k: 'chu2', c: '棺', name: '教堂后院 · 信徒抬棺', pop: '教堂后院……有人鬼鬼祟祟地抬着一口棺材！' },
   { k: 'pearl', c: '珠', name: '酒楼 · 包打听与龙珠', pop: '尸煞伏诛……酒楼里的包打听有话要说！' },
 ];
 function storyPos(k) {
   const E = S.ev;
   if (k === 'simu') return E.simu && E.simu.st === 'wait' ? [E.simu.x, E.simu.y] : null;
-  if (k === 'church') return E.church && E.church.st === 'pray' && S.t >= 80 && MAP.vhome ? [MAP.vhome[0], MAP.vhome[1] + 14] : null;
+  if (k === 'church') return E.church && E.church.st === 'pray' && S.t >= (E.church.batT ?? 80) && MAP.vhome ? [MAP.vhome[0], MAP.vhome[1] + 14] : null;
   if (k === 'ren') { const z = E.ren && S.en.find(e => e.renZ && !e.dead); return z ? [z.x, z.y] : null; }
   if (k === 'bike') return E.bike && E.bike.st !== 'gone' ? [E.bike.x, E.bike.y] : null;
+  if (k === 'hint') { const G = S.guide; return G && G.hint ? G.hint.pos : null; }
   if (k === 'chu2') { const C = E.chu2; return C && C.st === 'carry' && C.carry ? [C.carry.x, C.carry.y] : null; }
   if (k === 'pearl') { const pe = E.pearl; if (!pe) return null; return pe.st === 'hint' ? pearlNpc() : pe.st === 'told' ? pearlBank() : pe.st === 'bridge' ? MAP.pearl : null; }
   return null;
@@ -4187,6 +4228,7 @@ $('nameForm').addEventListener('submit', ev => ev.preventDefault());
 async function saveRecord(name) {
   if (!S || S.state !== 'over' || S.saved) return;
   S.saved = true;
+  if (S.tips) { myEntry = null; boardNote = '新手教学局，不计入排行。'; renderBoard(); $('bragNote').textContent = ''; $('brag').hidden = false; return; }
   const rec = { name, score: S.score, kills: S.kills, lv: S.lv, t: Math.floor(S.t), win: !!S.win, diff: S.diff, at: Date.now(), hero: S.hero, ults: S.ultN || 0, cheat: S.cheat || 0 };
   myEntry = rec;
   if (rec.cheat) boardNote = '这一局逆天改命，成绩已记入功德簿，并标注【作弊】。';

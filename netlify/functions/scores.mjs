@@ -6,6 +6,7 @@ const CHEAT_KEY = 'cheat';   // 旧的作弊榜（只读）：读取时并入功
 const CHEAT_CAP = 20;       // 功德簿里最多保留多少条作弊成绩
 const CLEARED_KEY = 'cleared';   // 通关过的名字（不受排行榜 100 名限制），用来给一休解锁
 const KEEP = 100;          // stored entries
+const EPOCH = '2026-10-17-reset1';   // 改这个值 = 下次有人访问时清空功德簿的排名（top / cheat）；通关名单 cleared 保留，已解锁一休的人不受影响
 const SHOW = 100;          // entries returned to the game (排行榜分普通/困难两列显示)
 
 const clean = (v) => String(v ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 10);
@@ -20,6 +21,10 @@ export default async (req) => {
     const r = await store.getWithMetadata(key, { type: 'json' });
     return { list: Array.isArray(r?.data) ? r.data : [], etag: r?.etag };
   };
+
+  if ((await store.get('epoch')) !== EPOCH) {   // 一次性清榜
+    await store.setJSON(KEY, []); await store.setJSON(CHEAT_KEY, []); await store.set('epoch', EPOCH);
+  }
 
   const q = new URL(req.url).searchParams;
   if (req.method === 'GET' && q.has('cleared')) {   // 这个名字通关过吗？（排行榜里有通关记录也算）
