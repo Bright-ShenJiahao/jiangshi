@@ -47,6 +47,8 @@ sprites['monk'] = g['monk']('pole').img(); sprites['monkR1'] = _redface(sprites[
 exec(open('gods_sprites.py').read(), g)
 sprites.update({'zhongkui': g['zhongkui']().img(), 'yanluo': g['yanluo']().img(), 'erlang': g['erlang']().img(), 'dog': g['dog']().img(), 'rulai': g['rulai']().img(), 'baoda': g['baoda']().img()})
 exec(open('monsters2.py').read(), g)
+exec(open('church2_sprites.py').read(), g)
+sprites.update({'coffinW': g['coffin_w']().img(), 'coffinWo': g['coffin_w'](True).img(), 'coffinWh': g['coffin_w']().img().rotate(90, expand=True), 'bride': g['bride']().img(), 'wolf': g['wolfman']().img(), 'vampM': g['vamp_minion']().img(), 'ghostW': g['ghost_white']().img(), 'ghostWf': g['ghost_white'](True).img(), 'bearer': g['believer'](False).img()})
 sprites.update({'vampire': g['vampire']().img(), 'ghostR': g['red_ghost'](g), 'jumperM': g['hairy'](g['zombie']('m', 'M').img()),
                 'chest': g['chest']().img(), 'chestB': g['chest'](True).img()})
 m3 = {}
