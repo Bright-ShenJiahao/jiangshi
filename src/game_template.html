@@ -361,7 +361,12 @@ const ULTSYN_T = {
   qiankun: { w: 'coin', name: '剑停回旋', text: '铜钱剑偶尔停在原地旋转攻击', ch: [0, 0.10, 0.15, 0.20] },
 };
 const dimin = n => n <= 12 ? 1 : Math.max(0.4, 1 - 0.05 * (n - 12));   // 大招：同一次命中第 13 只起逐只递减
-const ULTSYN2_T = { taiji: { w: 'palm', name: '八卦身法', text: '法阵中八卦掌闪避 +10%，掌击偶尔打出连环掌', ch: [0, 0.1, 0.15, 0.2] } };
+const ULTSYN2_T = {
+  taiji: { w: 'palm', name: '八卦身法', text: '法阵中八卦掌闪避 +10%，掌击偶尔打出连环掌', ch: [0, 0.1, 0.15, 0.2] },
+  qiankun: [{ w: 'sword', name: '乾坤双旋', text: '桃木剑每转满一圈偶尔进入双旋：连转两圈、转速翻倍、范围 +25%、伤害 +15%，每圈放出一道剑气', ch: [0, 0.1, 0.15, 0.2] },
+    { w: 'bell', name: '剑鸣铃', text: '铃响时偶尔放出一道更长的扇形剑气', ch: [0, 0.1, 0.15, 0.2] }],
+  thunder: { w: 'rice', name: '引雷米', text: '怪踩上糯米时偶尔引来小天雷，并点燃周围的糯米', ch: [0, 0.06, 0.09, 0.12] },
+};
 const synCh = k => (S.ult && S.ult.k === k ? ULTSYN[k].ch[S.ult.lv] || 0 : 0);
 function synShow(k, x, y, nm) { const id = nm || k; S.synSeen = S.synSeen || {}; S.texts.push({ x, y: y - 30, v: (nm || ULTSYN[k].name) + '！', t: S.synSeen[id] ? 0.7 : 1.4, c: '#ffe070', big: !S.synSeen[id] }); S.synSeen[id] = true; }
 const TAGS_T = { palm: ['伤害', '近身'], sword: ['伤害', '近身'], coin: ['伤害', '穿透'], rice: ['伤害', '持续'], bell: ['伤害', '范围'], fu: ['控制'], ink: ['控制', '范围'], mirror: ['防御'] };
@@ -390,7 +395,8 @@ const ULTSYN_M = {
   liuzi: { w: 'yu', name: '真言木鱼', text: '木鱼偶尔念出一个真言字，凑齐六字放出小六字大明咒', ch: [0, 0.10, 0.15, 0.20] },
 };
 const ULTSYN2_M = {
-  foguang: [{ w: 'jing', name: '金经', text: '经卷偶尔化作金经：更长更宽，金字对鬼魂伤害翻倍', ch: [0, 0.10, 0.15, 0.20] }],
+  foguang: [{ w: 'zhang', name: '小佛光', text: '禅杖每转满一圈偶尔放出小佛光：震伤周围的怪，鬼魂双倍', ch: [0, 0.1, 0.15, 0.2] },
+    { w: 'jing', name: '金经', text: '经卷偶尔化作金经：更长更宽，金字对鬼魂伤害翻倍', ch: [0, 0.10, 0.15, 0.20] }],
   jiasha: [{ w: 'bo', name: '钵裹袈裟', text: '抛钵时偶尔连袈裟一起丢出：吸得更远，收钵时袈裟一裹再打一下（精英也挨打）', ch: [0, 0.10, 0.15, 0.20] }],
   liuzi: [{ w: 'gun', name: '真言棍', text: '少林棍横扫后偶尔再扩散一圈金色真言音波', ch: [0, 0.10, 0.15, 0.20] },
     { w: 'chu', name: '真言杵', text: '降魔杵落地偶尔念出一个真言字（与木鱼共用六字）', ch: [0, 0.10, 0.15, 0.20] }],
@@ -1279,11 +1285,27 @@ function tick(name, base) {
   if (S.timers[name] <= 0) { S.timers[name] = base * cdMul(); return true; }
   return false;
 }
+function swordRev(W, lv, dmg, len, dbl) {   // 桃木剑/禅杖每转满一圈：大招联动判定
+  const P = S.p;
+  if (dbl) {   // 乾坤双旋：每圈一道剑气外扩
+    S.fx.push({ k: 'pulse', x: P.x, y: P.y - 8, r: 4, R: len * 1.7, t: 0, c: '#bfe6ff' }); sfx('pulse');
+    for (const e of S.en) if (!e.dead && dist2(e, P) < (len * 1.7) ** 2 && dist2(e, P) > (len * 0.5) ** 2) hurt(e, dmg * 0.8, 50);
+    return;
+  }
+  if (W.sword && S.t > (S.dblCd || 0) && Math.random() < synCh2('qiankun', 'sword')) { S.dblRad = 12.566; S.dblCd = S.t + 5.5; synShow('qiankun', P.x, P.y, '乾坤双旋'); }
+  if (W.zhang && S.t > (S.fgCd || 0) && Math.random() < synCh2('foguang', 'zhang')) {
+    S.fgCd = S.t + 1.5; const R = 58; synShow('foguang', P.x, P.y, '小佛光'); sfx('pulse'); S.flash = Math.max(S.flash, 0.04);
+    S.fx.push({ k: 'pulse', x: P.x, y: P.y - 8, r: 4, R, t: 0, c: '#ffe070' });
+    for (const e of S.en) if (!e.dead && dist2(e, P) < R * R) hurt(e, dmg * 0.6 * (e.type === 'ghost' ? 2 : 1), 40, P.x, P.y, 'light');
+  }
+}
 function updateWeapons() {
   const P = S.p, W = S.w;
   if (W.sword || W.zhang) {
-    const lv = W.sword || W.zhang, n = swordN(lv), len = swordLen(lv), dmg = (lv >= 2 ? 20 : 14) * (lv >= 5 ? 1.4 : 1);
-    S.swordAng += DT * 4.2;
+    const lv = W.sword || W.zhang, n = swordN(lv), dbl = S.dblRad > 0, len = swordLen(lv) * (dbl ? 1.25 : 1), dmg = (lv >= 2 ? 20 : 14) * (lv >= 5 ? 1.4 : 1) * (dbl ? 1.15 : 1);
+    const dAng = DT * 4.2 * (dbl ? 2 : 1); S.swordAng += dAng; if (dbl) S.dblRad -= dAng;
+    S.revAcc = (S.revAcc || 0) + dAng;
+    if (S.revAcc >= 6.283) { S.revAcc -= 6.283; swordRev(W, lv, dmg, len, dbl); }
     for (let i = 0; i < n; i++) {
       const a = S.swordAng + i * Math.PI * 2 / n;
       for (let s = 8; s <= len; s += 5) {
@@ -1291,7 +1313,7 @@ function updateWeapons() {
         for (const e of S.en) {
           if (e.dead || (e.hitCd['s' + i] || 0) > S.t) continue;
           if ((e.x - hx) ** 2 + (e.y - 10 - hy) ** 2 < (e.r + 6) ** 2) {
-            hurt(e, dmg, 45); e.hitCd['s' + i] = S.t + 0.45;
+            hurt(e, dmg, 45); e.hitCd['s' + i] = S.t + (dbl ? 0.25 : 0.45);
             if (W.zhang && lv >= 5 && !e.dead && !e.elite && !mBig(e)) e.stun = Math.max(e.stun, 0.3);
             if (lv >= 5 && e.dead && P.hp < P.max) {   // 五重桃木剑：斩杀回阳，每秒最多 2 点
               if (S.t - (S.lsT0 || -9) >= 1) { S.lsT0 = S.t; S.lsN = 0; }
@@ -1349,6 +1371,10 @@ function updateWeapons() {
       const dx = e.x - P.x, dy = e.y - P.y, d = Math.hypot(dx, dy); if (d > R) continue;
       let da = Math.atan2(dy, dx) - a; da = Math.atan2(Math.sin(da), Math.cos(da));
       if (Math.abs(da) < half) hurt(e, dmg, 40);
+    }
+    if (Math.random() < synCh2('qiankun', 'bell')) {   // 剑鸣铃：铃响带出一道更长的扇形剑气
+      const R2 = R * 1.5, h2 = half * 0.7; synShow('qiankun', P.x, P.y, '剑鸣铃'); S.fx.push({ k: 'wave', x: P.x, y: P.y - 10, a, half: h2, R: R2, t: 0 });
+      for (const e of S.en) { if (e.dead) continue; const dx = e.x - P.x, dy = e.y - P.y; if (Math.hypot(dx, dy) > R2) continue; let da = Math.atan2(dy, dx) - a; da = Math.atan2(Math.sin(da), Math.cos(da)); if (Math.abs(da) < h2) hurt(e, dmg * 1.2, 55); }
     }
   }
   if (W.mirror) {
@@ -2395,7 +2421,14 @@ function update() {
     a.tk -= DT;
     if (a.k === 'rice') {
       a.life -= DT;
-      if (a.tk <= 0) { a.tk = 0.2; for (const e of S.en) if (!e.dead && (e.hitCd.rice || 0) < S.t && (e.x - a.x) ** 2 + ((e.y - a.y) * 1.4) ** 2 < a.r * a.r) { e.hitCd.rice = S.t + 0.4; hurt(e, a.dmg); } }
+      if (a.tk <= 0) { a.tk = 0.2; for (const e of S.en) if (!e.dead && (e.hitCd.rice || 0) < S.t && (e.x - a.x) ** 2 + ((e.y - a.y) * 1.4) ** 2 < a.r * a.r) {
+        e.hitCd.rice = S.t + 0.4; hurt(e, a.dmg);
+        const cR = synCh2('thunder', 'rice');   // 引雷米：怪踩在糯米上偶尔引来小天雷（每秒几率；同屏最多 2 道，同一只怪 2 秒一次）
+        if (cR && !e.dead && S.t > (e.hitCd.rbolt || 0) && Math.random() < cR * 0.4 && S.areas.filter(q => q.k === 'bolt' && q.small && q.life < 0.65).length < 2) {
+          e.hitCd.rbolt = S.t + 2; S.areas.push({ k: 'bolt', x: e.x, y: e.y, life: 0.15, dmg: Math.max(15, a.dmg * 3), r: 20, done: false, seed: Math.random(), small: true }); synShow('thunder', e.x, e.y, '引雷米');
+          for (const q of S.areas) if (q.k === 'rice' && (q.x - e.x) ** 2 + (q.y - e.y) ** 2 < 40 * 40) q.life += 1;
+        }
+      } }
     } else if (a.k === 'ink') {
       a.life += DT;
       for (let i = 0; i < a.snap.length; i++) if (a.snap[i] > 0) a.snap[i] -= DT;
