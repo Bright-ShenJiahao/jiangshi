@@ -29,7 +29,7 @@ export default async (req) => {
     name: clean(b.name) || '无名道士',
     kills: int(b.kills, 0, 20000),
     lv: int(b.lv, 1, 200),
-    t: int(b.t, 0, 300),
+    t: int(b.t, 0, 320),
     win: b.win === true,
     diff: b.diff === 'hard' ? 'hard' : 'normal',
     score: int(b.score, 0, 200000),
@@ -47,7 +47,7 @@ export default async (req) => {
   if (rec.ults > Math.floor(rec.t / 28) + 1) why.push('ult');
   if (rec.kills > rec.t * 6 + 200) why.push('kills');
   if (rec.lv > 45) why.push('lv');
-  if (rec.t < 300 && rec.win) why.push('win');
+  if (rec.t < 300 && rec.win) why.push('win');   // 遮天蔽日最多推迟到 320 秒
   const target = why.length ? CHEAT_KEY : KEY;
   if (why.length) rec.why = why.join(',');
 
