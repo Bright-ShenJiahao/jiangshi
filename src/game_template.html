@@ -127,9 +127,9 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 #mmBtn { pointer-events: auto; width: 34px; height: 34px; font: 16px var(--display); background: var(--ink); color: var(--talisman); border: 2px solid var(--line); cursor: pointer; padding: 0; }
 #mmBtn.alert { animation: mmb .8s steps(2) infinite; }
 @keyframes mmb { 50% { background: var(--seal); } }
-#mmPanel { pointer-events: auto; background: rgba(12, 6, 22, .86); border: 2px solid var(--line); padding: 4px; }
+#mmPanel { pointer-events: auto; background: rgba(12, 6, 22, .22); border: 2px solid rgba(110, 96, 140, .7); padding: 4px; }
 #mmCv { position: static; inset: auto; display: block; width: 132px; height: 118px; image-rendering: pixelated; }
-#mmT { font-size: 12px; color: var(--talisman); width: 132px; text-align: center; margin-top: 3px; line-height: 1.25; }
+#mmT { text-shadow: 0 1px 2px #000, 0 0 3px #000; font-size: 12px; color: var(--talisman); width: 132px; text-align: center; margin-top: 3px; line-height: 1.25; }
 #evArrow { position: absolute; pointer-events: none; transform: translate(-50%, -50%); text-align: center; color: var(--talisman); text-shadow: 2px 2px 0 var(--ink); line-height: 1; }
 #evA { display: inline-block; font-size: 30px; }
 #evArrow b { display: block; font-size: 12px; font-weight: 400; white-space: nowrap; }
@@ -1088,7 +1088,7 @@ function inShape(f, x, y, r) {
 function godStrike(f, mdmgOnly) {   // 神仙的招式：伤玩家，也伤小怪（小怪被打死不算玩家的）
   const P = S.p;
   if (!mdmgOnly && !f.hitP && P.inv <= 0 && inShape(f, P.x, P.y - 4, 6)) {
-    f.hitP = true; S.wcHit = true; S.godTag = f.tag; hurtPlayer(f.dmg); S.wcHit = false;
+    f.hitP = true; S.wcHit = true; S.godTag = f.tag; hurtPlayer(f.frac ? Math.max(40, Math.round(P.max * f.frac)) : f.dmg); S.wcHit = false;
   }
   for (const e of S.en) {
     if (e.dead || e.god || e.special || e.onDie || e.audience || e.type === 'king' || e.type === 'vampire' || e.type === 'hand') continue;
@@ -1105,9 +1105,16 @@ function godCast(e) {
   if (k === 'zk') add({ k: 'sector', x: e.x, y: e.y - 4, ang, R: 52, half: 0.95, wind: 0.6, dmg: 40, art: 'slash' });
   else if (k === 'yl') { if (e.alt) add({ k: 'circle', x: P.x, y: P.y, R: 30, wind: 0.95, dmg: 45, art: 'book' }); else add({ k: 'line', x: e.x, y: e.y - 8, ang, len: 150, w: 7, wind: 0.65, dmg: 40, art: 'ruyi' }); }
   else if (k === 'ez') { if (e.alt) add({ k: 'dog', x: e.x, y: e.y - 6, ang, len: 230, w: 9, wind: 0.55, dmg: 35, spd: 300, art: 'dog', cx: e.x, cy: e.y - 6 }); else add({ k: 'circle', x: e.x, y: e.y - 4, R: 72, wind: 0.95, dmg: 50, art: 'halberd' }); }
-  else if (k === 'rl') add({ k: 'circle', x: P.x, y: P.y, R: 64, wind: 1.8, dmg: 9999, art: 'palm' });
+  else if (k === 'rl') { add({ k: 'circle', x: P.x, y: P.y, R: 64, wind: 1.8, dmg: 9999, frac: 0.5, art: 'palm' }); }
 }
 function updateGodFx() {
+  const rl0 = S.en.find(q => q.god === 'rl' && !q.dead);
+  if (rl0 && !(rl0.fade > 0) && !S.rlSaid) { rl0.rlLive = (rl0.rlLive || 0) + DT; if (rl0.rlLive >= 15 && S.state === 'play' && S.p.hp > 0) S.rlEnd = S.t; }   // 如来现身后活满 15 秒
+  if (S.rlEnd && !S.rlSaid) {   // 躲过如来并活了下来：如来放你走，结算
+    S.rlSaid = true; S.rlFin = S.t + 6; S.p.inv = 99; for (const q of S.en) if (q.god === 'rl') q.skCd = 1e9; S.gfx = []; const rl = S.en.find(q => q.god === 'rl');
+    S.texts.push({ x: rl ? rl.x : S.p.x, y: (rl ? rl.y : S.p.y) - 76, v: '你已不在六道轮回之中，天地之大，随你去吧！', t: 5.5, c: '#ffe070', big: true }); window.sayKey && sayKey('rl2'); S.flash = Math.max(S.flash, 0.2);
+  }
+  if (S.rlFin && S.t >= S.rlFin && S.state === 'play') { S.rlFin = 0; S.freed = true; endGame(false); return; }
   if (!S.gfx) return;
   for (const f of S.gfx) {
     f.t += DT;
@@ -1963,7 +1970,8 @@ function endGame(win) {
   if (win) { try { localStorage.setItem('ztzh_monk', '1'); } catch (e) {} }
   renderHeroes();
   $('endP').textContent += `（${DIFF[S.diff].name}）`;
-  if (S.soulTaken) {
+  if (S.freed) { $('endT').textContent = '不在六道轮回之中'; $('endP').textContent += '　逆天改命，躲过五指山，如来放你去了'; }
+  else if (S.soulTaken) {
     const TT = { wu: ['阳寿已尽——被黑白无常勾了魂', '逆天改命，打入十八层地狱'], zk: ['被钟馗一剑斩落', '逆天改命，钟馗捉鬼'], yl: ['生死簿上，阳寿已尽', '逆天改命，阎王叫你三更死'], ez: ['被二郎神与哮天犬拿下', '逆天改命，难逃天兵天将'], rl: ['被如来度化，同去西天', '逆天改命，终被如来收服，成绩计入作弊榜'] }[S.soulTaken] || ['阳寿已尽', ''];
     if (S.soulTaken === 'wu' || S.soulTaken === true) window.sayKey && sayKey('wu_both');
     $('endT').textContent = TT[0]; $('endP').textContent += '　' + TT[1];
@@ -2004,14 +2012,12 @@ function updatePearl() {
   if (pe.st === 'hint') {
     if (npc && near2(me, npc, 64)) {
       pe.st = 'told'; const S0 = S, nx = npc[0], ny = npc[1];
-      [['客官留步！我是这镇上的包打听。', '#ffe8a0'], ['河中那颗龙珠，可不是凡物，镇着咱们的龙脉。', '#ffe8a0'], ['站到左岸，屏息五息，隐桥自会显现。', '#8fd8f0'], ['珠取不取……客官自己掂量。', '#ffe8a0']].forEach(([v, c], i) => setTimeout(() => { if (S === S0 && S.state !== 'over') S.texts.push({ x: nx, y: ny - 52, v, t: 2.6, c, big: true }); }, i * 1900));
-      rumor(['包打听说：左岸屏息五息，可见隐形的桥。'], false);
+      [['客官留步！我是这镇上的包打听。', '#ffe8a0'], ['河中那颗龙珠，可不是凡物，镇着咱们的龙脉。', '#ffe8a0'], ['站到左岸，屏息，隐桥自会显现。', '#8fd8f0'], ['珠取不取……客官自己掂量。', '#ffe8a0']].forEach(([v, c], i) => setTimeout(() => { if (S === S0 && S.state !== 'over') S.texts.push({ x: nx, y: ny - 52, v, t: 2.6, c, big: true }); }, i * 1900));
+      rumor(['包打听说：站到左岸屏息，可见隐形的桥。'], false);
     }
   } else if (pe.st === 'told') {
-    if (P.breath > 0 && bank && near2(me, bank, 54)) {
-      pe.hold += DT;
-      if (Math.floor(pe.hold) > pe.shown) { pe.shown = Math.floor(pe.hold); S.texts.push({ x: P.x, y: P.y - 40, v: '屏息 ' + pe.shown + '/5', t: 0.9, c: '#8fd8f0' }); }
-      if (pe.hold >= 5) { pe.st = 'bridge'; pe.revT = 0; revealBridge(); sfx('pickbig'); banner('隐形的桥显现了！', 2.4); rumor(['一座隐形的桥，浮现在河面上。'], false); }
+    if (P.breath > 0 && bank && near2(me, bank, 70)) {
+      { pe.st = 'bridge'; pe.revT = 0; revealBridge(); sfx('pickbig'); banner('隐形的桥显现了！', 2.4); rumor(['一座隐形的桥，浮现在河面上。'], false); }
     }
   } else if (pe.st === 'bridge') {
     pe.revT += DT;
@@ -2051,7 +2057,7 @@ function drawPearlSprites(list) {
   const pe = S.ev.pearl; if (!pe || !MAP.hb) return;
   const [x0, y0, x1, y1] = MAP.hb;
   const showBridge = ['bridge', 'choosing', 'punish', 'done'].includes(pe.st);
-  const hint = pe.st === 'told' && S.p.breath > 0 && Math.hypot(S.p.x - (x0 - 10), S.p.y - (y0 + y1) / 2) < 54 ? Math.min(1, pe.hold / 5) : 0;
+  const hint = pe.st === 'told' && S.p.breath > 0 && Math.hypot(S.p.x - (x0 - 10), S.p.y - (y0 + y1) / 2) < 70 ? 0.6 : 0;
   if (showBridge || hint) list.push({ y: -99999, f: () => {
     g.save(); g.globalAlpha = showBridge ? Math.min(1, (pe.revT || 1) / 1.2) : 0.18 + 0.4 * hint;
     g.fillStyle = '#18101e'; g.fillRect(x0 - 1, y0 - 1, x1 - x0 + 2, y1 - y0 + 4); g.fillStyle = '#a07848'; g.fillRect(x0, y0, x1 - x0, y1 - y0 + 1);
@@ -3328,10 +3334,12 @@ function updateMap() {
   for (const d of STORY_DEFS) {
     const pos = storyPos(d.k); if (!pos) continue;
     act.push({ ...d, pos });
-    if (!S.mmSeen[d.k]) { S.mmSeen[d.k] = 1; setMap(true, false, d.pop); S.mmClose = S.t + 7; $('mmT').style.whiteSpace = 'normal'; sfx('pick'); }
+    if (!S.mmSeen[d.k]) { S.mmSeen[d.k] = 1; sfx('pick'); if (!S.mmManual) { setMap(true, false, d.pop); S.mmClose = S.t + 7; $('mmT').style.whiteSpace = 'normal'; } }   // 玩家手动打开的地图不会被新剧情弹窗收回
     if (!S.mmDone[d.k] && (pos[0] - S.p.x) ** 2 + (pos[1] - S.p.y) ** 2 < 120 * 120) S.mmDone[d.k] = 1;
   }
   S.mmAct = act;
+  if (S.mmOpen && S.mmManual) { $('mmT').style.whiteSpace = 'pre-line'; $('mmT').textContent = act.length ? act.map(a => a.name).join('\n') : '眼下没有剧情'; }
+  if (S.mmOpen && S.mmManual) { $('mmT').style.whiteSpace = 'pre-line'; $('mmT').textContent = act.length ? act.map(a => a.name).join('\n') : '眼下没有剧情'; }
   if (S.mmOpen && !S.mmManual && S.t > S.mmClose) setMap(false);
   $('mmBtn').classList.toggle('alert', act.some(a => !S.mmDone[a.k]) && !S.mmOpen);
   if (S.mmOpen) drawMap(act);
@@ -3350,8 +3358,8 @@ function updateMap() {
 function drawMap(act) {
   const cv2 = $('mmCv'), c = cv2.getContext('2d'), W = cv2.width, H = cv2.height, sx = W / WORLD.w, sy = H / WORLD.h;
   c.imageSmoothingEnabled = false; c.clearRect(0, 0, W, H);
-  if (IMG.bg && IMG.bg.complete) c.drawImage(IMG.bg, 0, 0, WORLD.w, WORLD.h, 0, 0, W, H);
-  c.fillStyle = 'rgba(12,6,22,.38)'; c.fillRect(0, 0, W, H);
+  if (IMG.bg && IMG.bg.complete) { c.globalAlpha = 0.5; c.drawImage(IMG.bg, 0, 0, WORLD.w, WORLD.h, 0, 0, W, H); c.globalAlpha = 1; }
+  c.fillStyle = 'rgba(12,6,22,.12)'; c.fillRect(0, 0, W, H);
   const C = S.cam; c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1; c.strokeRect(Math.round(C.x * sx) + .5, Math.round(C.y * sy) + .5, Math.round(VW * sx), Math.round(VH * sy));
   const pulse = 5 + 1.5 * Math.sin(S.t * 6);
   for (const a of act) {
