@@ -64,7 +64,7 @@ assets = {k: b64(v) for k, v in sprites.items()}
 assets['bg'] = b64(bg.convert('RGB'))
 import glob, os
 vo = {os.path.splitext(os.path.basename(f))[0]: 'data:audio/mpeg;base64,' + base64.b64encode(open(f, 'rb').read()).decode() for f in sorted(glob.glob('tts/vo/*.mp3'))}
-html = open('game_template.html').read().replace('/*ASSETS*/{}', json.dumps(assets)).replace('/*MAP*/{}', json.dumps(data, separators=(',', ':'))).replace('/*VO*/{}', json.dumps(vo))
+html = open('game_template.html').read().replace('/*ASSETS*/{}', json.dumps(assets)).replace('/*MAP*/{}', json.dumps(data, separators=(',', ':'))).replace('/*VO*/{}', json.dumps(vo)).replace('/*BUILD*/', __import__('time').strftime('%y%m%d%H%M'))
 open('game.html', 'w').write(html)
 print(len(html) // 1024, 'KB')
 

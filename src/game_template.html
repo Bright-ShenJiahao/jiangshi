@@ -90,6 +90,10 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 @keyframes slam { 0% { transform: scale(3.4); opacity: 0; } 60% { opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
 .chks { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; }
 .storyChk { display: inline-flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 17px; color: var(--text); cursor: pointer; }
+.shareRow { display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; margin: 4px 0 0; }
+.shareRow .btn { text-decoration: none; display: inline-block; margin: 0; font-size: 16px; padding: 6px 12px; }
+.shareRow .rankBtn { margin: 0; }
+#shareToast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: rgba(12,6,22,.92); color: var(--text); border: 2px solid var(--talisman); padding: 8px 16px; font-size: 16px; z-index: 60; pointer-events: none; }
 .storyChk input { width: 20px; height: 20px; accent-color: #f0c020; margin: 0; }
 .btn.ghost { background: transparent; color: var(--muted); border-color: var(--line); box-shadow: none; font-size: 16px; padding: 4px 14px; margin-top: 10px; }
 .bragT { color: var(--talisman) !important; font-size: 18px !important; margin: 14px 0 8px !important; }
@@ -211,7 +215,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
       <div class="heroes"><button type="button" class="hero on" id="heroTao"><b>☯ 林道长</b><small>桃木剑 · 镇尸符</small></button><button type="button" class="hero" id="heroMonk"><b>卍 一休大师</b><small id="monkSub">禅杖 · 佛珠 · 木鱼</small></button></div>
       <div class="diffs"><button class="btn" id="startBtn">开坛 · 普通</button><button class="btn hard" id="hardBtn">开坛 · 困难</button></div>
       <p class="hint">困难：怪更硬更疼、出招更勤，积分 ×1.5</p>
-      <button class="btn ghost rankBtn" id="rankBtn" type="button">功德簿 · 排名</button>
+      <div class="shareRow"><button class="btn ghost rankBtn" id="rankBtn" type="button">功德簿 · 排名</button><button class="btn ghost" id="shareBtn" type="button">分享给朋友</button><a class="btn ghost" id="shareSave" href="share.png" download="暂时停止呼吸.png">保存分享图</a></div>
       <div class="chks"><label class="storyChk"><input type="checkbox" id="storyChk"> 播放开场剧情</label><label class="storyChk"><input type="checkbox" id="tipChk"> 新手提示</label></div>
     </div>
   </div>
@@ -1852,7 +1856,8 @@ addEventListener('blur', () => { if (S && S.state === 'play') togglePause(); });
 
 // ---------- 分享 / 复活 ----------
 const SITE = 'https://jiangshidaozhang.netlify.app/';
-const shareUrl = () => (typeof WEB !== 'undefined' && WEB) ? location.origin + location.pathname : SITE;
+const BUILD = '/*BUILD*/';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
+const shareUrl = () => ((typeof WEB !== 'undefined' && WEB) ? location.origin + location.pathname : SITE) + '?v=' + BUILD;
 function shichenNow() { let n = '子时'; for (const [a, t] of SHI) if (S.t >= t) n = a; return n; }
 async function copyText(s) {
   try { await navigator.clipboard.writeText(s); return true; } catch (e) {}
@@ -1874,6 +1879,17 @@ async function doShare(text, sub) {
   }
   return (await copyText(text + ' ' + url)) ? 'copied' : 'manual';
 }
+$('shareBtn').onclick = async () => {
+  const text = '《暂时停止呼吸》荒坟尸变，道长撑到鸡鸣就算你赢。你能撑多久？';
+  if (!IN_WX && navigator.canShare && typeof WEB !== 'undefined' && WEB) {   // 手机：带上分享图一起发
+    try { const b = await (await fetch('share.png')).blob(), f = new File([b], '暂时停止呼吸.png', { type: 'image/png' }); if (navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: '暂时停止呼吸', text: text + ' ' + shareUrl() }); return; } }
+    catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  const r = await doShare(text, '发给朋友吧，发完回来点任意处继续');
+  shareToast(r === 'copied' || r === 'wechat' ? '已复制链接，去粘贴给朋友吧' : r === 'manual' ? '复制失败，请手动复制地址栏里的链接' : '');
+};
+function shareToast(s) { if (!s) return; let el = $('shareToast'); if (!el) { el = document.createElement('div'); el.id = 'shareToast'; document.body.appendChild(el); } el.textContent = s; el.hidden = false; clearTimeout(el._t); el._t = setTimeout(() => { el.hidden = true; }, 2600); }
+$('shareSave').addEventListener('click', () => { if (typeof WEB === 'undefined' || !WEB) { event.preventDefault(); shareToast('请在网页版里保存分享图'); } });
 function offerRevive() {
   if (window.sayDeath) sayDeath();
   S.state = 'dead'; $('revNote').textContent = ''; $('revBtn').disabled = false;
