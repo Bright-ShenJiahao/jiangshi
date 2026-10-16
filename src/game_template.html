@@ -1019,7 +1019,7 @@ const GODS = {
   zk: { n: '钟馗', skin: 'zhongkui', hp: 700, spd: 34, key: 'zk', line: '钟馗驾到，魑魅魍魉速速退散！', next: 'yl' },
   yl: { n: '阎罗王', skin: 'yanluo', hp: 1100, spd: 30, key: 'yl', line: '阎王叫你三更死，谁敢留人到五更！', next: 'ez' },
   ez: { n: '二郎神', skin: 'erlang', hp: 1600, spd: 40, key: 'ez', line: '你兜兜转转又回来这里，可有悟到什么？', next: 'rl' },
-  rl: { n: '如来佛祖', skin: 'rulai', hp: 99999, spd: 14, key: 'rl', line: '今既皈依吾教，善加护持，同去西天。' },
+  rl: { n: '如来佛祖', skin: 'rulai', hp: 99999, spd: 14, key: 'rl', line: '你有什么本领，也想做齐天大圣？' },
 };
 function flagCheat() {
   if (S.t - (S.cheatT ?? -99) < 5) return;
@@ -2080,6 +2080,16 @@ function stageAggro() {
   for (const e of S.en) if (e.audience) { e.audience = false; e.buff = S.t + 6; }
   S.texts.push({ x: S.p.x, y: S.p.y - 44, v: '看戏的鬼全回过头来了！', t: 1.8, c: '#ff8a7a', big: true }); sfx('scream');
 }
+function drawPalm(cx, ty, s, grounded) {   // 如来神掌：金色巨掌五指向下张开。grounded=1 时指尖落在 ty
+  const M = '#fac438', L = '#ffee96', D = '#c47c16', O = '#6e400a', y0 = grounded ? ty - 60 * s : ty;
+  const P = (pts, c) => { g.fillStyle = c; g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(cx + x * s, y0 + y * s) : g.moveTo(cx + x * s, y0 + y * s)); g.closePath(); g.fill(); };
+  g.save(); g.shadowColor = '#ffd040'; g.shadowBlur = 14;
+  P([[-7, -90], [7, -90], [8, -4], [-8, -4]], M); P([[-7, -90], [-3, -90], [-3, -4], [-8, -4]], L); P([[4, -90], [7, -90], [8, -4], [4, -4]], D);
+  P([[-9, -6], [9, -6], [20, 10], [18, 24], [-18, 24], [-20, 10]], M); P([[-20, 10], [-14, 12], [-14, 24], [-18, 24]], L); P([[14, 12], [20, 10], [18, 24], [14, 24]], D);
+  for (const [bx, by, tx, ty2] of [[-16, 24, -34, 48], [-8, 24, -14, 56], [0, 24, 0, 60], [8, 24, 14, 56], [16, 24, 32, 48]]) { P([[bx - 4, by], [bx + 4, by], [tx + 3, ty2], [tx - 3, ty2]], M); P([[bx - 4, by], [bx - 2, by], [tx - 1, ty2], [tx - 3, ty2]], L); P([[bx + 2, by], [bx + 4, by], [tx + 3, ty2], [tx + 1, ty2]], D); P([[tx - 3, ty2 - 1], [tx + 3, ty2 - 1], [tx + 3, ty2 + 1], [tx - 3, ty2 + 1]], O); }
+  P([[-20, 8], [-30, 2], [-36, 10], [-24, 20]], M);
+  g.restore();
+}
 function drawGodFx(f) {
   const tel = f.t < f.wind, k = Math.min(1, f.t / f.wind), pal = f.art === 'palm';
   g.save();
@@ -2087,13 +2097,13 @@ function drawGodFx(f) {
   if (tel) {
     shape(); g.globalAlpha = 0.12 + 0.25 * k; g.fillStyle = pal ? '#ffc830' : '#ff3a2a'; g.fill(); g.globalAlpha = 0.5 + 0.4 * Math.abs(Math.sin(f.t * 14)); g.strokeStyle = pal ? '#fff0a0' : '#ffb0a0'; g.lineWidth = 1; g.stroke();
     if (f.art === 'book') { const by = f.y - 40 * (1 - k) - 6; g.globalAlpha = 1; g.fillStyle = '#18101e'; g.fillRect(f.x - 8, by - 1, 16, 12); g.fillStyle = '#f4ecd0'; g.fillRect(f.x - 7, by, 14, 10); g.fillStyle = '#18101e'; g.fillRect(f.x - 5, by + 2, 10, 1); g.fillRect(f.x - 5, by + 5, 10, 1); g.fillStyle = '#c82820'; g.fillRect(f.x - 2, by + 7, 4, 2); }
-    if (pal) { const hy = f.y - 150 * (1 - k * k), R = f.R; g.globalAlpha = 0.35 + 0.55 * k; g.fillStyle = '#e8b020'; g.beginPath(); g.ellipse(f.x, hy, R * 0.8, R * 0.7, 0, 0, 7); g.fill(); g.fillStyle = '#ffd860'; for (let i = 0; i < 5; i++) { const a = -2.6 + i * 0.52; g.beginPath(); g.ellipse(f.x + Math.cos(a) * R * 0.85, hy + Math.sin(a) * R * 0.85 - 4, R * 0.15, R * 0.4, a + Math.PI / 2, 0, 7); g.fill(); } g.globalAlpha = 1; g.font = 'bold 9px monospace'; g.textAlign = 'center'; g.fillStyle = '#fff0a0'; g.fillText('五指山', f.x, f.y - R - 6); }
+    if (pal) { g.globalAlpha = 0.3 + 0.6 * k; drawPalm(f.x, f.y - 170 * (1 - k * k), f.R / 36, 0); g.globalAlpha = 1; g.font = 'bold 9px monospace'; g.textAlign = 'center'; g.fillStyle = '#fff0a0'; g.fillText('五指山', f.x, f.y - f.R - 6); }
   } else if (f.k !== 'dog') {
     const u = (f.t - f.wind) / 0.4; g.globalCompositeOperation = 'lighter'; g.globalAlpha = Math.max(0, 1 - u) * 0.8;
     if (f.art === 'slash') { g.strokeStyle = '#ffffff'; g.lineWidth = 5; g.beginPath(); g.arc(f.x, f.y, f.R * 0.85, f.ang - f.half + u * f.half * 2, f.ang - f.half + u * f.half * 2 + 0.5); g.stroke(); shape(); g.fillStyle = '#ff6a50'; g.globalAlpha = Math.max(0, 1 - u) * 0.3; g.fill(); }
     else if (f.art === 'ruyi') { shape(); g.fillStyle = '#7affc0'; g.fill(); }
     else if (f.art === 'halberd') { g.strokeStyle = '#e8f0ff'; g.lineWidth = 3; g.beginPath(); g.moveTo(f.x, f.y); const a = u * 6.283 * 1.2; g.lineTo(f.x + Math.cos(a) * f.R, f.y + Math.sin(a) * f.R); g.stroke(); g.beginPath(); g.arc(f.x, f.y, f.R * (0.5 + u * 0.5), 0, 7); g.stroke(); }
-    else if (pal) { g.globalAlpha = Math.max(0, 1 - u) * 0.9; g.fillStyle = '#ffd040'; g.beginPath(); g.arc(f.x, f.y, f.R, 0, 7); g.fill(); g.globalCompositeOperation = 'source-over'; g.globalAlpha = Math.max(0, 1 - u * 0.7); const R = f.R; g.fillStyle = '#e8b020'; g.beginPath(); g.ellipse(f.x, f.y - 6, R * 0.8, R * 0.7, 0, 0, 7); g.fill(); g.fillStyle = '#ffd860'; for (let i = 0; i < 5; i++) { const a = -2.6 + i * 0.52; g.beginPath(); g.ellipse(f.x + Math.cos(a) * R * 0.85, f.y - 10 + Math.sin(a) * R * 0.85, R * 0.15, R * 0.4, a + Math.PI / 2, 0, 7); g.fill(); } }
+    else if (pal) { g.globalAlpha = Math.max(0, 1 - u) * 0.9; g.fillStyle = '#ffd040'; g.beginPath(); g.arc(f.x, f.y, f.R, 0, 7); g.fill(); g.globalCompositeOperation = 'source-over'; g.globalAlpha = Math.max(0, 1 - u * 0.8); drawPalm(f.x, f.y, f.R / 36, 1); g.strokeStyle = '#fff0a0'; g.lineWidth = 1; for (let a = 0; a < 12; a++) { g.beginPath(); g.moveTo(f.x, f.y); g.lineTo(f.x + Math.cos(a * 0.5236) * f.R * (1 + u * 0.4), f.y + Math.sin(a * 0.5236) * f.R * 0.45 * (1 + u * 0.4)); g.stroke(); } }
     else { shape(); g.fillStyle = '#ffd0a0'; g.fill(); }
   } else { const im = Math.cos(f.ang) < 0 ? flipped('dog') : IMG.dog; if (im) g.drawImage(im, Math.round(f.cx - im.width / 2), Math.round(f.cy - im.height + 6)); }
   g.restore();
@@ -2444,7 +2454,9 @@ function update() {
     }
   }
   for (const f of S.food) {
-    if ((f.x - P.x) ** 2 + (f.y - P.y) ** 2 < 11 * 11) {
+    const fd = Math.hypot(f.x - P.x, f.y - P.y);
+    if (fd < 60 && fd > 1) { const sp = 34 * DT, k = Math.min(1, sp / fd); f.x += (P.x - f.x) * k; f.y += (P.y - f.y) * k; }   // 靠近了会缓缓飘向玩家
+    if ((f.x - P.x) ** 2 + (f.y - P.y) ** 2 < 22 * 22) {
       f.got = true; const h = Math.min(FOOD[f.k].heal, P.max - P.hp); P.hp += h; sfx('eat');
       S.texts.push({ x: P.x, y: P.y - 34, v: FOOD[f.k].name + ' +' + Math.round(h), t: 1, c: '#7ef0a0' });
     }
