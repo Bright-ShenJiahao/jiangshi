@@ -567,7 +567,7 @@ function updateMonk() {
     const lv = W.chu, n = lv >= 3 ? 2 : 1, used = [], zy = Math.random() < synCh2('liuzi', 'chu');
     for (let i = 0; i < n; i++) {
       const t = mDense(220, used); const x = t ? t.x : P.x + P.face * 40 + rnd(-20, 20), y = t ? t.y : P.y + rnd(-20, 20);
-      used.push({ x, y }); M.pest.push({ x, y, t: -0.35 - i * 0.15, r: lv >= 4 ? 58 : 46, s: lv >= 4 ? 1.85 : 1.5, dmg: lv >= 2 ? 66 : 52, seal: lv >= 5, zy: zy && i === 0, done: false });
+      used.push({ x, y }); M.pest.push({ x, y, t: -0.35 - i * 0.15, r: lv >= 4 ? 58 : 46, s: lv >= 4 ? 0.93 : 0.75, dmg: lv >= 2 ? 66 : 52, seal: lv >= 5, zy: zy && i === 0, done: false });
     }
   }
   for (const p of M.pest) {
@@ -1847,17 +1847,18 @@ function updateEvents() {
   updateRumor();
   // --- 蜻蜓点水穴：第一次走近
   if (MAP.tomb && !E.tomb && near2(me, MAP.tomb, 90)) { E.tomb = 1; rumor(['蜻蜓点水穴'], false); window.sayKey && window.sayKey('tao_tomb'); S.texts.push({ x: MAP.tomb[0], y: MAP.tomb[1] - 60, v: '蜻蜓点水穴', t: 2.5, c: '#ffe070', big: true }); }
-  // --- 戏台：0:50–1:20
+  // --- 戏台：不定时间。人一走近就开唱、台下坐满鬼；再走进座位区，群鬼回头扑上来
   if (MAP.stage && MAP.seats) {
-    if (S.t >= 50 && !E.opera) {
+    const d = Math.hypot(P.x - MAP.stage[0], P.y - MAP.stage[1]);
+    if (!E.opera && d < 330) {
       E.opera = 1; E.operaH = window.loopKey ? window.loopKey('opera') : null;
       for (const [x, y] of MAP.seats) { if (Math.random() < 0.3) continue; const e = spawn('ghost', x, y - 2); if (!e) continue; e.audience = true; e.xp *= 3; e.special = true; }
-      if (P.y < (MAP.townH || 0) + 60) rumor(['戏台那边……锣鼓响了，台下坐满了「人」'], false);
+      rumor(['戏台那边……锣鼓响了，台下坐满了「人」'], false);
     }
     if (E.opera === 1) {
-      const d = Math.hypot(P.x - MAP.stage[0], P.y - MAP.stage[1]);
-      E.operaH && E.operaH.set(Math.max(0, Math.min(0.55, 1 - d / 420)) * (S.t < 80 ? 1 : Math.max(0, 1 - (S.t - 80) / 2)));
-      if (S.t >= 82) { E.opera = 2; E.operaH && E.operaH.stop(); for (const e of S.en) if (e.audience) { e.gone = true; e.dead = 0.01; } }
+      E.operaH && E.operaH.set(Math.max(0, Math.min(0.55, 1 - d / 420)) * (E.operaEnd ? Math.min(1, Math.max(0, (E.operaEnd - S.t) / 2)) : 1));
+      if (!E.operaAgg && Math.hypot(P.x - 754, P.y - 410) < 130) stageAggro();   // 群鬼：走进座位区就触发
+      if (E.operaEnd && S.t >= E.operaEnd) { E.opera = 2; E.operaH && E.operaH.stop(); for (const e of S.en) if (e.audience) { e.gone = true; e.dead = 0.01; } }
     }
   }
   // --- 四目道长赶尸回义庄：1:00
@@ -1974,7 +1975,7 @@ function bananaAI(e) {
   if (d < 28 && e.drainT <= 0 && P.inv <= 0) { e.drainT = 0.8; e.hp = Math.min(e.max, e.hp + 6); if (hurtPlayer(Math.round(5 * DIFF[S.diff].dmg))) return; S.texts.push({ x: P.x, y: P.y - 44, v: '阳气被吸走了！', t: 0.8, c: '#ff8ac8' }); }
 }
 function stageAggro() {
-  if (S.ev.operaAgg) return; S.ev.operaAgg = 1;
+  if (S.ev.operaAgg) return; S.ev.operaAgg = 1; S.ev.operaEnd = S.t + 10;
   for (const e of S.en) if (e.audience) { e.audience = false; e.buff = S.t + 6; }
   S.texts.push({ x: S.p.x, y: S.p.y - 44, v: '看戏的鬼全回过头来了！', t: 1.8, c: '#ff8a7a', big: true }); sfx('scream');
 }
