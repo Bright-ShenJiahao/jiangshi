@@ -194,3 +194,22 @@ def qiusheng_bike_bride():
     s.rect(31, 5, 38, 7, 'R'); s.px(34, 4, 'o'); s.px(36, 4, 'o')                         # 凤冠头饰
     s.rect(24, 18, 29, 19, 'r'); s.px(23, 18, 'W')
     s.outline(); return s
+
+
+def wuchang(white=True):
+    """黑白无常：高帽、长舌（白）、锁魂链、哭丧棒"""
+    s = Spr(26, 48)
+    hat, robe, shade, face = ('W', 'g', 'G', 'W') if white else ('k', 'h', 'k', 'E')
+    s.rect(8, 0, 15, 15, hat); s.rect(7, 13, 16, 15, hat); s.rect(8, 0, 9, 15, 'G' if white else 'H')
+    for y in (3, 6, 9, 12): s.rect(11, y, 12, y, 'r' if white else 'o')            # 帽上字（示意）
+    s.rect(8, 16, 15, 25, face); s.clear((8, 25), (15, 25))
+    s.rect(10, 19, 10, 19, 'k'); s.rect(13, 19, 13, 19, 'k')
+    if white: s.rect(11, 23, 12, 30, 'r'); s.px(11, 31, 'R')                          # 长舌
+    else: s.rect(10, 23, 13, 23, 'k')
+    s.rect(6, 26, 17, 43, robe); s.rect(6, 26, 8, 43, shade); s.rect(5, 38, 18, 44, robe)
+    s.rect(9, 26, 14, 26, 'k' if white else 'G')
+    s.rect(17, 28, 21, 30, robe); s.rect(21, 27, 22, 29, face)                      # 前手
+    for i in range(6): s.px(22 + (i % 2), 30 + i * 2, 'u'); s.px(23 - (i % 2), 31 + i * 2, 'U')   # 锁魂链
+    s.rect(2, 28, 6, 30, robe); s.rect(1, 22, 2, 41, 'B' if white else 'b'); s.rect(0, 20, 3, 23, 'w')  # 哭丧棒
+    s.outline()
+    return s

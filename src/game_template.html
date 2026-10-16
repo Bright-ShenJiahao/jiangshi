@@ -48,6 +48,9 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
 .btn:focus-visible, .opt:focus-visible, #breath:focus-visible { outline: 3px solid var(--jade); outline-offset: 2px; }
 .opts { display: grid; gap: 10px; margin-top: 14px; }
+.rankTabs { display: flex; justify-content: center; gap: 8px; margin: -4px 0 10px; }
+.rankTabs button { background: transparent; border: 2px solid var(--line); color: var(--text); font: 15px var(--display); padding: 4px 14px; cursor: pointer; }
+.rankTabs button.on { border-color: var(--talisman); color: var(--talisman); }
 .reroll { margin-top: 4px; justify-self: center; background: transparent; border: 2px dashed var(--line); color: var(--talisman); font: 16px var(--display); padding: 6px 16px; cursor: pointer; }
 .opt { display: grid; grid-template-columns: 52px 1fr auto; gap: 12px; align-items: center; text-align: left; background: var(--ink); border: 3px solid var(--line); padding: 10px 12px; color: var(--text); font: 17px var(--display); cursor: pointer; }
 .opt:hover { border-color: var(--talisman); }
@@ -225,7 +228,8 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
   </div>
 
   <div class="modal" id="rank" hidden>
-    <div class="card rankCard"><h2>功德簿</h2>
+    <div class="card rankCard"><h2 id="rankTitle">功德簿</h2>
+      <div class="rankTabs"><button type="button" id="tabMerit" class="on">功德榜</button><button type="button" id="tabCheat">作弊榜</button></div>
       <div class="rankCols"><div><h3>普通</h3><div id="rankN"></div></div><div><h3 class="hardT">困难</h3><div id="rankH"></div></div></div>
       <p class="hint" id="rankNote"></p>
       <button class="btn" id="rankBack" type="button">返回</button></div>
@@ -355,6 +359,7 @@ const ETYPE = {
   vampire: { img: 'vampire', hp: 200, spd: 36, dmg: 10, r: 7, xp: 20 },
   hand: { img: 'ghost', hp: 14, spd: 0, dmg: 0, r: 6, xp: 1 },
   king: { img: 'king', hp: 5000, spd: 20, dmg: 25, r: 11, xp: 60 },
+  wuchang: { img: 'wuW', hp: 50000, spd: 46, dmg: 250, r: 9, xp: 200 },
 };
 
 // ---------- sound (synthesized 8-bit) ----------
@@ -429,6 +434,7 @@ function sfx(k) {
     case 'type': tone(760 + Math.random() * 120, 700, 0.025, 'square', 0.012); break;
     case 'thud': noise(0.15, 0.06, 300); break;
     case 'gong': [[520, 500], [780, 760], [1130, 1100]].forEach(([a, b], i) => tone(a, b, 1.1, i ? 'triangle' : 'square', [0.05, 0.05, 0.03][i])); noise(0.08, 0.1, 1500); break;
+    case 'chain': for (let i = 0; i < 6; i++) { noise(0.05, 0.07, 2600, i * 0.08); tone(1900 - i * 110, 1600 - i * 110, 0.05, 'square', 0.03, i * 0.08); } break;
     case 'gun': noise(0.09, 0.16, 900); tone(220, 60, 0.08, 'square', 0.06); break;
     case 'wisp': tone(520, 300, 0.2, 'sine', 0.03); break;
     case 'ultcard': tone(1046, 1040, 0.6, 'triangle', 0.07); tone(1568, 1560, 0.5, 'sine', 0.04, 0.05); break;
@@ -441,6 +447,51 @@ function sfx(k) {
 $('mute').onclick = () => { muted = !muted; if (muted) stopAmbient(); $('mute').textContent = muted ? '声音 关' : '声音 开'; };
 
 let S = null;
+// ---------- 逆天改命检测 ----------
+const GUARD = (() => {
+  let lastUlt = -99, hpPicks = 0, wPicks = 0, lastT = 0;
+  return {
+    reset() { lastUlt = -99; hpPicks = 0; wPicks = 0; lastT = 0; },
+    ult() { const bad = S.t - lastUlt < 28; lastUlt = S.t; if (bad) flagCheat(); },
+    pickHp() { hpPicks++; }, pickW() { wPicks++; },
+    tick() {
+      const P = S.p;
+      if (S.t - lastT > 1.5) flagCheat();
+      lastT = S.t;
+      if (P.max > 100 + hpPicks * 20 + 0.5 || P.hp > P.max + 0.5) flagCheat();
+      let sum = 0; for (const k in S.w) { const v = S.w[k] || 0; if (v > 5) flagCheat(); sum += v; }
+      if (sum > wPicks + 1) flagCheat();
+    },
+  };
+})();
+function flagCheat() {
+  if (S.t - (S.cheatT ?? -99) < 5) return;
+  S.cheatT = S.t; S.cheat = (S.cheat || 0) + 1;
+  S.dark = 1.6; sfx('gong'); sfx('chain'); S.shake = Math.max(S.shake, 0.3);
+  const wc = S.en.filter(e => e.type === 'wuchang' && !e.dead);
+  if (!wc.length) {
+    rumor(['有人逆天改命！！！'], true);
+    const C = S.cam;
+    [['wuW', C.x - 20, C.y + VH * 0.3], ['wuB', C.x + VW + 20, C.y + VH * 0.7]].forEach(([sk, x, y]) => {
+      const e = spawn('wuchang', Math.max(10, Math.min(WORLD.w - 10, x)), Math.max(20, Math.min(WORLD.h - 10, y)), { skin: sk });
+      if (e) { e.special = true; e.spd = 58; e.wuName = sk === 'wuW' ? '一见生财' : '天下太平'; }
+    });
+  } else {
+    for (const e of wc) e.spd *= 1.25;
+    rumor(['还敢逆天改命？黑白无常更快了！'], true);
+  }
+}
+function wuAI(e) {
+  const P = S.p, dx = P.x - e.x, dy = P.y - e.y, d = Math.hypot(dx, dy) || 1;
+  e.kx = e.ky = 0; e.stun = 0; e.slow = 0; e.phase += DT * 3; e.face = dx < 0 ? -1 : 1;
+  e.x += dx / d * e.spd * DT; e.y += dy / d * e.spd * DT;
+  if (P.inv <= 0 && d < e.r + 8) {
+    S.wcHit = true; const dead = hurtPlayer(e.dmg); S.wcHit = false;
+    S.texts.push({ x: P.x, y: P.y - 44, v: '锁魂链！', t: 0.9, c: '#d8d8e8', big: true }); sfx('chain');
+    if (dead) return true;
+  }
+  return false;
+}
 function newGame(diff = 'normal') {
   S = {
     diff, bossKilled: false, parade: false, state: 'play', t: 0, kills: 0, lv: 1, xp: 0, need: 5, bossSpawned: false, roosterShown: false,
@@ -450,6 +501,7 @@ function newGame(diff = 'normal') {
     objs: (MAP.objs || []).map(o => ({ ...o, burnt: false, state: 'ok', fireT: 0, smoke: 0, tk: 0 })), ult: null, ultCd: 0, sweeps: [], taijis: [], palms: [], afterimgs: [], ev: {}, allies: [], decor: [], batFx: [], rumorQ: [], guas: [], shield: 0, shieldT: null, chests: [], lvQueue: 0, eliteT: 60, eliteN: 0, vampOut: false, wgCd: 8, eshots: [], npcs: [], npcT: 15, loot: [], aw: null, awDone: false, yamT: 0, gongVo: 0, dawnT: null, yz: (MAP.yz || []).map(([x, y, o]) => ({ x, y, open: !!o, pre: !!o, t: 0 })), yzT: rnd(40, 60), fish: [], fishT: 2, cam: { x: 0, y: 0 },
     food: [], foodT: 18, parts: [], combo: 0, comboT: 0, stop: 0, flash: 0, en: [], shots: [], areas: [], orbs: [], fx: [], texts: [], spawnAcc: 0, nextId: 1, shake: 0,
   };
+  GUARD.reset();
   for (const k of ['title', 'end', 'levelup', 'pause', 'revive', 'brag', 'tip', 'tipArrow']) $(k).hidden = true;
   S.tips = $('tipChk').checked; S.tipI = 0; tipT = 0; S.wx = null;
   try { const n = (+localStorage.getItem('ztzh_plays') || 0) + 1; localStorage.setItem('ztzh_plays', n); if (n >= 3) $('tipChk').checked = false; } catch (e) {}
@@ -492,7 +544,7 @@ function spawnElite() {
   S.texts.push({ x: e.x, y: e.y - 40, v: '棺材里有东西！', t: 1.4, c: '#ff8a6a', big: true });
 }
 function spawn(type, x, y, opt = {}) {
-  const T = ETYPE[type], t = S.t, minion = !['king', 'vampire', 'hand'].includes(type), hpMul = type === 'king' ? 1 : (1 + t / 120) * (minion ? 1.25 : 1);
+  const T = ETYPE[type], t = S.t, minion = !['king', 'vampire', 'hand', 'wuchang'].includes(type), hpMul = type === 'king' || type === 'wuchang' ? 1 : (1 + t / 120) * (minion ? 1.25 : 1);
   if (x === undefined) {
     let ok = false;
     for (let k = 0; k < 10 && !ok; k++) {
@@ -505,7 +557,7 @@ function spawn(type, x, y, opt = {}) {
   const el = !!opt.elite;
   const D = DIFF[S.diff], dh = type === 'king' ? (S.diff === 'hard' ? 1.3 : 1) : D.hp;
   const e = { id: S.nextId++, type, x, y, hp: T.hp * hpMul * (el ? opt.eliteHp || 5 : 1) * dh, max: T.hp * hpMul * (el ? opt.eliteHp || 5 : 1) * dh, r: el ? 8 : T.r, spd: T.spd * rnd(0.85, 1.15) * (1 + 0.2 * t / 300) * (minion ? 1.05 : 1) * (el ? 1.1 : 1),
-    dmg: Math.round(T.dmg * (1 + 0.5 * t / 300) * (el ? 1.5 : 1) * (minion ? 1.15 : 1) * (type === 'king' ? bossDmg() : D.dmg)), xp: (el ? 15 : T.xp) * (minion ? 1.2 : 1), elite: el, castCd: rnd(3, 8), cast: 0, lungeCd: rnd(1, 3), crouch: 0, lunge: 0, auraTk: 0, buff: 0, march: 0, mdir: 1,
+    dmg: Math.round(T.dmg * (1 + 0.5 * t / 300) * (el ? 1.5 : 1) * (minion ? 1.15 : 1) * (type === 'king' ? bossDmg() : type === 'wuchang' ? 1 : D.dmg)), xp: (el ? 15 : T.xp) * (minion ? 1.2 : 1), elite: el, castCd: rnd(3, 8), cast: 0, lungeCd: rnd(1, 3), crouch: 0, lunge: 0, auraTk: 0, buff: 0, march: 0, mdir: 1,
     phase: Math.random() * 6, stun: 0, slow: 0, flash: 0, kx: 0, ky: 0, leap: 0, leapCd: rnd(1.5, 3.5), hitCd: {}, dead: 0, wx: 0, wy: 0, summon: 4, rise: 0, z: 0, st: 'walk', stT: 0, skillCd: 4 };
   if (opt.skin) e.skin = opt.skin;
   S.en.push(e); return e;
@@ -535,7 +587,7 @@ function hurtPlayer(dmg) {
   if (S.shield > 0) { const cap = shieldCap(); shieldBurst(); dmg -= cap; if (dmg <= 0) return false; }
   const P = S.p; P.hp -= dmg; P.inv = DIFF[S.diff].inv; S.shake = Math.max(S.shake, 0.15); sfx('hurt');
   S.texts.push({ x: P.x, y: P.y - 30, v: '-' + dmg, t: 0.7, c: '#ff6a5a' });
-  if (P.hp <= 0) { P.hp = 0; if (!S.revived) offerRevive(); else endGame(false); return true; }
+  if (P.hp <= 0) { P.hp = 0; if (S.wcHit) { S.soulTaken = true; endGame(false); return true; } if (!S.revived) offerRevive(); else endGame(false); return true; }
   return false;
 }
 
@@ -546,8 +598,9 @@ function hurt(e, dmg, kb = 0, fromX = S.p.x, fromY = S.p.y, tag) {
   dmg *= dmgMul() * 0.8; const crit = Math.random() < 0.1; if (crit) { dmg *= 2; S.stop = Math.max(S.stop, 0.03); }
   if (e.stun > 0) dmg *= 1.25;
   e.hp -= dmg; e.flash = 0.12; sfx('hit');
-  if (kb) { const dx = e.x - fromX, dy = e.y - fromY, l = Math.hypot(dx, dy) || 1, k = e.type === 'king' ? 0.15 : 1; e.kx += dx / l * kb * k; e.ky += dy / l * kb * k; }
+  if (kb) { const dx = e.x - fromX, dy = e.y - fromY, l = Math.hypot(dx, dy) || 1, k = e.type === 'king' ? 0.15 : e.type === 'wuchang' ? 0 : 1; e.kx += dx / l * kb * k; e.ky += dy / l * kb * k; }
   S.texts.push({ x: e.x + rnd(-3, 3), y: e.y - 22, v: Math.round(dmg) + (crit ? '!' : ''), t: crit || weak ? 0.8 : 0.6, c: weak ? '#ff9a3a' : crit ? '#ffd040' : '#ffffff', big: crit || weak });
+  if (e.type === 'wuchang' && S.t > (e.lineT || 0)) { e.lineT = S.t + 4; S.texts.push({ x: e.x, y: e.y - 58, v: Math.random() < 0.5 ? '区区法器，也想伤我？' : '莫待黑白无常到眼前，方知回头已晚。', t: 2.2, c: '#e8e8f0', big: true }); }
   if (e.audience) stageAggro();
   if (e.onHurt) e.onHurt(e);
   if (e.hp <= 0 && e.type === 'vampire') { vampireEscape(e); return; }
@@ -567,6 +620,7 @@ function hurt(e, dmg, kb = 0, fromX = S.p.x, fromY = S.p.y, tag) {
     if (e.type === 'hand') { S.p.grabT = 0; e.gone = true; }
     if (e.elite && e.skin && !e.special && Math.random() < 0.5) S.chests.push({ x: e.x, y: e.y, big: false, t: 0 });
     if (e.onDie) e.onDie(e);
+    if (e.type === 'wuchang') rumor(['黑白无常……竟被打退了！'], true);
     const n = e.type === 'king' ? 20 : e.elite ? 3 : 1;
     for (let i = 0; i < n; i++) S.orbs.push({ x: e.x + rnd(-6, 6) * (n > 1), y: e.y + rnd(-6, 6) * (n > 1), v: n > 1 ? 5 : e.xp });
     if (e.type === 'king') { S.food.push({ k: 'pig', x: e.x, y: e.y }); banner('尸煞伏诛！那口气终于散了', 2.8); S.shake = 0.5; sfx('boss'); }
@@ -789,9 +843,9 @@ function reroll() {
 function pick(i) {
   const o = curOpts[i]; if (!o || S.state !== 'level') return;
   if (o.kind === 'h') S.p.hp = Math.min(S.p.max, S.p.hp + 30);
-  else if (o.kind === 'w') S.w[o.k] = (S.w[o.k] || 0) + 1;
+  else if (o.kind === 'w') { S.w[o.k] = (S.w[o.k] || 0) + 1; GUARD.pickW(); }
   else if (o.kind === 'u') { S.ult = { k: o.k, lv: (S.ult ? S.ult.lv : 0) + 1 }; $('ult').hidden = false; }
-  else { S.mods[o.k]++; if (o.k === 'hp') { S.p.max += 20; S.p.hp = Math.min(S.p.max, S.p.hp + 20); } }
+  else { S.mods[o.k]++; if (o.k === 'hp') { GUARD.pickHp(); S.p.max += 20; S.p.hp = Math.min(S.p.max, S.p.hp + 20); } }
   $('levelup').hidden = true; S.state = 'play'; last = performance.now();
 }
 function gainXp(v) { S.xp += v; tryLevel(); }
@@ -809,6 +863,7 @@ function tryLevel() {   // 两次升级之间至少隔 3 秒，多余的经验�
 function tryUlt() {
   if (!S || S.state !== 'play' || !S.ult || S.ultCd > 0) return;
   const P = S.p, { k, lv } = S.ult, C = S.cam;
+  GUARD.ult(); S.ultN = (S.ultN || 0) + 1;
   S.ultCd = 30; sfx('ult'); banner(ULTS[k].name, 1.2); S.ultId = (S.ultId || 0) + 1; S.ultHits = {};
   if (k === 'thunder') {
     const n = [0, 12, 16, 24][lv];
@@ -1168,6 +1223,10 @@ function makePoster(mode) {
     c.fillStyle = '#ece4ff'; c.font = `16px ${F}`; c.fillText(`积分 ${sc} · 伏尸 ${S.kills} 具 · 修为${cn(S.lv)}重`, 180, 442);
     c.fillStyle = '#ff8a7a'; c.fillText('你的朋友一定玩不过你，不信试试', 180, 468);
   }
+  if (S.cheat) {   // 作弊印章
+    c.save(); c.translate(272, 300); c.rotate(-0.3); c.strokeStyle = 'rgba(210,44,40,.9)'; c.lineWidth = 6; c.strokeRect(-72, -36, 144, 72);
+    c.fillStyle = 'rgba(210,44,40,.9)'; c.font = `48px ${F}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('作弊', 0, 2); c.restore();
+  }
   // QR
   const q = IMG.qr;
   c.fillStyle = '#140c22'; c.fillRect(0, 488, Wp, Hp - 488);
@@ -1212,6 +1271,8 @@ function endGame(win) {
   S.score = Math.round((S.kills + S.lv * 20 + Math.floor(S.t) * 2 + (win ? 1000 : 0) + (S.bossKilled ? 500 : 0)) * DIFF[S.diff].mul);
   S.win = win; $('scoreV').textContent = S.score;
   $('endP').textContent += `（${DIFF[S.diff].name}）`;
+  if (S.soulTaken) { $('endT').textContent = '阳寿已尽——被黑白无常勾了魂'; $('endP').textContent += '　逆天改命，打入十八层地狱'; }
+  else if (S.cheat) $('endP').textContent += '　逆天改命，成绩记入作弊榜';
   renderBoard();
   $('end').hidden = false; $('breath').hidden = true; $('ult').hidden = true;
   $('nameForm').hidden = true; $('brag').hidden = true; saveRecord(PNAME || '无名道士');
@@ -1365,6 +1426,7 @@ function stageAggro() {
   S.texts.push({ x: S.p.x, y: S.p.y - 44, v: '看戏的鬼全回过头来了！', t: 1.8, c: '#ff8a7a', big: true }); sfx('scream');
 }
 function drawEventSprites(list) {
+  for (const e of S.en) if (e.type === 'wuchang' && !e.dead) list.push({ y: e.y + 0.5, f: () => { const x = Math.round(e.x), y = Math.round(e.y) - 54; g.font = 'bold 8px monospace'; g.textAlign = 'center'; g.fillStyle = '#000'; g.fillText(e.wuName || '', x + 1, y + 1); g.fillStyle = e.skin === 'wuB' ? '#ff5a4a' : '#ffffff'; g.fillText(e.wuName || '', x, y); } });
   const E = S.ev;
   if (MAP.stage) { const [sx, sy] = MAP.stage, sing = E.opera === 1, b = sing ? Math.round(Math.abs(Math.sin(S.t * 3)) * 2) : 0;
     list.push({ y: sy - 1, f: () => { const a = IMG.operaDan, j = IMG.operaJing; if (a && a.complete) g.drawImage(a, Math.round(sx - 26 - a.width / 2), Math.round(sy - a.height + 2 - b)); if (j && j.complete) g.drawImage(j, Math.round(sx + 22 - j.width / 2), Math.round(sy - j.height + 2 - (sing ? Math.round(Math.abs(Math.cos(S.t * 3)) * 2) : 0))); } }); }
@@ -1458,7 +1520,7 @@ function update() {
   S.t += DT;
   if (S.t >= 60 && !S.stW) { S.stW = true; banner('尸气渐重……白僵出现了！（怕火怕光）', 2.4); }
   if (S.t >= 126 && !S.stG) { S.stG = true; banner('绿僵出现了！会蓄力扑跳', 2.4); }
-  updateEvents(); updateTips(); updateCamp(); updateWeather(); updateFlow(); updateElites(); updateWaterGhost(); updateChests();
+  GUARD.tick(); S.dark = Math.max(0, (S.dark || 0) - DT * 0.25); updateEvents(); updateTips(); updateCamp(); updateWeather(); updateFlow(); updateElites(); updateWaterGhost(); updateChests();
   const rooster = S.t >= ROOSTER_AT;
   if (rooster && !S.roosterShown) { S.roosterShown = true; banner('喔喔喔——鸡鸣将至！', 2.5); sfx('rooster'); }
   if (S.t >= BOSS_AT && !S.bossSpawned) {
@@ -1524,6 +1586,7 @@ function update() {
     if (e.type === 'ghost') { e.x += e.kx * DT; e.y += e.ky * DT; } else moveBy(e, e.kx * DT, e.ky * DT);
     e.kx *= 0.86; e.ky *= 0.86;
     if (e.type === 'king') { if (e.phase2 ? shashaAI(e, rooster) : kingAI(e, rooster)) return; continue; }
+    if (e.type === 'wuchang') { if (wuAI(e)) return; continue; }
     if (e.type === 'hand') { handAI(e); continue; }
     if (e.audience || e.onBike) continue;
     if (e.banana) { bananaAI(e); continue; }
@@ -2163,6 +2226,7 @@ function draw() {
   const vg = g.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.35, VW / 2, VH / 2, Math.max(VW, VH) * 0.75);
   vg.addColorStop(0, 'rgba(8,4,16,0)'); vg.addColorStop(1, 'rgba(8,4,16,.6)'); g.fillStyle = vg; g.fillRect(0, 0, VW, VH);
   if (P.breath > 0) { g.fillStyle = 'rgba(80,160,220,.12)'; g.fillRect(0, 0, VW, VH); }
+  if (S.dark > 0) { g.fillStyle = `rgba(0,0,0,${Math.min(0.55, S.dark * 0.4)})`; g.fillRect(0, 0, VW, VH); }
   if (S.flash > 0) { g.fillStyle = `rgba(230,245,255,${Math.min(0.15, S.flash * 3)})`; g.fillRect(0, 0, VW, VH); }
 
   ctx.drawImage(low, 0, 0, cv.width, cv.height);
@@ -2904,21 +2968,25 @@ let DB = null, USER = null, myEntry = null, boardNote = '';
   try { if (window.claude && window.claude.use) { DB = await window.claude.use('db'); USER = await window.claude.use('user'); } } catch (e) { DB = null; }
 })();
 const WEB = /^https?:$/.test(location.protocol) && !/claude\.ai|claudeusercontent|itch\.(io|zone)|hwcdn/.test(location.hostname);
-async function webGet() { const r = await fetch('/api/scores', { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); const j = await r.json(); if (!Array.isArray(j)) throw new Error('bad'); return j; }
+async function webGet(board) { const r = await fetch('/api/scores' + (board === 'cheat' ? '?board=cheat' : ''), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); const j = await r.json(); if (!Array.isArray(j)) throw new Error('bad'); return j; }
 async function webPost(rec) { const r = await fetch('/api/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rec) }); if (!r.ok) throw new Error('http ' + r.status); const j = await r.json(); if (!Array.isArray(j)) throw new Error('bad'); return j; }
 function localBoard() { try { return JSON.parse(localStorage.getItem('ztzh_board') || '[]'); } catch (e) { return []; } }
 // ---------- 标题页：功德簿排名（普通 / 困难两列）----------
-async function loadRank() {
+async function loadRank(board) {
   let rows = null, shared = false;
+  if (board === 'cheat') { if (!WEB) return { rows: [], shared: false }; try { rows = await webGet('cheat'); shared = true; } catch (e) { rows = []; } return { rows, shared }; }
   if (DB) { try { const snap = await DB.collection('scores').orderBy('score', 'desc').limit(100).get(); rows = snap.docs.map(d => d.data()).filter(Boolean); shared = true; } catch (e) { rows = null; } }
   if (!rows && WEB) { try { rows = await webGet(); shared = true; } catch (e) { rows = null; } }
   if (!rows) rows = localBoard();
   return { rows, shared };
 }
-async function showRank() {
+async function showRank(board) {
+  board = board || 'main';
   $('title').hidden = true; $('rank').hidden = false;
+  $('tabMerit').className = board === 'main' ? 'on' : ''; $('tabCheat').className = board === 'cheat' ? 'on' : '';
+  $('rankTitle').textContent = board === 'cheat' ? '作弊榜 · 十八层地狱' : '功德簿';
   $('rankN').innerHTML = $('rankH').innerHTML = '<div class="empty">读取中……</div>'; $('rankNote').textContent = '';
-  const { rows, shared } = await loadRank();
+  const { rows, shared } = await loadRank(board);
   let me = ''; try { me = localStorage.getItem('ztzh_name') || ''; } catch (e) {}
   const fill = (el, diff) => {
     const list = rows.filter(r => (r.diff === 'hard') === (diff === 'hard')).sort((a, b) => (b.score || 0) - (a.score || 0));
@@ -2938,9 +3006,11 @@ async function showRank() {
   const parts = [];
   if (a) parts.push(`普通第 ${a.rank} 名（${a.score} 分）`);
   if (b) parts.push(`困难第 ${b.rank} 名（${b.score} 分）`);
+  if (board === 'cheat') { $('rankNote').textContent = shared ? '逆天改命者，在此示众。' : '暂时连不上作弊榜。'; return; }
   $('rankNote').textContent = (shared ? '' : '暂时连不上共享功德簿，以下是本机记录。 ') + (parts.length ? `你（${me}）：` + parts.join('，') : (me ? '你还没上榜，去开坛吧！' : '')) + '　☀ = 撑到天亮';
 }
 $('rankBtn').onclick = () => showRank();
+$('tabMerit').onclick = () => showRank('main'); $('tabCheat').onclick = () => showRank('cheat');
 $('rankBack').onclick = () => { $('rank').hidden = true; $('title').hidden = false; };
 
 async function renderBoard() {
@@ -2967,13 +3037,14 @@ $('nameForm').addEventListener('submit', ev => ev.preventDefault());
 async function saveRecord(name) {
   if (!S || S.state !== 'over' || S.saved) return;
   S.saved = true;
-  const rec = { name, score: S.score, kills: S.kills, lv: S.lv, t: Math.floor(S.t), win: !!S.win, diff: S.diff, at: Date.now() };
+  const rec = { name, score: S.score, kills: S.kills, lv: S.lv, t: Math.floor(S.t), win: !!S.win, diff: S.diff, at: Date.now(), ults: S.ultN || 0, cheat: S.cheat || 0 };
   myEntry = rec;
-  try { const arr = localBoard(); arr.push(rec); arr.sort((a, b) => b.score - a.score); localStorage.setItem('ztzh_board', JSON.stringify(arr.slice(0, 20))); } catch (e) {}
+  if (rec.cheat) boardNote = '这一局逆天改命，成绩已记入作弊榜。';
+  if (!rec.cheat) try { const arr = localBoard(); arr.push(rec); arr.sort((a, b) => b.score - a.score); localStorage.setItem('ztzh_board', JSON.stringify(arr.slice(0, 20))); } catch (e) {}
   if (!DB && WEB) {
     try { await webPost(rec); } catch (e) { boardNote = '这次成绩只记在本机：暂时连不上共享功德簿。'; }
   }
-  if (DB && USER) {
+  if (DB && USER && !rec.cheat) {
     try {
       const uid = await USER.id();
       if (!uid) throw new Error('no id');
