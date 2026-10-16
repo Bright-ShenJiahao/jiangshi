@@ -152,6 +152,10 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 .rankCols td { padding: 3px 4px; border-bottom: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 7em; }
 .rankCols td:first-child { color: var(--muted); width: 1.6em; }
 .rankCols td:last-child { color: var(--talisman); text-align: right; }
+.rankCols tr.ch td:nth-child(2), #board tr.ch td { color: #ff7a6a; }
+#endCheat { margin: 4px 0 0; font-size: 15px; }
+#endCheat.bad { color: #ff7a6a; }
+#endCheat.ok { color: #7ef0a0; }
 .rankCols tr.me td { background: rgba(240, 192, 32, .16); }
 .rankCols .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 10px 0; }
 .syn { color: #ffe070; }
@@ -234,7 +238,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
   </div>
 
   <div class="modal" id="end" hidden>
-    <div class="card"><h2 id="endT"></h2><p id="endP"></p>
+    <div class="card"><h2 id="endT"></h2><p id="endP"></p><p id="endCheat"></p>
       <p class="score">积分 <b id="scoreV">0</b></p>
       <form id="nameForm"><input id="nameIn" maxlength="10" placeholder="留下道号" autocomplete="off" aria-label="道号"><button class="btn small" type="submit" id="saveBtn">记入功德簿</button></form>
       <div id="board"></div>
@@ -262,7 +266,6 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 
   <div class="modal" id="rank" hidden>
     <div class="card rankCard"><h2 id="rankTitle">功德簿</h2>
-      <div class="rankTabs"><button type="button" id="tabMerit" class="on">功德榜</button><button type="button" id="tabCheat">作弊榜</button></div>
       <div class="rankCols"><div><h3>普通</h3><div id="rankN"></div></div><div><h3 class="hardT">困难</h3><div id="rankH"></div></div></div>
       <p class="hint" id="rankNote"></p>
       <button class="btn" id="rankBack" type="button">返回</button></div>
@@ -1853,7 +1856,8 @@ function endGame(win) {
   renderHeroes();
   $('endP').textContent += `（${DIFF[S.diff].name}）`;
   if (S.soulTaken) { window.sayKey && sayKey('wu_both'); $('endT').textContent = '阳寿已尽——被黑白无常勾了魂'; $('endP').textContent += '　逆天改命，打入十八层地狱'; }
-  else if (S.cheat) $('endP').textContent += '　逆天改命，成绩记入作弊榜';
+  else if (S.cheat) $('endP').textContent += '　逆天改命，成绩标注作弊';
+  { const ec = $('endCheat'); ec.className = S.cheat ? 'bad' : 'ok'; ec.textContent = S.cheat ? '⚠ 本局判定：作弊（成绩会标注【作弊】）' : '✔ 本局判定：未作弊'; }
   renderBoard();
   $('end').hidden = false; $('breath').hidden = true; $('ult').hidden = true;
   $('nameForm').hidden = true; $('brag').hidden = true; saveRecord(PNAME || '无名道士');
@@ -3703,23 +3707,20 @@ let DB = null, USER = null, myEntry = null, boardNote = '';
   try { if (window.claude && window.claude.use) { DB = await window.claude.use('db'); USER = await window.claude.use('user'); } } catch (e) { DB = null; }
 })();
 const WEB = /^https?:$/.test(location.protocol) && !/claude\.ai|claudeusercontent|itch\.(io|zone)|hwcdn/.test(location.hostname);
-async function webGet(board) { const r = await fetch('/api/scores' + (board === 'cheat' ? '?board=cheat' : ''), { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); const j = await r.json(); if (!Array.isArray(j)) throw new Error('bad'); return j; }
+async function webGet() { const r = await fetch('/api/scores', { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); const j = await r.json(); if (!Array.isArray(j)) throw new Error('bad'); return j; }
 async function webPost(rec) { const r = await fetch('/api/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rec) }); if (!r.ok) throw new Error('http ' + r.status); const j = await r.json(); if (!Array.isArray(j)) throw new Error('bad'); return j; }
 function localBoard() { try { return JSON.parse(localStorage.getItem('ztzh_board') || '[]'); } catch (e) { return []; } }
 // ---------- 标题页：功德簿排名（普通 / 困难两列）----------
 async function loadRank(board) {
   let rows = null, shared = false;
-  if (board === 'cheat') { if (!WEB) return { rows: [], shared: false }; try { rows = await webGet('cheat'); shared = true; } catch (e) { rows = []; } return { rows, shared }; }
   if (DB) { try { const snap = await DB.collection('scores').orderBy('score', 'desc').limit(100).get(); rows = snap.docs.map(d => d.data()).filter(Boolean); shared = true; } catch (e) { rows = null; } }
   if (!rows && WEB) { try { rows = await webGet(); shared = true; } catch (e) { rows = null; } }
   if (!rows) rows = localBoard();
   return { rows, shared };
 }
 async function showRank(board) {
-  board = board || 'main';
   $('title').hidden = true; $('rank').hidden = false;
-  $('tabMerit').className = board === 'main' ? 'on' : ''; $('tabCheat').className = board === 'cheat' ? 'on' : '';
-  $('rankTitle').textContent = board === 'cheat' ? '作弊榜 · 十八层地狱' : '功德簿';
+  $('rankTitle').textContent = '功德簿';
   $('rankN').innerHTML = $('rankH').innerHTML = '<div class="empty">读取中……</div>'; $('rankNote').textContent = '';
   const { rows, shared } = await loadRank(board);
   let me = ''; try { me = localStorage.getItem('ztzh_name') || ''; } catch (e) {}
@@ -3729,23 +3730,21 @@ async function showRank(board) {
     if (!list.length) { el.innerHTML = '<div class="empty">还没有人上榜</div>'; return null; }
     const t = document.createElement('table');
     list.slice(0, 20).forEach((r, i) => {
-      const tr = document.createElement('tr'); if (me && r.name === me) tr.className = 'me';
-      for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : '☯ ') + String(r.name || '无名道士').slice(0, 10) + (r.win ? ' ☀' : ''), Number(r.score) || 0]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
+      const tr = document.createElement('tr'); tr.className = (me && r.name === me ? 'me ' : '') + (r.cheat ? 'ch' : '');
+      for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : '☯ ') + String(r.name || '无名道士').slice(0, 10) + (r.win ? ' ☀' : '') + (r.cheat ? ' 【作弊】' : ''), Number(r.score) || 0]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
       t.appendChild(tr);
     });
     el.appendChild(t);
-    const idx = me ? list.findIndex(r => r.name === me) : -1;
+    const idx = me ? list.findIndex(r => r.name === me && !r.cheat) : -1;   // 排名只看没作弊的那一条
     return idx >= 0 ? { rank: idx + 1, score: list[idx].score } : null;
   };
   const a = fill($('rankN'), 'normal'), b = fill($('rankH'), 'hard');
   const parts = [];
   if (a) parts.push(`普通第 ${a.rank} 名（${a.score} 分）`);
   if (b) parts.push(`困难第 ${b.rank} 名（${b.score} 分）`);
-  if (board === 'cheat') { $('rankNote').textContent = shared ? '逆天改命者，在此示众。' : '暂时连不上作弊榜。'; return; }
-  $('rankNote').textContent = (shared ? '' : '暂时连不上共享功德簿，以下是本机记录。 ') + (parts.length ? `你（${me}）：` + parts.join('，') : (me ? '你还没上榜，去开坛吧！' : '')) + '　☀ = 撑到天亮';
+  $('rankNote').textContent = (shared ? '' : '暂时连不上共享功德簿，以下是本机记录。 ') + (parts.length ? `你（${me}）：` + parts.join('，') : (me ? '你还没上榜，去开坛吧！' : '')) + '　☀ = 撑到天亮　红字【作弊】= 逆天改命的成绩';
 }
 $('rankBtn').onclick = () => showRank();
-$('tabMerit').onclick = () => showRank('main'); $('tabCheat').onclick = () => showRank('cheat');
 $('rankBack').onclick = () => { $('rank').hidden = true; $('title').hidden = false; };
 
 async function renderBoard() {
@@ -3762,7 +3761,8 @@ async function renderBoard() {
   rows.slice(0, 10).forEach((r, i) => {
     const tr = document.createElement('tr');
     if (myEntry && r.at === myEntry.at && r.name === myEntry.name) tr.className = 'me';
-    for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : '☯ ') + String(r.name || '无名道士').slice(0, 10), Number(r.score) || 0, r.diff === 'hard' ? '困难' : '普通', r.win ? '天亮' : '倒下']) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
+    if (r.cheat) tr.className += ' ch';
+    for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : '☯ ') + String(r.name || '无名道士').slice(0, 10), Number(r.score) || 0, r.diff === 'hard' ? '困难' : '普通', (r.win ? '天亮' : '倒下') + (r.cheat ? ' · 作弊' : '')]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
     t.appendChild(tr);
   });
   box.appendChild(t);
@@ -3774,8 +3774,8 @@ async function saveRecord(name) {
   S.saved = true;
   const rec = { name, score: S.score, kills: S.kills, lv: S.lv, t: Math.floor(S.t), win: !!S.win, diff: S.diff, at: Date.now(), hero: S.hero, ults: S.ultN || 0, cheat: S.cheat || 0 };
   myEntry = rec;
-  if (rec.cheat) boardNote = '这一局逆天改命，成绩已记入作弊榜。';
-  if (!rec.cheat) try { const arr = localBoard(); arr.push(rec); arr.sort((a, b) => b.score - a.score); localStorage.setItem('ztzh_board', JSON.stringify(arr.slice(0, 20))); } catch (e) {}
+  if (rec.cheat) boardNote = '这一局逆天改命，成绩已记入功德簿，并标注【作弊】。';
+  try { const arr = localBoard(); arr.push(rec); arr.sort((a, b) => b.score - a.score); localStorage.setItem('ztzh_board', JSON.stringify(arr.slice(0, 20))); } catch (e) {}
   if (!DB && WEB) {
     try { await webPost(rec); } catch (e) { boardNote = '这次成绩只记在本机：暂时连不上共享功德簿。'; }
   }

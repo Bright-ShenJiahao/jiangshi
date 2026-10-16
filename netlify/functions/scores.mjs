@@ -2,7 +2,8 @@
 import { getStore } from '@netlify/blobs';
 
 const KEY = 'top';
-const CHEAT_KEY = 'cheat';   // 作弊榜：逆天改命者
+const CHEAT_KEY = 'cheat';   // 旧的作弊榜（只读）：读取时并入功德簿并标注作弊
+const CHEAT_CAP = 20;       // 功德簿里最多保留多少条作弊成绩
 const CLEARED_KEY = 'cleared';   // 通关过的名字（不受排行榜 100 名限制），用来给一休解锁
 const KEEP = 100;          // stored entries
 const SHOW = 100;          // entries returned to the game (排行榜分普通/困难两列显示)
@@ -21,15 +22,24 @@ export default async (req) => {
   };
 
   const q = new URL(req.url).searchParams;
-  const board = q.get('board') === 'cheat' ? CHEAT_KEY : KEY;
   if (req.method === 'GET' && q.has('cleared')) {   // 这个名字通关过吗？（排行榜里有通关记录也算）
     const nm = clean(q.get('cleared'));
     if (!nm) return json({ cleared: false });
     const names = (await read(CLEARED_KEY)).list;
-    const onBoard = (await read()).list.some((r) => r.name === nm && r.win === true);
+    const onBoard = (await read()).list.some((r) => r.name === nm && r.win === true && !r.cheat);
     return json({ cleared: names.includes(nm) || onBoard });
   }
-  if (req.method === 'GET') return json((await read(board)).list.slice(0, SHOW));
+  // 功德簿 = 新记录 + 旧作弊榜（标注作弊）；同名同难度同角色，作弊和不作弊各占一行；作弊成绩最多 CHEAT_CAP 条
+  const keyOf = (r) => r.name + '|' + r.diff + '|' + (r.hero || 'tao') + '|' + (r.cheat ? 1 : 0);
+  const shape = (list) => {
+    const best = new Map();
+    for (const r of list) { const k = keyOf(r); const o = best.get(k); if (!o || o.score < r.score) best.set(k, r); }
+    const all = [...best.values()].sort((a, b) => b.score - a.score);
+    let n = 0;
+    return all.filter((r) => !r.cheat || ++n <= CHEAT_CAP);
+  };
+  const merged = async () => shape((await read()).list.concat((await read(CHEAT_KEY)).list.map((r) => ({ ...r, cheat: 1 }))));
+  if (req.method === 'GET') return json((await merged()).slice(0, SHOW));
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
 
   let b;
@@ -45,6 +55,7 @@ export default async (req) => {
     at: int(b.at, 0, 4102444800000),
     ults: int(b.ults, 0, 9999),
     hero: b.hero === 'monk' ? 'monk' : 'tao',
+    cheat: 0,
   };
   const flagged = int(b.cheat, 0, 9999) > 0;
   // Plausibility: the score must not exceed what the game's own formula allows.
@@ -57,8 +68,7 @@ export default async (req) => {
   if (rec.kills > rec.t * 6 + 200) why.push('kills');
   if (rec.lv > 45) why.push('lv');
   if (rec.t < 300 && rec.win) why.push('win');   // 遮天蔽日最多推迟到 320 秒
-  const target = why.length ? CHEAT_KEY : KEY;
-  if (why.length) rec.why = why.join(',');
+  if (why.length) { rec.cheat = 1; rec.why = why.join(','); }
 
   if (rec.win && !why.length) {   // 只记正常通关的名字；撞车就重试几次，失败也不影响成绩提交
     for (let i = 0; i < 4; i++) {
@@ -70,16 +80,12 @@ export default async (req) => {
   }
 
   for (let attempt = 0; attempt < 4; attempt++) {
-    const { list, etag } = await read(target);
-    const keyOf = (r) => r.name + '|' + r.diff + '|' + (r.hero || 'tao');
+    const { list, etag } = await read(KEY);
     const prev = list.find((r) => keyOf(r) === keyOf(rec));
-    let next = list;
-    if (!prev || prev.score < rec.score) {
-      next = list.filter((r) => keyOf(r) !== keyOf(rec)).concat(rec)
-        .sort((a, b) => b.score - a.score).slice(0, KEEP);
-    } else return target === KEY ? json(list.slice(0, SHOW)) : json((await read()).list.slice(0, SHOW));
-    const res = await store.setJSON(target, next, etag ? { onlyIfMatch: etag } : { onlyIfNew: true });
-    if (res?.modified !== false) return target === KEY ? json(next.slice(0, SHOW)) : json((await read()).list.slice(0, SHOW));
+    if (prev && prev.score >= rec.score) return json((await merged()).slice(0, SHOW));
+    const next = shape(list.filter((r) => keyOf(r) !== keyOf(rec)).concat(rec)).slice(0, KEEP);
+    const res = await store.setJSON(KEY, next, etag ? { onlyIfMatch: etag } : { onlyIfNew: true });
+    if (res?.modified !== false) return json((await merged()).slice(0, SHOW));
   }
   return json({ error: 'busy, try again' }, 503);
 };
