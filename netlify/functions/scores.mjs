@@ -3,6 +3,7 @@ import { getStore } from '@netlify/blobs';
 
 const KEY = 'top';
 const CHEAT_KEY = 'cheat';   // 作弊榜：逆天改命者
+const CLEARED_KEY = 'cleared';   // 通关过的名字（不受排行榜 100 名限制），用来给一休解锁
 const KEEP = 100;          // stored entries
 const SHOW = 100;          // entries returned to the game (排行榜分普通/困难两列显示)
 
@@ -19,7 +20,15 @@ export default async (req) => {
     return { list: Array.isArray(r?.data) ? r.data : [], etag: r?.etag };
   };
 
-  const board = new URL(req.url).searchParams.get('board') === 'cheat' ? CHEAT_KEY : KEY;
+  const q = new URL(req.url).searchParams;
+  const board = q.get('board') === 'cheat' ? CHEAT_KEY : KEY;
+  if (req.method === 'GET' && q.has('cleared')) {   // 这个名字通关过吗？（排行榜里有通关记录也算）
+    const nm = clean(q.get('cleared'));
+    if (!nm) return json({ cleared: false });
+    const names = (await read(CLEARED_KEY)).list;
+    const onBoard = (await read()).list.some((r) => r.name === nm && r.win === true);
+    return json({ cleared: names.includes(nm) || onBoard });
+  }
   if (req.method === 'GET') return json((await read(board)).list.slice(0, SHOW));
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
 
@@ -50,6 +59,15 @@ export default async (req) => {
   if (rec.t < 300 && rec.win) why.push('win');   // 遮天蔽日最多推迟到 320 秒
   const target = why.length ? CHEAT_KEY : KEY;
   if (why.length) rec.why = why.join(',');
+
+  if (rec.win && !why.length) {   // 只记正常通关的名字；撞车就重试几次，失败也不影响成绩提交
+    for (let i = 0; i < 4; i++) {
+      const { list, etag } = await read(CLEARED_KEY);
+      if (list.includes(rec.name)) break;
+      const res = await store.setJSON(CLEARED_KEY, list.concat(rec.name).slice(-5000), etag ? { onlyIfMatch: etag } : { onlyIfNew: true });
+      if (res?.modified !== false) break;
+    }
+  }
 
   for (let attempt = 0; attempt < 4; attempt++) {
     const { list, etag } = await read(target);

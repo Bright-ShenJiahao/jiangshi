@@ -3038,6 +3038,21 @@ try { $('startName').value = localStorage.getItem('ztzh_name') || ''; } catch (e
 $('startName').addEventListener('input', () => { $('startName').classList.remove('bad'); $('nameTip').textContent = ''; nameState(); });
 $('startName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); begin('normal'); } });
 nameState();
+// 一休解锁记在浏览器里，换设备/清缓存会丢：输入通关过的名字时，向排行榜服务器确认一下
+let cleChk = 0;
+function checkCleared() {
+  if (monkUnlocked()) return;
+  const nm = cleanName($('startName').value); if (!nm) return;
+  const my = ++cleChk;
+  fetch('/api/scores?cleared=' + encodeURIComponent(nm), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => {
+    if (!j || !j.cleared || my !== cleChk || cleanName($('startName').value) !== nm) return;
+    try { localStorage.setItem('ztzh_monk', '1'); } catch (e) {}
+    renderHeroes(); $('monkSub').textContent = '已解锁：' + nm + ' 通关过';
+  }).catch(() => {});
+}
+let cleT = 0;
+$('startName').addEventListener('input', () => { clearTimeout(cleT); cleT = setTimeout(checkCleared, 600); });
+setTimeout(checkCleared, 800);
 function begin(diff) {
   const nm = cleanName($('startName').value);
   if (!nm) { const el = $('startName'); el.classList.remove('bad'); void el.offsetWidth; el.classList.add('bad'); $('nameTip').textContent = '道长还没留下尊姓大名'; el.focus(); return; }
