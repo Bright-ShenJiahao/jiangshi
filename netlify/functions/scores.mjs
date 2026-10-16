@@ -38,7 +38,9 @@ export default async (req) => {
     let n = 0;
     return all.filter((r) => !r.cheat || ++n <= CHEAT_CAP);
   };
-  const merged = async () => shape((await read()).list.concat((await read(CHEAT_KEY)).list.map((r) => ({ ...r, cheat: 1 }))));
+  // 以前只因「等级超过 45」被误标作弊的成绩（why 只有 lv）：读取时恢复为正常成绩
+  const fix = (r) => (r.cheat && r.why === 'lv' ? { ...r, cheat: 0, why: undefined } : r);
+  const merged = async () => shape((await read()).list.map(fix).concat((await read(CHEAT_KEY)).list.map((r) => ({ ...r, cheat: 1 }))));
   if (req.method === 'GET') return json((await merged()).slice(0, SHOW));
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
 
@@ -66,7 +68,7 @@ export default async (req) => {
   if (rec.score > max + 5) why.push('score');
   if (rec.ults > Math.floor(rec.t / 28) + 1) why.push('ult');
   if (rec.kills > rec.t * 6 + 200) why.push('kills');
-  if (rec.lv > 45) why.push('lv');
+  if (rec.lv > 120) why.push('lv2');   // 一局 5 分钟实测能升到 49 重，以前的 45 上限会误伤正常玩家
   if (rec.t < 300 && rec.win) why.push('win');   // 遮天蔽日最多推迟到 320 秒
   if (why.length) { rec.cheat = 1; rec.why = why.join(','); }
 
