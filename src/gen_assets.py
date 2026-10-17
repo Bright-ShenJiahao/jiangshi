@@ -64,7 +64,7 @@ def _red(im):
                 px[x, y] = (min(255, int(40 + l * 1.15)), int(l * 0.22), int(l * 0.3), a)
     return im
 sprites.update({'coffinR': _red(g['coffin_w']().img()), 'coffinRo': _red(g['coffin_w'](True).img())})
-sprites.update({'coffinW': g['coffin_w']().img(), 'coffinWo': g['coffin_w'](True).img(), 'coffinWh': g['coffin_w']().img().rotate(90, expand=True), 'bride': g['bride']().img(), 'wolf': g['wolfman']().img(), 'vampM': g['vamp_minion']().img(), 'ghostW': g['ghost_white']().img(), 'ghostWf': g['ghost_white'](True).img(), 'bearer': g['believer'](False).img()})
+sprites.update({'coffinW': g['coffin_w']().img(), 'coffinWo': g['coffin_w'](True).img(), 'coffinWh': g['coffin_w']().img().rotate(90, expand=True), 'bride': g['bride']().img(), 'wolf': g['wolfman']().img(), 'wolfC': g['wolfman'](True).img(), 'vampM': g['vamp_minion']().img(), 'ghostW': g['ghost_white']().img(), 'ghostWf': g['ghost_white'](True).img(), 'bearer': g['believer'](False).img()})
 sprites.update({'vampire': g['vampire']().img(), 'ghostR': g['red_ghost'](g), 'jumperM': g['hairy'](g['zombie']('m', 'M').img()),
                 'chest': g['chest']().img(), 'chestB': g['chest'](True).img()})
 m3 = {}

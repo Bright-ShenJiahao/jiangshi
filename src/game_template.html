@@ -963,7 +963,7 @@ const PR_DRAIN = { cross: 0.1, water: 0.15, stake: 0.2, bleed: 0.2, cage: 0.15, 
 const PR_MARK = { cross: 1, bible: 1, pulse: 1, arrow: 1 };                                            // 光明形态：命中叠几层圣印
 const prLight = () => S.pr && S.pr.form === 'l', prDark = () => S.pr && S.pr.form === 'v';
 const prKey = () => 'priest' + (S.pr.form === 'v' ? 'V' : S.pr.form === 'l' ? 'L' : '') + (S.w.pistol ? 'G' : '');
-const prKin = e => e.type === 'vampire' || e.skin === 'bride' || e.skin === 'wolf' || e.skin === 'vampM' || e.skin === 'thrall';
+const prKin = e => e.type === 'vampire' || e.skin === 'bride' || e.skin === 'wolf' || e.skin === 'wolfC' || e.skin === 'vampM' || e.skin === 'thrall';
 const prMinion = e => !mBig(e) && !e.elite && e.type !== 'hand' && !e.audience && !e.special && !e.god;
 const prSmall = e => !e.dead && prMinion(e) && !(e.batT > 0);
 function prNew() { return { form: '', fx: [], pages: [], bottles: [], pools: [], stakes: [], lines: [], allies: [], arrows: [], souls: [], soulN: 0, dAcc: 0, ds0: -9, dsN: 0, perfT: 0, mist: 0, mistTk: 0, angel: null, guardT: 0, hitTk: 0 }; }
@@ -2762,7 +2762,8 @@ function bridePetals(e) {
 function chestDrop(q, msg) { S.chests.push({ x: q.x, y: q.y, big: false, t: 0 }); S.texts.push({ x: q.x, y: q.y - 40, v: msg, t: 2, c: '#ffe070', big: true }); }
 function church2Mob(kind, x, y, elite) {
   let e;
-  if (kind === 'wolf') { e = spawn('jumper', x, y, elite ? { elite: true, skin: 'wolf', eliteHp: 5 } : { skin: 'wolf' }); if (!e) return null; e.spd *= elite ? 1.25 : 1.15; if (!elite) e.hp = e.max = e.max * 1.4; }
+  if (kind === 'wolf') { e = spawn('jumper', x, y, elite ? { elite: true, skin: 'wolf', eliteHp: 5 } : { skin: 'wolf' }); if (!e) return null; e.spd *= elite ? 1.25 : 1.15; if (!elite) e.hp = e.max = e.max * 1.4;
+    if (Math.random() < 0.25) { e.skin = 'wolfC'; e.crawl = true; e.spd *= 2; e.dmg = Math.round(e.dmg * 1.1); } }   // 爬行狼人：四肢着地，移速翻倍、伤害 +10%，不再扑跳
   else if (kind === 'bride') { e = spawn('walker', x, y, elite ? { elite: true, skin: 'bride', eliteHp: 16 } : { skin: 'bride' }); if (!e) return null; e.nopois = true; e.spd *= 1.1; e.dmg = Math.round(e.dmg * (elite ? 1.5 : 1.2)); if (!elite) e.hp = e.max = e.max * 1.9; }
   else { e = spawn('walker', x, y, { skin: 'vampM' }); if (!e) return null; e.nopois = true; e.spd *= 1.15; e.dmg = Math.round(e.dmg * 1.3); e.hp = e.max = e.max * 2.2; }
   if (elite) e.special = true;
@@ -3230,7 +3231,7 @@ function update() {
     const tl = Math.hypot(tx, ty) || 1;
     let sp = e.spd * (rooster ? 0.5 : 1) * (e.slow > S.t ? 0.35 : 1) * (e.pslow > S.t ? e.pslowK : 1) * (lost && P.breath > 2.0 ? 0 : 1) * (e.type === 'ghost' && S.t < 60 ? 0.8 : 1);
     if ((e.type === 'zombie' && !e.leaper) || e.type === 'king') { e.phase += DT * (e.type === 'king' ? 5 : 7); sp *= Math.max(0, Math.sin(e.phase)) * 2.2; }
-    if (e.type === 'jumper' || e.leaper) {
+    if ((e.type === 'jumper' || e.leaper) && !e.crawl) {
       e.leapCd -= DT;
       if (e.leap > 0) { e.leap -= DT; sp = 115; if (e.leap <= 0) jumperLand(e); } else if (e.leapCd <= 0 && tl < 150 && P.breath <= 0) { e.leap = 0.5; e.leapCd = rnd(2.5, 4) / DIFF[S.diff].skill; S.areas.push({ k: 'crackwarn', x: e.x + tx / tl * Math.min(57, tl), y: e.y + ty / tl * Math.min(57, tl), life: 0.5 }); }
       else { e.phase += DT * 7; sp *= Math.max(0, Math.sin(e.phase)) * 2.2; }
@@ -3749,7 +3750,7 @@ function draw() {
     if (e.type === 'hand') { drawHand(e); continue; }
     if (e.batT > 0) { for (let i = 0; i < 9; i++) { const a = i * 0.7 + S.t * 6, x = Math.round(e.x + Math.cos(a) * (6 + i % 3 * 4)), y = Math.round(e.y - 16 + Math.sin(a * 1.3) * 7), up = Math.sin(S.t * 20 + i) > 0; px(x - 1, y, 3, 2, '#120a18'); px(x - 4, y + (up ? -2 : 1), 3, 2, '#120a18'); px(x + 2, y + (up ? -2 : 1), 3, 2, '#120a18'); } continue; }
     let hop = 0;
-    if ((e.type === 'zombie' || e.type === 'king' || ((e.type === 'jumper' || e.leaper) && e.leap <= 0)) && !e.stun) hop = -Math.round(Math.max(0, Math.sin(e.phase)) * (e.type === 'king' ? 3 : 4));
+    if ((e.type === 'zombie' || e.type === 'king' || ((e.type === 'jumper' || e.leaper) && e.leap <= 0 && !e.crawl)) && !e.stun) hop = -Math.round(Math.max(0, Math.sin(e.phase)) * (e.type === 'king' ? 3 : 4));
     if ((e.type === 'jumper' || e.leaper) && e.leap > 0) hop = -Math.round(Math.sin((0.5 - e.leap) / 0.5 * Math.PI) * 14);
     if (e.type === 'ghost') hop = -6 + Math.round(Math.sin(e.phase) * 2);
     if (e.type === 'walker' && !e.stun) hop = -Math.round(Math.abs(Math.sin(e.phase)));
