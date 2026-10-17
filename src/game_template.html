@@ -928,14 +928,14 @@ const WEAPONS_P = {
   water: { name: '圣水', seal: '水', w: 1, desc: ['每 3 秒朝怪最密处抛圣水瓶，留下一摊圣水：持续掉血、减速；鬼魂伤害加倍', '范围更大', '一次扔两瓶', '腐蚀：泡过圣水的怪受到伤害 +20%（离开后再持续 2 秒），铁甲失效', '圣水留得更久；站在圣水里每秒回 1 点阳气（和斩杀回阳共用每秒 2 点上限）'] },
   aegis: { name: '天使之护', seal: '护', w: 1, desc: ['银盾挡在你移动方向的正前方：正面来的撞击和飞弹 30% 几率被格挡，不掉血', '格挡几率 40%', '格挡成功时盾面闪光，震退正前方的怪', '盾面变大，侧前方也能挡；格挡几率 45%', '完美格挡：格挡几率 50%，格挡后 0.6 秒内必挡，并朝前方反射圣光（伤害为挡下伤害的 3 倍）'] },
   stake: { name: '银木桩', seal: '桩', w: 1, desc: ['每 3 秒朝附近血最多的怪钉一根银木桩：重击并钉住片刻', '伤害提升', '一次钉两只', '对吸血鬼一族（伯爵、新娘、血仆、狼人）伤害翻倍', '被钉住的怪死时，木桩炸开波及周围'] },
-  pistol: { name: '银手枪', seal: '枪', w: 1, desc: ['左手掏出银色雕花手枪：每 2.2 秒朝最近的怪开一枪，直线冲击波贯穿整条线', '伤害提升', '两连发', '冲击波变宽，带击退', '六发连射，最后一发银弹在线的尽头炸开'] },
+  pistol: { name: '银手枪', seal: '枪', w: 1, desc: ['左手掏出银色雕花手枪：每 2.2 秒朝最近的怪射出一颗银弹，沿途把怪往前推，飞一小段后炸开', '爆炸伤害提升', '两颗，呈 V 字', '推得更远，爆炸范围更大', '三颗，扇形散开；爆炸伤害提升'] },
   pulse: { name: '圣光法阵', seal: '阵', w: 1, desc: ['每 5 秒脚下闪出圣光法阵，一圈冲击把身边的怪弹开', '弹得更远', '间隔缩短到 4 秒', '弹开的同时眩晕 1 秒', '连续弹两圈，第二圈更大'] },
   cage: { name: '禁锢法咒', seal: '锢', w: 1, desc: ['每 6 秒把 2 只小怪封进透明法咒，困 3 秒并持续灼烧；被困的怪挡住后面的怪', '一次困 3 只', '灼烧伤害提升', '精英也能被困 1.5 秒', '被困的怪烧死时，法咒跳到旁边的怪身上继续困住'] },
 };
 const LIGHT_ADD = {
   cross: '命中叠 1 层圣印', bible: '命中叠圣印；带圣印死去的小怪有几率化作小天使助战（被净化死的几率更高；Lv3 起存在 12 秒，最多 2/3/5 只）', water: '泡在圣水里的怪每秒叠 1 层圣印',
   aegis: '格挡时给正前方的怪叠圣印，完美格挡的反射直接叠满', stake: '每层圣印让伤害 +30%，满 3 层直接净化、伤害翻倍',
-  pistol: '打中带圣印的怪会弹向下一只带圣印的怪；它打死的带印怪阴德 ×1.5', pulse: '每次弹开给周围的怪叠 1 层圣印', cage: '困住期间每秒叠 1 层圣印，放出来时直接净化',
+  pistol: '爆炸炸到带圣印的怪时，圣光再弹向附近另一只带圣印的怪；它打死的带印怪阴德 ×1.5', pulse: '每次弹开给周围的怪叠 1 层圣印', cage: '困住期间每秒叠 1 层圣印，放出来时直接净化',
 };
 const WEAPONS_PL = {};
 for (const k in WEAPONS_P) WEAPONS_PL[k] = { ...WEAPONS_P[k], desc: WEAPONS_P[k].desc.map(d => d + '<br><span class="syn">光明：' + LIGHT_ADD[k] + '</span>') };
@@ -945,15 +945,15 @@ const WEAPONS_PD = {
   water: { name: '血色圣水', seal: '池', w: 1, desc: ['每 3 秒朝怪最密处抛出血瓶，留下一摊血泊：持续掉血、减速，并吸取伤害', '范围更大', '一次扔两瓶', '腐蚀：泡过血泊的怪受到伤害 +20%（离开后再持续 2 秒），铁甲失效', '血泊留得更久；你站在血泊里时，池中的怪被额外抽血'] },
   aegis: { name: '骷髅盾牌', seal: '骷', w: 1, desc: ['骷髅盾挡在正前方：正面来的撞击和飞弹 30% 几率被格挡；格挡时骷髅尖叫，正前方的小怪恐惧逃散 1 秒', '格挡几率 40%', '格挡时震退正前方的怪', '盾面变大，侧前方也能挡；格挡几率 45%', '格挡几率 50%；格挡后 0.6 秒内必挡，并朝前方喷出一道血光'] },
   stake: { name: '人骨钉', seal: '骨', w: 1, desc: ['每 3 秒朝附近血最多的怪钉一根人骨钉：重击、钉住，并持续抽血 3 秒', '伤害提升', '一次钉两只', '对吸血鬼一族伤害翻倍', '被钉住的怪死时炸开，留下一摊血泊'] },
-  pistol: { name: '猎魂手枪', seal: '魂', w: 1, desc: ['血红手枪每 2.2 秒开一枪，直线冲击波贯穿；它打死的怪掉出魂魄，攒满 5 个强化下一枪（更宽、伤害翻倍）；10% 几率爆出 2 倍阴德', '伤害提升', '两连发；攒 4 个魂就能强化', '冲击波变宽，带击退；2 倍阴德几率 15%', '六发连射，最后一发在线的尽头炸开；2 倍阴德几率 20%'] },
+  pistol: { name: '猎魂手枪', seal: '魂', w: 1, desc: ['血红手枪每 2.2 秒射出一颗血弹，推着怪往前走，飞一小段后炸开；它打死的怪掉出魂魄，攒满 5 个强化下一枪（伤害翻倍）；10% 几率爆出 2 倍阴德', '爆炸伤害提升', '两颗，呈 V 字；攒 4 个魂就能强化', '推得更远，爆炸范围更大；2 倍阴德几率 15%', '三颗，扇形散开；2 倍阴德几率 20%'] },
   pulse: { name: '黑暗法阵', seal: '黑', w: 1, desc: ['每 5 秒脚下展开黑暗法阵，把周围的怪吸到身边一圈（正好送进血十字）', '吸得更远', '间隔缩短到 4 秒', '吸过来的同时眩晕 1 秒', '连续吸两圈，第二圈更大'] },
   cage: { name: '血色牢笼', seal: '笼', w: 1, desc: ['每 6 秒把 2 只小怪关进血色牢笼，困 3 秒并持续抽血；被困的怪挡住后面的怪', '一次困 3 只', '抽血伤害提升', '精英也能被困 1.5 秒', '被困的怪死时，牢笼跳到旁边的怪身上继续困住'] },
 };
 const TAGS_P = { cross: ['伤害', '近身'], bible: ['伤害'], water: ['伤害', '持续'], aegis: ['防御'], stake: ['伤害'], pistol: ['伤害', '穿透'], pulse: ['控制', '范围'], cage: ['控制'] };
 const ULTS_P = {
   fall: { name: '堕入黑暗', qn: '血雾潜行', seal: '血', desc: [
-    '大招：接受撒旦的诱惑，喝下撒旦之血，永久化身<b>吸血鬼神官</b>，八件法器全部转为黑暗形态（血十字、黑暗圣经、血色圣水、骷髅盾牌、人骨钉、猎魂手枪、黑暗法阵、血色牢笼）。<br>Q：<b>血雾潜行</b>——潜入血泊 3 秒，无敌、移速 +50%，留下吸血的血泊。<br><span class="syn">代价：斩杀回阳、圣水回血失效，食物只回一半，主要靠吸血活着（每秒最多 3 点）</span>',
-    '血雾潜行 4 秒，血泊更宽', '血雾潜行 5 秒，浮出时「猩红盛宴」：被吸过血的怪全部受创，并吸回一大口血'] },
+    '大招：接受撒旦的诱惑，喝下撒旦之血，永久化身<b>吸血鬼神官</b>，八件法器全部转为黑暗形态（血十字、黑暗圣经、血色圣水、骷髅盾牌、人骨钉、猎魂手枪、黑暗法阵、血色牢笼）。<br>Q：<b>血雾潜行</b>——潜入血泊 4 秒，无敌、移速 +50%，留下吸血的血泊；穿过的怪被咬一口，吸回一半伤害（每秒最多 6 点）。<br><span class="syn">代价：斩杀回阳、圣水回血失效，食物只回一半，主要靠吸血活着（每秒最多 3 点）</span>',
+    '血雾潜行 5 秒，血泊更宽', '血雾潜行 6 秒，浮出时「猩红盛宴」：被吸过血的怪全部受创，并吸回一大口血'] },
   grace: { name: '神爱世人', qn: '天使之怒', seal: '圣', desc: [
     '大招：获得圣光加冕，永久化身<b>光明神官</b>：法器伤害 +15%、对鬼魂伤害翻倍、阳气上限 +30；法器命中给怪叠「圣印」，满 3 层净化炸开，并回 1 点阳气。<br>Q：<b>天使之怒</b>——天使从天而降挥剑砸下，中心伤害最高往外递减（带圣印的怪伤害翻倍），之后护卫你 4 秒，受到的伤害减半',
     '范围更大，中心的怪眩晕 2 秒，护卫 6 秒', '护卫期间天使挥剑砍身边的怪，收剑时再砸一次；晋升<b>樞機主教</b>'] },
@@ -966,7 +966,7 @@ const prKey = () => 'priest' + (S.pr.form === 'v' ? 'V' : S.pr.form === 'l' ? 'L
 const prKin = e => e.type === 'vampire' || e.skin === 'bride' || e.skin === 'wolf' || e.skin === 'wolfC' || e.skin === 'vampM' || e.skin === 'thrall';
 const prMinion = e => !mBig(e) && !e.elite && e.type !== 'hand' && !e.audience && !e.special && !e.god;
 const prSmall = e => !e.dead && prMinion(e) && !(e.batT > 0);
-function prNew() { return { form: '', fx: [], pages: [], bottles: [], pools: [], stakes: [], lines: [], allies: [], arrows: [], souls: [], soulN: 0, dAcc: 0, ds0: -9, dsN: 0, perfT: 0, mist: 0, mistTk: 0, angel: null, guardT: 0, hitTk: 0 }; }
+function prNew() { return { form: '', fx: [], bullets: [], pages: [], bottles: [], pools: [], stakes: [], lines: [], allies: [], arrows: [], souls: [], soulN: 0, dAcc: 0, ds0: -9, dsN: 0, perfT: 0, mist: 0, mistTk: 0, angel: null, guardT: 0, hitTk: 0 }; }
 function prHealCap(n) {   // 光明 / 普通形态的回血：与斩杀回阳共用每秒 2 点上限；黑暗形态不能回血
   const P = S.p; if (prDark() || P.hp >= P.max) return;
   if (S.t - (S.lsT0 || -9) >= 1) { S.lsT0 = S.t; S.lsN = 0; }
@@ -1061,18 +1061,20 @@ function prTransform(k) {
   if (k === 'fall') {
     R.form = 'v'; WEAPONS = WEAPONS_PD; S.flash = Math.max(S.flash, 0.15); S.shake = Math.max(S.shake, 0.3); sfx('scream'); setTimeout(() => sfx('bell'), 300);
     banner('堕入黑暗——喝下撒旦之血', 2.6); rumor(['Father 柴化身吸血鬼神官！', '法器全部堕入黑暗'], true);
+    window.sayKey && window.sayKey('p_fall'); S.texts.push({ x: P.x, y: P.y - 58, v: 'My God, why have You forsaken me?', t: 3.2, c: '#ff8a9a', big: true }); S.texts.push({ x: P.x, y: P.y - 46, v: '（我的神，你为什么离弃我？）', t: 3.2, c: '#ffb0b8' });
     for (let i = 0; i < 40; i++) { const a = Math.random() * 6.283, sp = rnd(30, 120); S.parts.push({ x: P.x, y: P.y - 16, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.6 - 30, t: rnd(0.5, 1), c: i % 3 ? '#c8202c' : '#2a0610' }); }
   } else {
     R.form = 'l'; WEAPONS = WEAPONS_PL; GUARD.bonusMax(30); P.max += 30; P.hp = Math.min(P.max, P.hp + 30);
     S.flash = Math.max(S.flash, 0.2); sfx('pickbig'); setTimeout(() => sfx('bell'), 250);
     banner('神爱世人——圣光加冕', 2.6); rumor(['Father 柴化身光明神官！', '法器命中会叠下圣印'], true);
+    window.sayKey && window.sayKey('p_grace'); S.texts.push({ x: P.x, y: P.y - 58, v: 'Thy will be done.', t: 3.2, c: '#ffe9a0', big: true }); S.texts.push({ x: P.x, y: P.y - 46, v: '（愿你的旨意成全。）', t: 3.2, c: '#fff2c8' });
     for (let i = 0; i < 40; i++) { const a = Math.random() * 6.283, sp = rnd(30, 110); S.parts.push({ x: P.x, y: P.y - 16, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.6 - 40, t: rnd(0.5, 1), c: i % 3 ? '#ffe070' : '#ffffff' }); }
   }
 }
 function prUlt(k, lv) {
   const P = S.p, R = S.pr;
   if (k === 'fall') {   // 血雾潜行
-    R.mist = [0, 3, 4, 5][lv]; R.mistLv = lv; R.mistTk = 0; P.inv = Math.max(P.inv, R.mist + 0.1); sfx('whoosh');
+    R.mist = [0, 4, 5, 6][lv]; R.mistLv = lv; R.mistTk = 0; P.inv = Math.max(P.inv, R.mist + 0.1); sfx('whoosh');
     for (const e of S.en) { e.wx = rnd(-1, 1); e.wy = rnd(-1, 1); e.drained = 0; }
     S.texts.push({ x: P.x, y: P.y - 40, v: '血雾潜行', t: 1.2, c: '#ff5a6a', big: true });
   } else {   // 天使之怒
@@ -1106,34 +1108,34 @@ function prBlock(dmg) {   // 天使之护 / 骷髅盾牌：挡正前方来的伤
   }
   return true;
 }
-function prShoot(lv, last, power) {
-  const P = S.p, R = S.pr, tg = nearest(1, 260)[0];
-  const a = tg ? Math.atan2((tg.y - P.y) / 0.75, tg.x - P.x) : (P.dir ?? (P.face > 0 ? 0 : Math.PI));
-  let ux = Math.cos(a), uy = Math.sin(a) * 0.75; const n = Math.hypot(ux, uy); ux /= n; uy /= n;
-  const L = 240, w = (lv >= 4 ? 14 : 8) * (power ? 2 : 1), dmg = (lv >= 5 ? 24 : lv >= 2 ? 40 : 30) * (power ? 2 : 1), kb = lv >= 4 ? 80 : 20;
-  const sx = P.x + ux * 6, sy = P.y - 14;
-  R.lines.push({ x: sx, y: sy, ux, uy, L, w, t: 0, kind: prDark() ? 'blood' : 'silver', power });
-  sfx('coin'); const hitM = [];
+function prShoot(lv, power) {   // 银手枪 / 猎魂手枪：射出推进弹
+  const P = S.p, R = S.pr, tg = nearest(1, 200)[0];
+  const a0 = tg ? Math.atan2(tg.y - P.y, tg.x - P.x) : (P.dir ?? (P.face > 0 ? 0 : Math.PI));
+  const n = lv >= 5 ? 3 : lv >= 3 ? 2 : 1, sp = n === 3 ? 0.35 : 0.28;
+  for (let i = 0; i < n; i++) {
+    const a = a0 + (i - (n - 1) / 2) * sp;
+    R.bullets.push({ x: P.x + Math.cos(a) * 8, y: P.y + Math.sin(a) * 6, vx: Math.cos(a) * 240, vy: Math.sin(a) * 240, d: 0, max: lv >= 4 ? 135 : 110, lv, power, drag: new Set(), dark: prDark(), tr: [] });
+  }
+  sfx('coin');
+}
+function prBoom(b) {
+  const R = S.pr, lv = b.lv, Rr = lv >= 4 ? 50 : 40, D = [0, 22, 26, 26, 30, 34][lv] * (b.power ? 2 : 1);
+  R.fx.push({ k: 'boom', x: b.x, y: b.y - 6, R: Rr, t: 0, dark: b.dark }); sfx('thud'); S.shake = Math.max(S.shake, 0.05);
+  const hitM = [];
   for (const e of S.en) {
-    if (e.dead) continue;
-    const rx = e.x - sx, ry = e.y - 10 - sy, al = rx * ux + ry * uy;
-    if (al < 0 || al > L || Math.abs(rx * uy - ry * ux) > w + e.r) continue;
+    if (e.dead || e.type === 'hand' || !inEll(e, b.x, b.y, Rr + e.r)) continue;
     const marked = e.mark > 0 && S.t < (e.markT || 0);
-    prHit(e, dmg, kb, sx, sy, 'pistol'); if (marked) hitM.push(e);
+    prHit(e, D, 90, b.x, b.y, 'pistol'); if (marked) hitM.push(e);
   }
-  if (prLight() && hitM.length) {   // 圣银弹：打中带圣印的怪，再弹向下一只带圣印的怪
-    const used = new Set(hitM.map(e => e.id));
+  if (prLight() && hitM.length) {   // 圣银弹：炸到带圣印的怪，圣光再弹向附近另一只带圣印的怪
+    const used = new Set(hitM.map(e => e.id)); let n = 0;
     for (const e of hitM) {
+      if (n >= 3) break;
       const n2 = S.en.filter(q => !q.dead && !used.has(q.id) && q.mark > 0 && S.t < (q.markT || 0) && dist2(q, e) < 130 * 130).sort((p, q) => dist2(p, e) - dist2(q, e))[0];
-      if (!n2) continue; used.add(n2.id);
+      if (!n2) continue; used.add(n2.id); n++;
       R.fx.push({ k: 'chainL', x1: e.x, y1: e.y - 10, x2: n2.x, y2: n2.y - 10, t: 0 });
-      prHit(n2, dmg * 0.6, 20, e.x, e.y, 'pistol');
+      prHit(n2, D * 0.6, 20, e.x, e.y, 'pistol');
     }
-  }
-  if (last) {   // 最后一发银弹在线的尽头炸开
-    const ex = sx + ux * L, ey = sy + uy * L + 10;
-    R.fx.push({ k: 'boom', x: ex, y: ey - 6, R: 44, t: 0, dark: prDark() }); sfx('thud');
-    for (const e of S.en) if (!e.dead && (e.x - ex) ** 2 + ((e.y - ey) / 0.75) ** 2 < 44 * 44) prHit(e, 50, 90, ex, ey, 'pistol');
   }
 }
 function updatePriest() {
@@ -1178,6 +1180,7 @@ function updatePriest() {
       }
     } else { p.vx *= 1 - DT * 2; p.vy *= 1 - DT * 2; p.life = Math.min(p.life, 0.6); }
     p.x += p.vx * DT; p.y += p.vy * DT;
+    if (dark) { (p.tr = p.tr || []).unshift([p.x, p.y]); if (p.tr.length > 4) p.tr.pop(); }
   }
   R.pages = R.pages.filter(p => p.life > 0);
   // 圣水 / 血色圣水
@@ -1248,15 +1251,21 @@ function updatePriest() {
   if (R.bleedTk <= 0) { R.bleedTk = 0.5; for (const e of S.en) if (!e.dead && e.bleedT > S.t) prHit(e, 4, 0, e.x, e.y, 'bleed', 'burn'); }
   // 银手枪 / 猎魂手枪
   if (W.pistol && tick('pistol', 2.2)) {
-    const lv = W.pistol, n = lv >= 5 ? 6 : lv >= 3 ? 2 : 1;
-    for (let i = 0; i < n; i++) R.fx.push({ k: 'gunq', t: -i * 0.12, lv, last: lv >= 5 && i === n - 1 });
-  }
-  for (const f of R.fx) if (f.k === 'gunq' && !f.done && f.t >= 0) {
-    f.done = true; let power = false;
-    const need = W.pistol >= 3 ? 4 : 5;
+    let power = false; const need = W.pistol >= 3 ? 4 : 5;
     if (dark && R.soulN >= need) { R.soulN -= need; power = true; S.texts.push({ x: P.x, y: P.y - 40, v: '猎魂一击', t: 0.9, c: '#b08aff', big: true }); }
-    prShoot(f.lv, f.last, power);
+    prShoot(W.pistol, power);
   }
+  for (const b of R.bullets) {
+    const st = Math.hypot(b.vx, b.vy) * DT; b.x += b.vx * DT; b.y += b.vy * DT; b.d += st;
+    b.tr.unshift([b.x, b.y]); if (b.tr.length > 5) b.tr.pop();
+    for (const e of S.en) {
+      if (e.dead || e.type === 'hand' || e.audience) continue;
+      if (!b.drag.has(e.id) && (e.x - b.x) ** 2 + (e.y - b.y) ** 2 < (e.r + 7) ** 2) { b.drag.add(e.id); prHit(e, 8 * (b.power ? 2 : 1), 0, b.x, b.y, 'pistol'); }
+    }
+    for (const e of S.en) if (b.drag.has(e.id) && !e.dead && !mBig(e)) { const k = e.elite ? 0.5 : 1; e.kx = b.vx * k; e.ky = b.vy * k; }   // 推着怪往前走
+    if (b.d >= b.max) { b.done = true; prBoom(b); }
+  }
+  R.bullets = R.bullets.filter(b => !b.done);
   // 魂魄：走过去吸收
   const mag = 45 * (1 + 0.2 * S.mods.magnet);
   for (const o of R.souls) {
@@ -1320,6 +1329,12 @@ function updatePriest() {
   // 大招：血雾潜行
   if (R.mist > 0) {
     R.mist -= DT; P.inv = Math.max(P.inv, 0.05); R.mistTk -= DT;
+    for (const e of S.en) {
+      if (e.dead || e.type === 'hand' || e.audience || !inEll(e, P.x, P.y, 18 + e.r) || (e.hitCd.mb || 0) > S.t) continue;
+      e.hitCd.mb = S.t + 0.5; e.drained = 1; const d = prHit(e, 10, 0, P.x, P.y, 'mistB');
+      if (S.t - (R.mb0 ?? -9) >= 1) { R.mb0 = S.t; R.mbN = 0; }
+      const h = Math.min(Math.round(d * 0.5), 6 - R.mbN, P.max - P.hp); if (h > 0) { R.mbN += h; P.hp += h; S.texts.push({ x: P.x + rnd(-6, 6), y: P.y - 30, v: '+' + h, t: 0.5, c: '#ff6a7a' }); }
+    }
     if (R.mistTk <= 0) { R.mistTk = 0.1; R.pools.push({ x: P.x + rnd(-3, 3), y: P.y + rnd(-2, 2), r: R.mistLv >= 2 ? 20 : 15, life: 3, max: 3, tk: 0, dmg: 3, src: 'mist', blood: true }); }
     if (Math.random() < DT * 30) S.parts.push({ x: P.x + rnd(-10, 10), y: P.y - rnd(0, 14), vx: rnd(-20, 20), vy: rnd(-30, -5), t: rnd(0.3, 0.6), c: Math.random() < 0.5 ? '#a0101e' : '#ff4a5a' });
     if (R.mist <= 0) {
@@ -1364,7 +1379,7 @@ function updatePriest() {
     }
   }
   for (const f of R.fx) f.t += DT;
-  R.fx = R.fx.filter(f => f.k === 'gunq' ? !f.done : f.t < (f.k === 'smite' ? 0.7 : f.k === 'feast' ? 0.8 : 0.45));
+  R.fx = R.fx.filter(f => f.t < (f.k === 'smite' ? 0.7 : f.k === 'feast' ? 0.8 : 0.45));
   for (const l of R.lines) l.t += DT;
   R.lines = R.lines.filter(l => l.t < 0.3);
 }
@@ -1462,7 +1477,14 @@ function drawPriestWorld() {
   }
   // 书页 / 蝙蝠
   for (const p of R.pages) {
-    if (dark) { const up = Math.sin(p.ph) > 0; px(p.x - 1, p.y - 1, 3, 2, '#1a0e1e'); px(p.x - 4, p.y + (up ? -2 : 0), 3, 2, '#1a0e1e'); px(p.x + 2, p.y + (up ? -2 : 0), 3, 2, '#1a0e1e'); px(p.x, p.y - 1, 1, 1, '#ff3a3a'); }
+    if (dark) {
+      for (let i = 1; i < (p.tr || []).length; i++) { const [tx, ty] = p.tr[i]; g.globalAlpha = 0.35 - i * 0.07; px(tx - 2, ty - 1, 5, 3, '#a0101e'); }
+      g.globalAlpha = 1; const x = Math.round(p.x), y = Math.round(p.y), up = Math.sin(p.ph) > 0, wy = up ? -4 : 1;
+      px(x - 3, y - 3, 7, 6, '#ff3a4a'); px(x - 9, y + wy - 1, 7, 4, '#ff3a4a'); px(x + 3, y + wy - 1, 7, 4, '#ff3a4a');   // 红色描边
+      px(x - 2, y - 2, 5, 4, '#1a0e1e'); px(x - 8, y + wy, 6, 2, '#1a0e1e'); px(x + 3, y + wy, 6, 2, '#1a0e1e');
+      px(x - 8, y + wy + 2, 1, 1, '#1a0e1e'); px(x + 8, y + wy + 2, 1, 1, '#1a0e1e'); px(x - 2, y - 3, 1, 1, '#1a0e1e'); px(x + 2, y - 3, 1, 1, '#1a0e1e');
+      px(x - 1, y - 1, 1, 1, '#ff3a3a'); px(x + 1, y - 1, 1, 1, '#ff3a3a');
+    }
     else { const w2 = Math.abs(Math.sin(p.ph)) > 0.4 ? 3 : 1; px(p.x - w2, p.y - 3, w2 * 2 + 1, 6, '#1a0e1e'); px(p.x - w2 + 1, p.y - 2, w2 * 2 - 1, 4, light ? '#fff6c8' : '#f4f0e0'); px(p.x, p.y - 1, 1, 2, '#c8302c'); }
   }
   // 冲击波（手枪 / 完美格挡）
@@ -1473,6 +1495,13 @@ function drawPriestWorld() {
     g.globalAlpha = al; g.fillStyle = '#ffffff'; g.fillRect(0, -1, l.L * Math.min(1, l.t / 0.06), 2); g.fillStyle = c; g.fillRect(0, -l.w * 0.5, l.L * Math.min(1, l.t / 0.06), 1); g.fillRect(0, l.w * 0.5, l.L * Math.min(1, l.t / 0.06), 1);
     g.restore(); g.globalAlpha = 1;
   }
+  // 推进弹
+  for (const b of R.bullets) {
+    const c1 = b.dark ? '#ff3a4a' : '#e8f4ff', c2 = b.dark ? '#a0101e' : '#9aa8c0';
+    for (let i = 1; i < b.tr.length; i++) { const [tx, ty] = b.tr[i]; g.globalAlpha = 0.5 - i * 0.1; px(tx - 1, ty - 13, 3, 3, c2); }
+    g.globalAlpha = 1; px(b.x - 3, b.y - 15, 6, 6, '#1a0e1e'); px(b.x - 2, b.y - 14, 4, 4, c1); px(b.x - 1, b.y - 14, 2, 1, '#ffffff');
+    if (b.power) { g.globalAlpha = 0.4; g.fillStyle = '#b08aff'; g.beginPath(); g.arc(b.x, b.y - 12, 7, 0, 7); g.fill(); g.globalAlpha = 1; }
+  }
   // 魂魄
   for (const o of R.souls) { const b = Math.sin(o.t * 6) * 1.5; g.globalAlpha = Math.min(1, (12 - o.t) * 0.5); px(o.x - 2, o.y - 3 + b, 5, 6, '#1a0e1e'); px(o.x - 1, o.y - 2 + b, 3, 4, '#9a7aff'); px(o.x - 1, o.y - 5 + b, 2, 2, '#c8b0ff'); g.globalAlpha = 1; }
   // 小天使的光箭
@@ -1481,11 +1510,7 @@ function drawPriestWorld() {
   for (const e of S.en) {
     if (e.dead) continue;
     const im0 = IMG[e.skin || (ETYPE[e.type] || {}).img], h = im0 ? im0.height * (e.elite ? 1.35 : 1) : 30;
-    if (e.cageT > S.t) {
-      const r = Math.max(10, h * 0.45);
-      if (dark) { g.strokeStyle = '#c8202c'; g.lineWidth = 1; for (let i = -2; i <= 2; i++) { g.beginPath(); g.moveTo(e.x + i * r * 0.4, e.y - h - 2); g.lineTo(e.x + i * r * 0.4, e.y + 1); g.stroke(); } g.globalAlpha = 0.25; g.fillStyle = '#c8202c'; g.fillRect(e.x - r, e.y - h - 2, r * 2, h + 3); g.globalAlpha = 1; }
-      else { g.globalAlpha = 0.28 + 0.08 * Math.sin(S.t * 6); g.fillStyle = '#e8f4ff'; g.beginPath(); g.ellipse(e.x, e.y - h / 2, r, h * 0.62, 0, 0, 7); g.fill(); g.globalAlpha = 0.8; g.strokeStyle = '#ffffff'; g.lineWidth = 1; g.stroke(); px(e.x - r * 0.4, e.y - h * 0.8, 2, 2, '#ffffff'); g.globalAlpha = 1; }
-    }
+    if (e.cageT > S.t) drawCageCube(e, h, dark);
     if (light && e.mark > 0 && S.t < (e.markT || 0)) for (let i = 0; i < e.mark; i++) { const x = e.x - (e.mark - 1) * 3 + i * 6, y = e.y - h - 6; px(x - 1, y - 2, 3, 5, '#1a0e1e'); px(x - 2, y - 1, 5, 2, '#1a0e1e'); px(x, y - 1, 1, 3, '#ffe070'); px(x - 1, y, 3, 1, '#ffe070'); }
     if (dark && e.curseT > S.t) { g.globalAlpha = 0.7; px(e.x - 2, e.y - h - 6 + Math.sin(S.t * 5 + e.id) * 1.5, 4, 4, '#5a0a3a'); px(e.x - 1, e.y - h - 5 + Math.sin(S.t * 5 + e.id) * 1.5, 2, 2, '#ff3a8a'); g.globalAlpha = 1; }
     if (e.nailT > S.t) { px(e.x + 3, e.y - h * 0.6 - 4, 2, 8, '#1a0e1e'); px(e.x + 3, e.y - h * 0.6 - 3, 1, 6, dark ? '#e8e0d0' : '#dde4f0'); }
@@ -1512,6 +1537,19 @@ function drawPriestWorld() {
     else if (f.k === 'swing') { const k = f.t / 0.45; g.globalAlpha = 1 - k; g.strokeStyle = '#ffffff'; g.lineWidth = 3; g.beginPath(); g.ellipse(P.x, P.y - 10, 44, 33, 0, S.t * 8, S.t * 8 + 2.4); g.stroke(); g.globalAlpha = 1; }
     else if (f.k === 'book') { const k = f.t / 0.45; g.globalAlpha = 1 - k; g.fillStyle = dark ? '#ff3a5a' : '#fff6c0'; g.beginPath(); g.ellipse(P.x + 9 * P.face, P.y - 22, 6 + 8 * k, 4 + 6 * k, 0, 0, 7); g.fill(); g.globalAlpha = 1; }
   }
+}
+function drawCageCube(e, h, dark) {   // 立方体法咒 / 血色牢笼：前后两个方框，四条棱连起来
+  const w = Math.max(16, Math.round(h * 0.7)), hh = h + 4, x0 = Math.round(e.x - w / 2), y0 = Math.round(e.y - hh + 2), dx = 5, dy = -5;
+  const edge = dark ? '#ff3a4a' : '#ffffff', fill = dark ? '#c8202c' : '#d8ecff';
+  g.save(); g.lineWidth = 1;
+  g.globalAlpha = 0.18; g.fillStyle = fill; g.fillRect(x0 + dx, y0 + dy, w, hh);           // 背面
+  g.globalAlpha = 0.5; g.strokeStyle = edge; g.strokeRect(x0 + dx + 0.5, y0 + dy + 0.5, w, hh);
+  g.globalAlpha = 0.28 + 0.06 * Math.sin(S.t * 6); g.fillStyle = fill; g.fillRect(x0, y0, w, hh);   // 正面
+  g.globalAlpha = 0.95; g.strokeStyle = edge; g.strokeRect(x0 + 0.5, y0 + 0.5, w, hh);
+  g.beginPath(); for (const [cx, cy] of [[0, 0], [w, 0], [0, hh], [w, hh]]) { g.moveTo(x0 + cx + 0.5, y0 + cy + 0.5); g.lineTo(x0 + cx + dx + 0.5, y0 + cy + dy + 0.5); } g.stroke();   // 四条棱
+  if (dark) { g.globalAlpha = 0.8; g.beginPath(); for (let i = 1; i < 4; i++) { const xx = x0 + Math.round(w * i / 4) + 0.5; g.moveTo(xx, y0); g.lineTo(xx, y0 + hh); } g.stroke(); }   // 铁栏
+  else { g.globalAlpha = 0.9; g.fillStyle = '#ffffff'; g.fillRect(x0 + 2, y0 + 2, 2, 4); g.fillRect(x0 + 2, y0 + 2, 4, 1); }   // 玻璃反光
+  g.restore();
 }
 function drawPriestMist(P) {   // 血雾潜行时，神父化作地上的一团血雾
   for (let i = 0; i < 7; i++) {
