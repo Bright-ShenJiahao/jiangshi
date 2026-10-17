@@ -48,6 +48,16 @@ exec(open('gods_sprites.py').read(), g)
 sprites.update({'zhongkui': g['zhongkui']().img(), 'yanluo': g['yanluo']().img(), 'erlang': g['erlang']().img(), 'dog': g['dog']().img(), 'rulai': g['rulai']().img(), 'baoda': g['baoda']().img()})
 exec(open('monsters2.py').read(), g)
 exec(open('church2_sprites.py').read(), g)
+def _red(im):
+    im = im.convert('RGBA'); px = im.load()
+    for y in range(im.height):
+        for x in range(im.width):
+            r, gg, b, a = px[x, y]
+            if a:
+                l = (r + gg + b) / 3
+                px[x, y] = (min(255, int(40 + l * 1.15)), int(l * 0.22), int(l * 0.3), a)
+    return im
+sprites.update({'coffinR': _red(g['coffin_w']().img()), 'coffinRo': _red(g['coffin_w'](True).img())})
 sprites.update({'coffinW': g['coffin_w']().img(), 'coffinWo': g['coffin_w'](True).img(), 'coffinWh': g['coffin_w']().img().rotate(90, expand=True), 'bride': g['bride']().img(), 'wolf': g['wolfman']().img(), 'vampM': g['vamp_minion']().img(), 'ghostW': g['ghost_white']().img(), 'ghostWf': g['ghost_white'](True).img(), 'bearer': g['believer'](False).img()})
 sprites.update({'vampire': g['vampire']().img(), 'ghostR': g['red_ghost'](g), 'jumperM': g['hairy'](g['zombie']('m', 'M').img()),
                 'chest': g['chest']().img(), 'chestB': g['chest'](True).img()})

@@ -93,6 +93,8 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 .shareRow { display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; margin: 4px 0 0; }
 .shareRow .btn { text-decoration: none; display: inline-block; margin: 0; font-size: 16px; padding: 6px 12px; }
 .shareRow .rankBtn { margin: 0; }
+.shareTag { position: absolute; top: 8px; right: 8px; background: transparent; border: 2px solid var(--line); color: var(--muted); font: inherit; font-size: 13px; padding: 2px 8px; cursor: pointer; letter-spacing: .1em; }
+.shareTag:active { background: var(--line); }
 #shareToast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: rgba(12,6,22,.92); color: var(--text); border: 2px solid var(--talisman); padding: 8px 16px; font-size: 16px; z-index: 60; pointer-events: none; }
 .storyChk input { width: 20px; height: 20px; accent-color: #f0c020; margin: 0; }
 .btn.ghost { background: transparent; color: var(--muted); border-color: var(--line); box-shadow: none; font-size: 16px; padding: 4px 14px; margin-top: 10px; }
@@ -146,9 +148,11 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 .rankCols h3 { font-weight: 400; font-size: 18px; color: var(--paper); margin: 0 0 4px; text-align: center; letter-spacing: .2em; }
 .rankCols h3.hardT { color: #ff8a7a; }
 .rankCols > div { max-height: min(58vh, 460px); overflow-y: auto; }
-.rankCols table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
-.rankCols td { padding: 3px 4px; border-bottom: 1px solid var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 7em; }
-.rankCols td:first-child { color: var(--muted); width: 1.6em; }
+.rankCols table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.rankCols td { padding: 3px 2px; border-bottom: 1px solid var(--line); line-height: 1.25; vertical-align: middle; }
+.rankCols td .nm { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-all; }
+.rankCols td:first-child { color: var(--muted); width: 1.3em; }
+.rankCols td:last-child { white-space: nowrap; padding-left: 4px; }
 .rankCols td:last-child { color: var(--talisman); text-align: right; }
 .rankCols tr.ch td:nth-child(2), #board tr.ch td { color: #ff7a6a; }
 #endCheat { margin: 4px 0 0; font-size: 15px; }
@@ -201,7 +205,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
   <div id="evArrow" hidden><span id="evA">➤</span><b id="evL"></b></div>
 
   <div class="modal" id="title">
-    <div class="card">
+    <div class="card" style="position:relative"><button class="shareTag" id="shareBtn" type="button">分享</button>
       <h1>暂时停止呼吸</h1>
       <p>荒坟夜里尸变了。撑到鸡鸣天亮，便算你赢。</p>
       <div class="keys">
@@ -215,7 +219,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
       <div class="heroes"><button type="button" class="hero on" id="heroTao"><b>☯ 林道长</b><small>桃木剑 · 镇尸符</small></button><button type="button" class="hero" id="heroMonk"><b>卍 一休大师</b><small id="monkSub">禅杖 · 佛珠 · 木鱼</small></button></div>
       <div class="diffs"><button class="btn" id="startBtn">开坛 · 普通</button><button class="btn hard" id="hardBtn">开坛 · 困难</button></div>
       <p class="hint">困难：怪更硬更疼、出招更勤，积分 ×1.5</p>
-      <div class="shareRow"><button class="btn ghost rankBtn" id="rankBtn" type="button">功德簿 · 排名</button><button class="btn ghost" id="shareBtn" type="button">分享给朋友</button><a class="btn ghost" id="shareSave" href="share.png" download="暂时停止呼吸.png">保存分享图</a></div>
+      <div class="shareRow"><button class="btn ghost rankBtn" id="rankBtn" type="button">功德簿 · 排名</button></div>
       <div class="chks"><label class="storyChk"><input type="checkbox" id="storyChk"> 播放开场剧情</label><label class="storyChk"><input type="checkbox" id="tipChk"> 新手提示</label></div>
     </div>
   </div>
@@ -1889,7 +1893,6 @@ $('shareBtn').onclick = async () => {
   shareToast(r === 'copied' || r === 'wechat' ? '已复制链接，去粘贴给朋友吧' : r === 'manual' ? '复制失败，请手动复制地址栏里的链接' : '');
 };
 function shareToast(s) { if (!s) return; let el = $('shareToast'); if (!el) { el = document.createElement('div'); el.id = 'shareToast'; document.body.appendChild(el); } el.textContent = s; el.hidden = false; clearTimeout(el._t); el._t = setTimeout(() => { el.hidden = true; }, 2600); }
-$('shareSave').addEventListener('click', () => { if (typeof WEB === 'undefined' || !WEB) { event.preventDefault(); shareToast('请在网页版里保存分享图'); } });
 function offerRevive() {
   if (window.sayDeath) sayDeath();
   S.state = 'dead'; $('revNote').textContent = ''; $('revBtn').disabled = false;
@@ -2136,7 +2139,7 @@ function drawWG(list) {
 function chu2() {
   const E = S.ev; if (E.chu2) return E.chu2;
   const V = MAP.vhome || [0, 0], BY = V[1] - 312;
-  return E.chu2 = { V, BY, slots: [-110, -55, 0, 55, 110].map(o => V[0] + o), st: 'idle', carry: null, placed: false, brideSt: 'sleep', bt: 0, mobs: [], clear: false, spawnT: 0, fl: [], kn: null, drop: null, announced: false };
+  return E.chu2 = { V, BY, slots: [-110, -55, 0, 55, 110].map(o => V[0] + o), sideSt: '', sideT: 0, sideOpen: false, wsp: [false, false, false, false], wolves: [], brideSt: 'sleep', bt2: 0, mobs: [], clear: false, spawnT: 0, announced: false };
 }
 function bridePetals(e) {
   const D = DIFF[S.diff], P = S.p, a0 = Math.atan2(P.y - 10 - (e.y - 14), P.x - e.x), dmg = Math.round(9 * (1 + 0.5 * S.t / 300) * D.dmg * (e.elite ? 1 : 0.8));
@@ -2155,34 +2158,48 @@ function church2Mob(kind, x, y, elite) {
 function updateChurch2() {
   if (!MAP.vhome || S.state !== 'play') return;
   const P = S.p, me = [P.x, P.y], C = chu2(), V = C.V, E = S.ev;
-  // --- 抬棺：70 秒从教堂背后出来，走到后院
-  if (C.st === 'idle' && S.t >= (S.tips ? 150 : 70)) { C.st = 'carry'; C.carry = { x: V[0] + 4, y: V[1] - 182, leg: 0 }; rumor(['教堂后院……有人抬着一口棺材'], false); }
-  if (C.st === 'carry') {
-    const c = C.carry, tgt = c.leg === 0 ? [V[0] + 4, C.BY + 26] : [C.slots[4], C.BY + 26], dx = tgt[0] - c.x, dy = tgt[1] - c.y, l = Math.hypot(dx, dy);
-    if (near2(me, [c.x, c.y], 52)) {     // 被打断：棺材摔开，信徒四散，狼人奴仆爬出来
-      C.st = 'broken'; C.bt = 0; C.drop = { x: c.x, y: c.y };
-      C.fl = [0, 1, 2, 3].map(i => ({ x: c.x + (i % 2 ? 14 : -14), y: c.y + (i < 2 ? -18 : 18), vx: (i % 2 ? 1 : -1) * rnd(40, 70), vy: rnd(-40, 40), t: 0 }));
-      sfx('thud'); sfx('scream'); S.shake = Math.max(S.shake, 0.2);
-      S.texts.push({ x: c.x, y: c.y - 40, v: '妈呀！有人！', t: 1.6, c: '#ffffff', big: true });
-      rumor(['抬棺的信徒被吓跑了……棺材裂开了！'], true);
-    } else if (l < 1.5) { if (c.leg === 0) c.leg = 1; else { C.st = 'placed'; C.placed = true; C.bt = 0; sfx('thud'); } }
-    else { c.x += dx / l * 10 * DT; c.y += dy / l * 10 * DT; }
-  } else if (C.st === 'broken') {
-    C.bt += DT; for (const f of C.fl) { f.t += DT; f.x += f.vx * DT; f.y += f.vy * DT; }
-    if (!C.wolfOut && C.bt >= 0.9) {
-      C.wolfOut = true; const e = church2Mob('wolf', C.drop.x, C.drop.y + 6, true);
-      if (e) { e.rise = 0.8; e.onDie = q => chestDrop(q, '打断抬棺的额外奖励！'); C.mobs.push(e); S.texts.push({ x: e.x, y: e.y - 44, v: '狼人奴仆冲出来了！', t: 1.8, c: '#ff8a6a', big: true }); sfx('scream'); }
+  // --- 后院棺材：70 秒时传出敲棺声；靠近棺材 → 左右四口小棺材同时掀开，四只狼人；打光之后红色棺材才打开，新娘现身
+  if (!C.announced && S.t >= (S.tips ? 150 : 70)) { C.announced = true; rumor(['教堂后院……传来了敲棺材板的声音'], false); }
+  const bx = C.slots[2], by = C.BY - 6, SIDE = [0, 1, 3, 4];
+  if (C.announced && !C.sideSt && C.slots.some(x => near2(me, [x, by], 46))) { C.sideSt = 'shake'; C.sideT = 0; sfx('thud'); S.texts.push({ x: bx, y: by - 50, v: '棺材板……在震动', t: 1.4, c: '#ff9ab8', big: true }); }
+  else if (C.sideSt === 'shake') {
+    C.sideT += DT;
+    if (C.sideT >= 0.9) {
+      C.sideOpen = true;
+      SIDE.forEach((si, k) => {
+        if (C.wsp[k]) return;
+        const e = church2Mob('wolf', C.slots[si], C.BY + 8, false);
+        if (e) { e.rise = 0.8; C.wsp[k] = true; C.mobs.push(e); C.wolves.push(e); }
+      });
+      if (C.wsp.every(Boolean)) { C.sideSt = 'out'; S.texts.push({ x: bx, y: by - 50, v: '四口棺材同时炸开——狼人！', t: 2, c: '#ff8a6a', big: true }); sfx('scream'); sfx('thud'); S.shake = Math.max(S.shake, 0.25); }
     }
-  } else if (C.st === 'placed') { C.bt += DT; }
-  // --- 吸血鬼新娘：走近她的棺材
-  const bx = C.slots[2], by = C.BY - 6;
-  if (C.brideSt === 'sleep' && near2(me, [bx, by], 46)) { C.brideSt = 'open'; C.bt2 = 0; sfx('thud'); S.texts.push({ x: bx, y: by - 50, v: '棺盖……动了', t: 1.6, c: '#ff9ab8', big: true }); }
-  else if (C.brideSt === 'open') {
+  } else if (C.sideSt === 'out' && C.brideSt === 'sleep' && C.wolves.every(w => w.dead || !S.en.includes(w))) {
+    C.brideSt = 'open'; C.bt2 = 0; sfx('thud'); S.texts.push({ x: bx, y: by - 50, v: '红色的棺盖……动了', t: 1.6, c: '#ff9ab8', big: true });
+  }
+  if (C.brideSt === 'open') {
     C.bt2 += DT;
     if (C.bt2 >= 1.1) {
       const e = church2Mob('bride', bx, C.BY + 4, true);
-      if (e) { e.rise = 1.2; e.bride = true; e.onDie = q => { chestDrop(q, '吸血鬼新娘伏诛！'); C.brideSt = 'dead'; }; C.mobs.push(e); C.brideE = e; C.brideSt = 'out'; banner('吸血鬼新娘醒了……', 2.2); sfx('bell'); }
-      else C.bt2 = 0.5;
+      if (e) {
+        e.rise = 1.2; e.bride = true; e.mode = 0; e.onDie = q => { chestDrop(q, '吸血鬼新娘伏诛！'); C.brideSt = 'dead'; };
+        C.mobs.push(e); C.brideE = e; C.brideSt = 'out'; banner('吸血鬼新娘醒了……', 2.2); sfx('bell');
+        S.texts.push({ x: e.x, y: e.y - 56, v: '何人扰我清梦！', t: 2.4, c: '#ff6a8a', big: true }); window.sayKey && sayKey('br1');
+      } else C.bt2 = 0.5;
+    }
+  }
+  // --- 新娘与吸血伯爵：伯爵在场 → 血契（两人 +15% 移速、+20% 伤害，一方倒下增益消失）；伯爵已被打败 → 新娘发狂（+35% 移速、+30% 伤害）
+  {
+    const b = C.brideE, mulE = (e, sp, dm) => { e.spd *= sp; e.dmg = Math.round(e.dmg * dm); }, unmulE = (e, sp, dm) => { e.spd /= sp; e.dmg = Math.round(e.dmg / dm); };
+    if (b && b.mode === 1 && (b.dead || !S.en.includes(b))) { if (b.pactV && !b.pactV.dead && S.en.includes(b.pactV)) { unmulE(b.pactV, 1.15, 1.2); b.pactV.pact = 0; } b.mode = 0; b.gone2 = true; }
+    else if (b && !b.dead && S.en.includes(b) && !(b.rise > 0)) {
+      const v = S.en.find(q => q.type === 'vampire' && !q.dead && !q.escaping && !q.gone), want = v ? 1 : S.vampBeaten ? 2 : 0;
+      if (want !== b.mode) {
+        if (b.mode === 1) { unmulE(b, 1.15, 1.2); if (b.pactV && !b.pactV.dead) { unmulE(b.pactV, 1.15, 1.2); b.pactV.pact = 0; } }
+        if (b.mode === 2) unmulE(b, 1.35, 1.3);
+        b.mode = want;
+        if (want === 1) { mulE(b, 1.15, 1.2); mulE(v, 1.15, 1.2); b.pactV = v; v.pact = 1; S.texts.push({ x: b.x, y: b.y - 56, v: '我的爱人。', t: 2, c: '#ff8ab8', big: true }); S.texts.push({ x: v.x, y: v.y - 56, v: '血契！', t: 1.6, c: '#ff5a6a', big: true }); window.sayKey && sayKey('br3'); sfx('bell'); }
+        else if (want === 2) { mulE(b, 1.35, 1.3); S.texts.push({ x: b.x, y: b.y - 56, v: '我会为你复仇！', t: 2.4, c: '#ff3a4a', big: true }); S.dark = Math.max(S.dark || 0, 0.8); window.sayKey && sayKey('br2'); sfx('scream'); }
+      }
     }
   }
   // --- 清光教堂的鬼怪之后：教堂门口开始刷吸血鬼、新娘、狼人（小怪）
@@ -2204,24 +2221,15 @@ function updateChurch2() {
 }
 function drawChurch2(list) {
   const C = S.ev.chu2; if (!C || !IMG.coffinW) return;
-  const BY = C.BY, ph = Math.round(S.t * 6);
+  const BY = C.BY;
   C.slots.forEach((x, i) => {
-    if (i === 4 && !C.placed) return;
-    const open = i === 2 && C.brideSt !== 'sleep';
-    list.push({ y: BY, f: () => { if (open) g.drawImage(IMG.coffinWo, Math.round(x - 10), Math.round(BY - 54)); else g.drawImage(IMG.coffinW, Math.round(x - 10), Math.round(BY - 40)); } });
+    const mid = i === 2, open = mid ? C.brideSt !== 'sleep' : C.sideOpen, sc = mid ? 1 : 0.82;
+    const sh = !mid && C.sideSt === 'shake' ? Math.round(Math.sin(S.t * 50)) : 0;
+    list.push({ y: BY, f: () => {
+      const im = mid ? (open ? IMG.coffinRo : IMG.coffinR) : (open ? IMG.coffinWo : IMG.coffinW), w = Math.round(im.width * sc), h = Math.round(im.height * sc);
+      g.drawImage(im, Math.round(x - 10 * sc) + sh, Math.round(BY - h), w, h);
+    } });
   });
-  if (C.st === 'carry' && C.carry) {
-    const c = C.carry, vert = c.leg === 0, b = Math.round(Math.sin(S.t * 8) * 1);
-    list.push({ y: c.y + 1, f: () => { const im = vert ? IMG.coffinW : IMG.coffinWh; g.fillStyle = 'rgba(14,8,24,.35)'; g.beginPath(); g.ellipse(c.x, c.y + 2, vert ? 9 : 19, 4, 0, 0, 7); g.fill(); g.drawImage(im, Math.round(c.x - im.width / 2), Math.round(c.y - im.height / 2 - 12 + b)); } });
-    const offs = vert ? [[-12, -24], [12, -24], [-12, 22], [12, 22]] : [[26, -6], [26, 8], [-26, -6], [-26, 8]];
-    offs.forEach(([ox, oy], i) => list.push({ y: c.y + oy + 2, f: () => { const im = IMG.bearer; g.drawImage(im, Math.round(c.x + ox - im.width / 2), Math.round(c.y + oy - im.height + 3 + ((i + ph) % 2 ? 0 : -1))); } }));
-  }
-  if (C.drop) list.push({ y: C.drop.y + 8, f: () => { g.drawImage(IMG.coffinWo, Math.round(C.drop.x - 10), Math.round(C.drop.y + 10 - 54)); } });
-  if (C.st === 'broken') for (const f of C.fl) { const a = Math.max(0, 1 - f.t / 2.6); if (a > 0) list.push({ y: f.y, f: () => { g.save(); g.globalAlpha = a; const im = IMG.bearer; g.drawImage(im, Math.round(f.x - im.width / 2), Math.round(f.y - im.height + 3 - (Math.floor(S.t * 10) % 2))); g.restore(); } }); }
-  if (C.st === 'placed' && C.bt < 9) {
-    const a = C.bt > 8 ? 9 - C.bt : 1, x0 = C.slots[4];
-    for (const [ox, oy] of [[-20, 12], [0, 16], [20, 12]]) list.push({ y: BY + oy, f: () => { g.save(); g.globalAlpha = Math.max(0, a); const im = IMG.believer; g.drawImage(im, Math.round(x0 + ox - im.width / 2), Math.round(BY + oy - im.height + 2)); g.restore(); } });
-  }
 }
 
 // ---------- 新手提示（只在勾选「新手提示」时）：主线引导 + 随机提示去逛没去过的地方 ----------
@@ -2524,7 +2532,7 @@ function update() {
   if (!S.run) runStart(); else runTick();
   if (S.t >= 60 && !S.stW) { S.stW = true; banner('尸气渐重……白僵出现了！（怕火怕光）', 2.4); }
   if (S.t >= 126 && !S.stG) { S.stG = true; banner('绿僵出现了！会蓄力扑跳', 2.4); }
-  GUARD.tick(); updateZoneMusic(); S.dark = Math.max(0, (S.dark || 0) - DT * 0.25); updateEvents(); updateTips(); updateCamp(); updateWeather(); updateFlow(); updateElites(); updateWaterGhost(); updateChests();
+  GUARD.tick(); updateZoneMusic(); S.dark = Math.max(0, (S.dark || 0) - DT * 0.25); updateEvents(); updateTips(); updateWeather(); updateFlow(); updateElites(); updateWaterGhost(); updateChests();
   const rooster = S.t >= ROOSTER_AT + (S.nightX || 0);
   if (rooster && !S.roosterShown) { S.roosterShown = true; banner('喔喔喔——鸡鸣将至！', 2.5); sfx('rooster'); }
   if (S.t >= BOSS_AT && !S.bossSpawned) {
@@ -2650,13 +2658,18 @@ function update() {
       const ox = e.x, oy = e.y, want = sp * DT;
       let mx = tx / tl2, my = ty / tl2;
       if (e.pathT > 0 && !lost) {
-        e.pathT -= DT; const fd = flowDir(e); if (fd) { mx = fd[0]; my = fd[1]; }
+        e.pathT -= DT; const fd = flowDir(e);
+        if (fd) { mx = fd[0]; my = fd[1]; e.noPathT = 0; }
+        else if (FLOW && !mBig(e) && (e.noPathT = (e.noPathT || 0) + DT) > 4) {   // 被围死、通行图里根本没有路：挪到玩家附近一个走得通的位置
+          e.noPathT = 0;
+          for (let k = 0; k < 14; k++) { const a = Math.random() * 6.283, d = rnd(110, 160), nx = P.x + Math.cos(a) * d, ny = P.y + Math.sin(a) * d; if (nx > 20 && ny > 20 && nx < WORLD.w - 20 && ny < WORLD.h - 20 && freeAt(nx, ny) && FLOW[((ny / CELLSZ) | 0) * COLS + ((nx / CELLSZ) | 0)] >= 0) { e.x = nx; e.y = ny; e.pathT = 0; break; } }
+        }
         if (e.pathT <= 0 && FLOW) { const fv = FLOW[((e.y / CELLSZ) | 0) * COLS + ((e.x / CELLSZ) | 0)]; if (fv > 0 && fv * CELLSZ > tl * 1.4 + 24) e.pathT = 2; }
       }
       moveBy(e, mx * sp * DT, my * sp * DT);
       if (want > 0.15) { if (Math.hypot(e.x - ox, e.y - oy) < want * 0.3) e.stuckT = (e.stuckT || 0) + DT; else e.stuckT = 0; }
       if (e.stuckT > 0.6 && nearSoft(e)) { e.stuckT = 0; e.vault = e.vaultT = 0.55; e.vvx = tx / tl2 * 70; e.vvy = ty / tl2 * 70; }
-      else if (e.stuckT > 1.5) { e.stuckT = 0; e.pathT = 4; FLOWNEED = true; }
+      else if (e.stuckT > 1) { e.stuckT = 0; e.pathT = 6; FLOWNEED = true; e.stuckN = (e.stuckN || 0) + 1; }
     }
     // separation
     if (e.type !== 'ghost' && e.type !== 'king') {
@@ -3292,17 +3305,6 @@ function updateTips() {
   while (S.tipI < TIPS.length && S.t >= TIPS[S.tipI][0] + (S.tipI >= 1 ? 6 : 0)) { const [, s, ar] = TIPS[S.tipI++]; showTip(s, ar); }
   if (S.ult && !S.ultTipShown) { S.ultTipShown = true; showTip(TOUCH ? '右下角出现了大招按钮，点它释放！' : '获得大招！按 Q 或点右下角按钮释放', true, 4.5); }
 }
-// ---------- 阴气聚集（防蹲角落） ----------
-function updateCamp() {
-  const P = S.p;
-  if (S.campX === undefined || (P.x - S.campX) ** 2 + (P.y - S.campY) ** 2 > 70 * 70) { S.campX = P.x; S.campY = P.y; S.campT = 0; return; }
-  S.campT += DT;
-  if (S.campT > 20 && S.t > 25) {
-    S.campT = 8; banner('此地阴气聚集……', 2); sfx('wisp');
-    const n = 8 + Math.min(8, Math.floor(S.t / 40));
-    for (let i = 0; i < n; i++) { const a = i / n * 6.283, e = spawn('ghost'); e.x = P.x + Math.cos(a) * 120; e.y = P.y + Math.sin(a) * 90; e.spd *= 1.2; }
-  }
-}
 // ---------- 跃过树木 / 棺材 ----------
 const SOFT = [...(MAP.objs || []).filter(o => o.k === 'tree').map(o => [o.x, o.y]), ...(MAP.coffins || [])];
 function nearSoft(e) { for (const [x, y] of SOFT) if ((e.x - x) ** 2 + (e.y - y) ** 2 < 26 * 26) return true; return false; }
@@ -3351,7 +3353,7 @@ function drawWeather() {
 let FLOW = null, FLOWNEED = false, FLOWT = 0;
 function updateFlow() {
   FLOWT -= DT; if (!FLOWNEED || FLOWT > 0) return;
-  FLOWT = 0.5; FLOWNEED = false;
+  FLOWT = 0.3; FLOWNEED = false;
   const C = COLS, R = (GRID.length / C) | 0, N = C * R;
   if (!FLOW) FLOW = new Int32Array(N);
   FLOW.fill(-1);
@@ -3447,7 +3449,7 @@ function spawnVampire() {
   const e = spawn('vampire', VHOME[0], VHOME[1]); e.biteCd = 0; e.batCd = rnd(3, 4.5); e.batT = 0; e.home = true; e.waveCd = 3;
 }
 function vampireEscape(e) {
-  e.hp = 1; e.escaping = 2.2; e.batT = 99; S.kills++;
+  e.hp = 1; e.escaping = 2.2; e.batT = 99; S.kills++; S.vampBeaten = true;
   banner('吸血伯爵逃跑了！', 2.4); sfx('scream'); setTimeout(() => sfx('wisp'), 250);
   S.chests.push({ x: e.x, y: e.y, big: true, t: 0 });
   for (let i = 0; i < 12; i++) S.orbs.push({ x: e.x + rnd(-14, 14), y: e.y + rnd(-10, 10), v: 5 });
@@ -3502,7 +3504,7 @@ const STORY_DEFS = [
   { k: 'ren', c: '任', name: '任府 · 任老爷尸变', pop: '任老爷被老太爷咬了，尸变了！' },
   { k: 'bike', c: '秋', name: '公路 · 秋生载着女鬼', pop: '秋生骑车回来了，后座坐着红衣女鬼！' },
   { k: 'hint', c: '引', name: '新手提示', pop: '' },
-  { k: 'chu2', c: '棺', name: '教堂后院 · 信徒抬棺', pop: '教堂后院……有人鬼鬼祟祟地抬着一口棺材！' },
+  { k: 'chu2', c: '棺', name: '教堂后院 · 棺材', pop: '教堂后院……传来了敲棺材板的声音！' },
   { k: 'pearl', c: '珠', name: '酒楼 · 包打听与龙珠', pop: '尸煞伏诛……酒楼里的包打听有话要说！' },
 ];
 function storyPos(k) {
@@ -3512,7 +3514,7 @@ function storyPos(k) {
   if (k === 'ren') { const z = E.ren && S.en.find(e => e.renZ && !e.dead); return z ? [z.x, z.y] : null; }
   if (k === 'bike') return E.bike && E.bike.st !== 'gone' ? [E.bike.x, E.bike.y] : null;
   if (k === 'hint') { const G = S.guide; return G && G.hint ? G.hint.pos : null; }
-  if (k === 'chu2') { const C = E.chu2; return C && C.st === 'carry' && C.carry ? [C.carry.x, C.carry.y] : null; }
+  if (k === 'chu2') { const C = E.chu2; return C && C.announced && C.brideSt === 'sleep' && !C.sideSt ? [C.slots[2], C.BY] : null; }
   if (k === 'pearl') { const pe = E.pearl; if (!pe) return null; return pe.st === 'hint' ? pearlNpc() : pe.st === 'told' ? pearlBank() : pe.st === 'bridge' ? MAP.pearl : null; }
   return null;
 }
@@ -4209,7 +4211,7 @@ async function showRank(board) {
     const t = document.createElement('table');
     list.slice(0, 20).forEach((r, i) => {
       const tr = document.createElement('tr'); tr.className = (me && r.name === me ? 'me ' : '') + (r.cheat ? 'ch' : '');
-      for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : '☯ ') + devMark(r) + String(r.name || '无名道士').slice(0, 10) + (r.win ? ' ☀' : '') + (r.cheat ? ' 【作弊】' : ''), Number(r.score) || 0]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
+      for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : '☯ ') + String(r.name || '无名道士').slice(0, 10) + (r.win ? ' ☀' : '') + (r.cheat ? ' 【作弊】' : ''), Number(r.score) || 0]) { const td = document.createElement('td'); if (typeof v === 'string') { const sp = document.createElement('span'); sp.className = 'nm'; sp.textContent = v; td.appendChild(sp); } else td.textContent = v; tr.appendChild(td); }
       t.appendChild(tr);
     });
     el.appendChild(t);
@@ -4240,7 +4242,7 @@ async function renderBoard() {
     const tr = document.createElement('tr');
     if (myEntry && r.at === myEntry.at && r.name === myEntry.name) tr.className = 'me';
     if (r.cheat) tr.className += ' ch';
-    for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : '☯ ') + devMark(r) + String(r.name || '无名道士').slice(0, 10), Number(r.score) || 0, r.diff === 'hard' ? '困难' : '普通', (r.win ? '天亮' : '倒下') + (r.cheat ? ' · 作弊' : '')]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
+    for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : '☯ ') + String(r.name || '无名道士').slice(0, 10), Number(r.score) || 0, r.diff === 'hard' ? '困难' : '普通', (r.win ? '天亮' : '倒下') + (r.cheat ? ' · 作弊' : '')]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
     t.appendChild(tr);
   });
   box.appendChild(t);
