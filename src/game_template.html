@@ -217,7 +217,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
         <span>暂停</span><span>P 键</span>
       </div>
       <div class="nameRow"><input id="startName" maxlength="10" placeholder="道长尊姓大名？" autocomplete="off" aria-label="道号"><span id="nameTip"></span></div>
-      <div class="heroes"><button type="button" class="hero on" id="heroTao"><b>☯ 一眉道人</b><small>林九</small></button><button type="button" class="hero" id="heroMonk"><b>卍 伏魔禅师</b><small id="monkSub">一休</small></button><button type="button" class="hero" id="heroPriest"><b>✝ 天主圣徒</b><small id="priestSub">Father 柴</small></button></div>
+      <div class="heroes"><button type="button" class="hero on" id="heroTao"><b>☯︎ 一眉道人</b><small>林九</small></button><button type="button" class="hero" id="heroMonk"><b>卍︎ 伏魔禅师</b><small id="monkSub">一休</small></button><button type="button" class="hero" id="heroPriest"><b>✝︎ 天主圣徒</b><small id="priestSub">Father 柴</small></button></div>
       <div class="diffs"><button class="btn" id="startBtn">开坛 · 普通</button><button class="btn hard" id="hardBtn">开坛 · 困难</button></div>
       <p class="hint">困难：怪更硬更疼、出招更勤，积分 ×1.5</p>
       <div class="shareRow"><button class="btn ghost rankBtn" id="rankBtn" type="button">功德簿 · 排名</button></div>
@@ -1777,7 +1777,7 @@ function newGame(diff = 'normal') {
     food: [], foodT: 18, parts: [], combo: 0, comboT: 0, stop: 0, flash: 0, en: [], shots: [], areas: [], orbs: [], fx: [], texts: [], spawnAcc: 0, nextId: 1, shake: 0,
   };
   GUARD.reset(); if (HERO === 'monk') GUARD.pickW();
-  if (HERO === 'priest') setTimeout(() => { if (S && S.hero === 'priest' && S.state === 'play') rumor(['Father 柴：主啊，请赐我力量'], false); }, 2500);   // 一休开局自带袈裟，防作弊的法器计数要把它算进去
+  if (HERO === 'priest') setTimeout(() => { if (S && S.hero === 'priest' && S.state === 'play') rumor(['Father 柴：Lord, give me strength!'], false); }, 2500);   // 一休开局自带袈裟，防作弊的法器计数要把它算进去
   for (const k of ['title', 'end', 'levelup', 'pause', 'revive', 'brag', 'tip', 'tipArrow', 'mmPanel', 'evArrow']) $(k).hidden = true;
   $('mm').hidden = false; $('mmBtn').classList.remove('alert');
   S.tips = $('tipChk').checked; S.tipI = 0; tipT = 0; S.wx = null;
@@ -4257,6 +4257,7 @@ function begin(diff) {
   audioInit();
   const play = $('storyChk').checked; let mOnly = false;
   if (!play && HERO === 'monk') { try { mOnly = localStorage.getItem('ztzh_mscene') !== '1'; } catch (e) {} }
+  if (!play && HERO === 'priest') { try { mOnly = localStorage.getItem('ztzh_pscene') !== '1'; } catch (e) {} }
   whenReady(() => play || mOnly ? playStory(() => newGame(diff), mOnly) : newGame(diff));
 }
 try { $('storyChk').checked = localStorage.getItem('ztzh_story') !== '1'; } catch (e) { $('storyChk').checked = true; }
@@ -4286,7 +4287,7 @@ let ST = null;
 const playStory = (() => {
 const SC = $('sc'), sx = SC.getContext('2d'); sx.imageSmoothingEnabled = false;
 const SW = 240, SH = 150;
-const SL = (who, text) => ({ who, text });
+const SL = (who, text, vo) => ({ who, text, vo });
 const rnd = (a) => { const v = Math.sin(a * 127.1) * 43758.5453; return v - Math.floor(v); };
 
 function sSpr(k, x, by, flip, a) {          // x = center, by = feet
@@ -4411,6 +4412,7 @@ function shakeView(a) { sx.translate(Math.round((Math.random() - .5) * a), Math.
 
 // 像素风“说话声”：每个角色一套音色，按字发短促电子音
 const VOICE = {
+  'Father 柴': { rate: 16, lo: 130, hi: 180, glide: .85, dur: .09, wave: 'square', vol: .07, every: 1 },
   '一休': { rate: 15, lo: 190, hi: 260, glide: .9, dur: .09, wave: 'square', vol: .08, every: 1 },
   '道长': { rate: 17, lo: 150, hi: 210, glide: .82, dur: .085, wave: 'square', vol: .08, every: 1 },
   '阿福': { rate: 25, lo: 480, hi: 680, glide: 1.18, dur: .06, wave: 'square', vol: .06, every: 1 },
@@ -4656,9 +4658,46 @@ const MONK_SCENE = { name: '七 · 援手', lines: [
     sx.restore();
     vignette(.5);
   } };
+const PRIEST_SCENE = { name: '七 · 援手', lines: [
+    SL('', '僵尸越围越近——忽然，坟头上传来一声大喊。', '19'),
+    SL('Father 柴', 'Lord, give me strength!（主啊，请赐我力量！）', 'p1'),
+    SL('道长', '神父？你来做什么！', 'p2'),
+    SL('Father 柴', 'Go and rest, Master Lam. Leave the rest to me.（九叔，回去歇着，剩下的交给我。）', 'p3'),
+    SL('', '九叔元气大伤，先回义庄歇息。今夜，就交给 Father 柴了。', 'p4')],
+  draw(l, lt) {
+    const gy = 70, land = l > 1 || (l === 1 && lt > 0.6);
+    sx.save();
+    if (l === 1 && lt > 0.6 && lt < 0.9) shakeView(3);
+    sx.fillStyle = '#0a0614'; sx.fillRect(-4, -4, SW + 8, SH + 8);
+    sky('#06040c', '#100a1e', '#1a1028', gy); moon(120, 22, 10, '#c8c0a8');
+    ground(gy, '#2a2030', '#20182a');
+    for (let i = 0; i < 10; i++) grave(14 + i * 24 + (i % 2) * 6, gy + 14 + (i % 3) * 22 + (i % 2) * 8, '#5a5a70');
+    mist(gy + 30, .1); mist(gy + 60, .1);
+    const push = land ? Math.min(1, (l === 1 ? lt - 0.6 : 9) / 0.4) : 0;
+    for (let i = 0; i < 8; i++) {
+      const a = i / 8 * Math.PI * 2 + .3, r = 58 + push * 46, x = 120 + Math.cos(a) * r * 1.2, y = 112 + Math.sin(a) * r * .5;
+      sSpr(i % 3 ? 'zombie' : 'jumper', x, y + hopY(ST.T + i * .2, 1.5), x > 120, .85);
+    }
+    if (l === 1 && lt > 0.6 && lt < 1.5) {   // 落地：地上闪出一个十字圣光，把僵尸震开
+      const k = (lt - 0.6) / 0.9; sx.globalAlpha = 1 - k; sx.fillStyle = '#fff6c0';
+      const L = 20 + 60 * k, w = 3 + 3 * (1 - k);
+      sx.fillRect(136 - w / 2, 122 - L * .4, w, L * .55); sx.fillRect(136 - L * .45, 122 - L * .2 - w / 2, L * .9, w);
+      sx.strokeStyle = '#ffe9b0'; sx.lineWidth = 2; sx.beginPath(); sx.ellipse(136, 122, 10 + 70 * k, (10 + 70 * k) * .4, 0, 0, 7); sx.stroke(); sx.globalAlpha = 1;
+    }
+    const tx = l >= 4 ? 106 - lt * 36 : 106;
+    sSpr('taoist', tx, 122, l >= 4, l >= 4 ? Math.max(0, 1 - lt / 3) : 1);
+    let mx = 42, my = 70;
+    if (l === 1) { const k = Math.min(1, Math.max(0, lt / 0.6)); mx = 42 + (136 - 42) * k; my = 70 + (122 - 70) * k - Math.sin(k * Math.PI) * 30; }
+    else if (l >= 2) { mx = l >= 4 ? 136 - Math.min(16, lt * 8) : 136; my = 122; }
+    if (l > 0 || lt > 0.5) { glow(mx, my - 18, 22, 'rgba(255,240,190,A)'); sSpr('priest', mx, my, l >= 2 && l < 4); }
+    if (!ST.snd.land && land) { ST.snd.land = 1; sfx('slam'); setTimeout(() => sfx('bell'), 150); }
+    sx.restore();
+    vignette(.5);
+  } };
 function playStory(done, monkOnly) {
-  if (HERO === 'monk') { if (SCENES[SCENES.length - 1] !== MONK_SCENE) SCENES.push(MONK_SCENE); try { localStorage.setItem('ztzh_mscene', '1'); } catch (e) {} }
-  else if (SCENES[SCENES.length - 1] === MONK_SCENE) SCENES.pop();
+  if (SCENES[SCENES.length - 1] === MONK_SCENE || SCENES[SCENES.length - 1] === PRIEST_SCENE) SCENES.pop();
+  if (HERO === 'monk') { SCENES.push(MONK_SCENE); try { localStorage.setItem('ztzh_mscene', '1'); } catch (e) {} }
+  if (HERO === 'priest') { SCENES.push(PRIEST_SCENE); try { localStorage.setItem('ztzh_pscene', '1'); } catch (e) {} }
   try { localStorage.setItem('ztzh_story', '1'); } catch (e) {}
   $('storyChk').checked = false;
   ['title', 'end'].forEach(k => $(k).hidden = true);
@@ -4727,7 +4766,7 @@ function setLine() {
   $('sWho').textContent = ln.who || '旁白'; $('sWho').className = ln.who ? '' : 'nar';
   $('sTxt').textContent = ''; ST.shown = 0; ST.lt = 0; ST.acc = 0; ST.wait = .15; $('sNext').hidden = true;
   $('sProg').textContent = SCENES[ST.i].name;
-  const dur = playVoice(lineIndex());
+  const dur = playVoice(ln.vo ?? lineIndex());
   ST.voiced = dur > 0; if (ST.voiced) ST.vwait = Math.max(.03, dur * .85 / ln.text.length);
   if (ST.i === 2 && ST.l === 0) setTimeout(() => ST && sfx('slam'), 1200);
   if (ST.i === 2 && ST.l === 1) sfx('roar');
@@ -4834,7 +4873,7 @@ async function showRank(board) {
     const t = document.createElement('table');
     list.slice(0, 20).forEach((r, i) => {
       const tr = document.createElement('tr'); tr.className = (me && r.name === me ? 'me ' : '') + (r.cheat ? 'ch' : '');
-      for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : r.hero === 'priest' ? '✝ ' : '☯ ') + String(r.name || '无名道士').slice(0, 10) + (r.win ? ' ☀' : '') + (r.cheat ? ' 【作弊】' : ''), Number(r.score) || 0]) { const td = document.createElement('td'); if (typeof v === 'string') { const sp = document.createElement('span'); sp.className = 'nm'; sp.textContent = v; td.appendChild(sp); } else td.textContent = v; tr.appendChild(td); }
+      for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : r.hero === 'priest' ? '✝︎ ' : '☯︎ ') + String(r.name || '无名道士').slice(0, 10) + (r.win ? ' ☀' : '') + (r.cheat ? ' 【作弊】' : ''), Number(r.score) || 0]) { const td = document.createElement('td'); if (typeof v === 'string') { const sp = document.createElement('span'); sp.className = 'nm'; sp.textContent = v; td.appendChild(sp); } else td.textContent = v; tr.appendChild(td); }
       t.appendChild(tr);
     });
     el.appendChild(t);
@@ -4865,7 +4904,7 @@ async function renderBoard() {
     const tr = document.createElement('tr');
     if (myEntry && r.at === myEntry.at && r.name === myEntry.name) tr.className = 'me';
     if (r.cheat) tr.className += ' ch';
-    for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : r.hero === 'priest' ? '✝ ' : '☯ ') + String(r.name || '无名道士').slice(0, 10), Number(r.score) || 0, r.diff === 'hard' ? '困难' : '普通', (r.win ? '天亮' : '倒下') + (r.cheat ? ' · 作弊' : '')]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
+    for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : r.hero === 'priest' ? '✝︎ ' : '☯︎ ') + String(r.name || '无名道士').slice(0, 10), Number(r.score) || 0, r.diff === 'hard' ? '困难' : '普通', (r.win ? '天亮' : '倒下') + (r.cheat ? ' · 作弊' : '')]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
     t.appendChild(tr);
   });
   box.appendChild(t);
