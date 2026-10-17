@@ -230,7 +230,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
         <span>暂停</span><span>P 键</span>
       </div>
       <div class="nameRow"><input id="startName" maxlength="10" placeholder="道长尊姓大名？" autocomplete="off" aria-label="道号"><span id="nameTip"></span></div>
-      <div class="heroes"><button type="button" class="hero on" id="heroTao"><b>☯ 林道长</b><small>桃木剑 · 镇尸符</small></button><button type="button" class="hero" id="heroMonk"><b>卍 一休大师</b><small id="monkSub">禅杖 · 佛珠 · 木鱼</small></button></div>
+      <div class="heroes"><button type="button" class="hero on" id="heroTao"><b>☯ 一眉道人</b><small>林九</small></button><button type="button" class="hero" id="heroMonk"><b>卍 伏魔禅师</b><small id="monkSub">一休</small></button></div>
       <div class="diffs"><button class="btn" id="startBtn">开坛 · 普通</button><button class="btn hard" id="hardBtn">开坛 · 困难</button></div>
       <p class="hint">困难：怪更硬更疼、出招更勤，积分 ×1.5</p>
       <div class="shareRow"><button class="btn ghost rankBtn" id="rankBtn" type="button">功德簿 · 排名</button></div>
@@ -1874,7 +1874,7 @@ addEventListener('blur', () => { if (S && S.state === 'play') togglePause(); });
 
 // ---------- 分享 / 复活 ----------
 const SITE = 'https://jiangshidaozhang.netlify.app/';
-const BUILD = '2610172203';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
+const BUILD = '2610172319';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
 const shareUrl = () => ((typeof WEB !== 'undefined' && WEB) ? location.origin + location.pathname : SITE) + '?v=' + BUILD;
 function shichenNow() { let n = '子时'; for (const [a, t] of SHI) if (S.t >= t) n = a; return n; }
 async function copyText(s) {
@@ -3156,7 +3156,7 @@ function draw() {
     g.save();
     if (e.dead) { g.globalAlpha = Math.max(0, e.dead * 2); g.translate(Math.round(e.x), Math.round(e.y - im.height / 2)); g.rotate((0.5 - e.dead) * 9 * face); g.drawImage(im, -im.width / 2, -im.height / 2); g.restore(); continue; }
     if (e.type === 'ghost') g.globalAlpha = 0.78;
-    const sc = e.elite ? 1.35 : 1, iw = Math.round(im.width * sc), ih = Math.round(im.height * sc);
+    const sc = e.skin === 'bride' ? IMG.vampire.height / im.height : e.elite ? 1.35 : 1, iw = Math.round(im.width * sc), ih = Math.round(im.height * sc);
     const X = Math.round(e.x - iw / 2 + (e.stun || e.crouch > 0 ? (Math.random() < 0.5 ? -1 : 1) * (e.crouch > 0 ? 1 : 0.5) : 0)), Y = Math.round(e.y - ih + 2 + hop + (e.crouch > 0 ? 2 : 0));
     if (e.elite && e.type === 'zombie') { g.globalAlpha = 0.18; g.fillStyle = '#5ac04a'; g.beginPath(); g.ellipse(e.x, e.y - 4, 42, 30, 0, 0, 7); g.fill(); }
     if (e.buff > S.t) { g.globalAlpha = 0.3 + 0.15 * Math.sin(S.t * 14 + e.id); g.fillStyle = '#ff2a2a'; g.beginPath(); g.ellipse(e.x, e.y - ih / 2, iw * 0.55, ih * 0.5, 0, 0, 7); g.fill(); g.globalAlpha = 1; }
@@ -3663,12 +3663,12 @@ function renderHeroes() {
   const un = monkUnlocked(); if (!un && HERO === 'monk') HERO = 'tao';
   $('heroTao').className = 'hero' + (HERO === 'tao' ? ' on' : '');
   $('heroMonk').className = 'hero' + (HERO === 'monk' ? ' on' : '') + (un ? '' : ' lock');
-  $('monkSub').textContent = un ? '禅杖 · 佛珠 · 木鱼' : '🔒 撑到鸡鸣解锁';
+  $('monkSub').textContent = un ? '一休' : '🔒 撑到鸡鸣解锁';
   $('startName').placeholder = HERO === 'monk' ? '大师法号？' : '道长尊姓大名？';
 }
 $('heroTao').onclick = () => { HERO = 'tao'; try { localStorage.setItem('ztzh_hero', 'tao'); } catch (e) {} renderHeroes(); sfx('pick'); };
 $('heroMonk').onclick = () => {
-  if (!monkUnlocked()) { $('monkSub').textContent = '🔒 先用林道长撑到鸡鸣'; sfx('hurt'); return; }
+  if (!monkUnlocked()) { $('monkSub').textContent = '🔒 先用一眉道人撑到鸡鸣'; sfx('hurt'); return; }
   HERO = 'monk'; try { localStorage.setItem('ztzh_hero', 'monk'); } catch (e) {} renderHeroes(); sfx('pick');
 };
 renderHeroes();
