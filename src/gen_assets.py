@@ -98,3 +98,17 @@ if os.path.isdir(pub):
             + meta + html[:he] + '\n</head>\n<body><div style="display:none"><img src="share.png" alt="暂时停止呼吸"></div>' + html[he:] + '\n</body>\n</html>\n')
     open(os.path.join(pub, 'index.html'), 'w', encoding='utf-8').write(page)
     print('wrote', os.path.normpath(os.path.join(pub, 'index.html')))
+
+
+# ---- 防作弊：记录发布页面脚本的 SHA-256，服务器据此识别被改过的客户端 ----
+import re as _re, hashlib as _h
+_pp = os.path.join(pub, 'index.html')
+if os.path.exists(_pp):
+    _src = open(_pp, encoding='utf-8').read()
+    _m = _re.search(r'<script>(.*?)</script>', _src, _re.S)
+    _hash = _h.sha256(_m.group(1).encode('utf-8')).hexdigest()
+    _hp = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'netlify', 'functions', 'hashes.mjs')
+    _old = _re.findall(r"'([0-9a-f]{64})'", open(_hp).read()) if os.path.exists(_hp) else []
+    _all = ([x for x in _old if x != _hash] + [_hash])[-40:]
+    open(_hp, 'w').write('// 自动生成：官方页面脚本哈希（保留最近 40 个版本）\nexport default [\n' + ''.join("  '%s',\n" % x for x in _all) + '];\n')
+    print('script hash', _hash[:12])

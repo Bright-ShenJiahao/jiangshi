@@ -1870,7 +1870,7 @@ addEventListener('blur', () => { if (S && S.state === 'play') togglePause(); });
 
 // ---------- 分享 / 复活 ----------
 const SITE = 'https://jiangshidaozhang.netlify.app/';
-const BUILD = '2610170514';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
+const BUILD = '2610172111';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
 const shareUrl = () => ((typeof WEB !== 'undefined' && WEB) ? location.origin + location.pathname : SITE) + '?v=' + BUILD;
 function shichenNow() { let n = '子时'; for (const [a, t] of SHI) if (S.t >= t) n = a; return n; }
 async function copyText(s) {
@@ -2535,6 +2535,7 @@ function update() {
   const P = S.p;
   if (S.dawnT != null) { updateDawn(); return; }
   S.t += DT;
+  if (!S.run) runStart(); else runTick();
   if (S.t >= 60 && !S.stW) { S.stW = true; banner('尸气渐重……白僵出现了！（怕火怕光）', 2.4); }
   if (S.t >= 126 && !S.stG) { S.stG = true; banner('绿僵出现了！会蓄力扑跳', 2.4); }
   GUARD.tick(); updateZoneMusic(); S.dark = Math.max(0, (S.dark || 0) - DT * 0.25); updateEvents(); updateTips(); updateCamp(); updateWeather(); updateFlow(); updateElites(); updateWaterGhost(); updateChests();
@@ -4179,6 +4180,25 @@ let DB = null, USER = null, myEntry = null, boardNote = '';
   try { if (window.claude && window.claude.use) { DB = await window.claude.use('db'); USER = await window.claude.use('user'); } } catch (e) { DB = null; }
 })();
 const WEB = /^https?:$/.test(location.protocol) && !/claude\.ai|claudeusercontent|itch\.(io|zone)|hwcdn/.test(location.hostname);
+
+// ---------- 防作弊：开局领凭证 + 中途上报 + 代码指纹 ----------
+let SCRIPT_H = '';
+try { crypto.subtle.digest('SHA-256', new TextEncoder().encode(document.scripts[0].textContent)).then(b => { SCRIPT_H = [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }); } catch (e) {}
+const DEVTAG = () => (TOUCH ? 't' : 'k');
+async function runPost(op, body) { const r = await fetch('/api/scores?op=' + op, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); if (!r.ok) throw new Error('http ' + r.status); return r.json(); }
+function runStart() {
+  const R = S.run = { tok: '', next: 30 };
+  if (S.tips || typeof WEB === 'undefined' || !WEB) return;
+  const go = (n) => runPost('start', { h: SCRIPT_H, diff: S.diff, dev: DEVTAG() }).then(j => { R.tok = j.tok || ''; }).catch(() => { if (n > 0) return new Promise(r => setTimeout(r, 1500)).then(() => go(n - 1)); });
+  R.p = new Promise(r => setTimeout(r, SCRIPT_H ? 0 : 600)).then(() => go(2));
+}
+function runTick() {
+  const R = S.run; if (!R) return;
+  if (S.t < R.next) return;
+  R.next += 30;
+  if (R.tok) runPost('cp', { tok: R.tok, t: Math.floor(S.t), kills: S.kills, lv: S.lv }).catch(() => {});
+}
+const devMark = (r) => (r.dev === 't' ? '📱' : r.dev === 'k' ? '💻' : '');
 async function webGet() { const r = await fetch('/api/scores', { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); const j = await r.json(); if (!Array.isArray(j)) throw new Error('bad'); return j; }
 async function webPost(rec) { const r = await fetch('/api/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rec) }); if (!r.ok) throw new Error('http ' + r.status); const j = await r.json(); if (!Array.isArray(j)) throw new Error('bad'); return j; }
 function localBoard() { try { return JSON.parse(localStorage.getItem('ztzh_board') || '[]'); } catch (e) { return []; } }
@@ -4203,7 +4223,7 @@ async function showRank(board) {
     const t = document.createElement('table');
     list.slice(0, 20).forEach((r, i) => {
       const tr = document.createElement('tr'); tr.className = (me && r.name === me ? 'me ' : '') + (r.cheat ? 'ch' : '');
-      for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : '☯ ') + String(r.name || '无名道士').slice(0, 10) + (r.win ? ' ☀' : '') + (r.cheat ? ' 【作弊】' : ''), Number(r.score) || 0]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
+      for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : '☯ ') + devMark(r) + String(r.name || '无名道士').slice(0, 10) + (r.win ? ' ☀' : '') + (r.cheat ? ' 【作弊】' : ''), Number(r.score) || 0]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
       t.appendChild(tr);
     });
     el.appendChild(t);
@@ -4234,7 +4254,7 @@ async function renderBoard() {
     const tr = document.createElement('tr');
     if (myEntry && r.at === myEntry.at && r.name === myEntry.name) tr.className = 'me';
     if (r.cheat) tr.className += ' ch';
-    for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : '☯ ') + String(r.name || '无名道士').slice(0, 10), Number(r.score) || 0, r.diff === 'hard' ? '困难' : '普通', (r.win ? '天亮' : '倒下') + (r.cheat ? ' · 作弊' : '')]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
+    for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : '☯ ') + devMark(r) + String(r.name || '无名道士').slice(0, 10), Number(r.score) || 0, r.diff === 'hard' ? '困难' : '普通', (r.win ? '天亮' : '倒下') + (r.cheat ? ' · 作弊' : '')]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
     t.appendChild(tr);
   });
   box.appendChild(t);
@@ -4245,7 +4265,9 @@ async function saveRecord(name) {
   if (!S || S.state !== 'over' || S.saved) return;
   S.saved = true;
   if (S.tips) { myEntry = null; boardNote = '新手教学局，不计入排行。'; renderBoard(); $('bragNote').textContent = ''; $('brag').hidden = false; return; }
-  const rec = { name, score: S.score, kills: S.kills, lv: S.lv, t: Math.floor(S.t), win: !!S.win, diff: S.diff, at: Date.now(), hero: S.hero, ults: S.ultN || 0, cheat: S.cheat || 0 };
+  const rec = { name, score: S.score, kills: S.kills, lv: S.lv, t: Math.floor(S.t), win: !!S.win, diff: S.diff, at: Date.now(), hero: S.hero, ults: S.ultN || 0, cheat: S.cheat || 0, dev: DEVTAG() };
+  try { if (S.run && S.run.p) await Promise.race([S.run.p, new Promise(r => setTimeout(r, 4000))]); } catch (e) {}
+  rec.tok = (S.run && S.run.tok) || '';
   myEntry = rec;
   if (rec.cheat) boardNote = '这一局逆天改命，成绩已记入功德簿，并标注【作弊】。';
   try { const arr = localBoard(); arr.push(rec); arr.sort((a, b) => b.score - a.score); localStorage.setItem('ztzh_board', JSON.stringify(arr.slice(0, 20))); } catch (e) {}

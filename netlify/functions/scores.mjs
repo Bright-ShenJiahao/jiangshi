@@ -1,5 +1,7 @@
 // 功德簿：共享排行榜（Netlify Functions + Netlify Blobs）
 import { getStore } from '@netlify/blobs';
+import { createHmac, randomBytes } from 'node:crypto';
+import HASHES from './hashes.mjs';   // 官方各版本页面脚本的 SHA-256（构建时自动追加）
 
 const KEY = 'top';
 const CHEAT_KEY = 'cheat';   // 旧的作弊榜（只读）：读取时并入功德簿并标注作弊
@@ -14,6 +16,10 @@ const int = (v, lo, hi) => { const n = Math.round(Number(v)); return Number.isFi
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
 });
+
+const KILL_CAP = { normal: 2300, hard: 2700 };   // 完美击杀模拟：普通约 2085、困难约 2470，留一点余量
+const LV_CAP = 90;
+const TOK_TTL = 30 * 60 * 1000;
 
 export default async (req) => {
   const store = getStore({ name: 'leaderboard', consistency: 'strong' });
@@ -51,6 +57,40 @@ export default async (req) => {
 
   let b;
   try { b = await req.json(); } catch { return json({ error: 'bad json' }, 400); }
+
+  // ---- 凭证：开局领取，中途上报，结算核对 ----
+  let secret = await store.get('secret');
+  if (!secret) { await store.set('secret', randomBytes(24).toString('hex'), { onlyIfNew: true }); secret = await store.get('secret'); }
+  const sign = (a) => createHmac('sha256', secret).update(a).digest('hex').slice(0, 24);
+  const parseTok = (tok) => {
+    const m = /^(\d{13})\.([0-9a-f]{16})\.([0-9a-f]{24})$/.exec(String(tok || ''));
+    if (!m || sign(m[1] + '.' + m[2]) !== m[3]) return null;
+    const ts = Number(m[1]); if (Date.now() - ts > TOK_TTL || ts > Date.now() + 5000) return null;
+    return { ts, id: m[2] };
+  };
+  const op = q.get('op');
+  if (op === 'start') {
+    const ts = String(Date.now()), id = randomBytes(8).toString('hex');
+    const run = { ts: Number(ts), diff: b.diff === 'hard' ? 'hard' : 'normal', dev: b.dev === 't' ? 't' : 'k', hash: typeof b.h === 'string' ? b.h : '', cps: [], why: [] };
+    if (!run.hash) run.why.push('nohash'); else if (!HASHES.includes(run.hash)) run.why.push('codemod');
+    await store.setJSON('run:' + id, run);
+    return json({ tok: ts + '.' + id + '.' + sign(ts + '.' + id) });
+  }
+  if (op === 'cp') {
+    const tk = parseTok(b.tok); if (!tk) return json({ ok: false });
+    const run = await store.get('run:' + tk.id, { type: 'json' }); if (!run || run.done) return json({ ok: false });
+    const t = int(b.t, 0, 420), kills = int(b.kills, 0, 20000), lv = int(b.lv, 1, 200);
+    const prev = run.cps[run.cps.length - 1] || { t: 0, kills: 0, lv: 1 };
+    const wall = (Date.now() - run.ts) / 1000;
+    if (t > wall * 1.15 + 6 && !run.why.includes('speed')) run.why.push('speed');                       // 游戏时间比真实时间走得快
+    if (t < prev.t || kills < prev.kills || lv < prev.lv) run.why.push('rewind');
+    else if (kills - prev.kills > (t - prev.t) * 20 + 100 && !run.why.includes('burst')) run.why.push('burst');   // 一段时间内击杀暴涨
+    run.cps.push({ t, kills, lv, w: Math.round(wall) });
+    if (run.cps.length > 20) run.cps.shift();
+    await store.setJSON('run:' + tk.id, run);
+    return json({ ok: true });
+  }
+
   const rec = {
     name: clean(b.name) || '无名道士',
     kills: int(b.kills, 0, 20000),
@@ -63,6 +103,7 @@ export default async (req) => {
     ults: int(b.ults, 0, 9999),
     hero: b.hero === 'monk' ? 'monk' : 'tao',
     cheat: 0,
+    dev: b.dev === 't' ? 't' : b.dev === 'k' ? 'k' : '',
   };
   const flagged = int(b.cheat, 0, 9999) > 0;
   // Plausibility: the score must not exceed what the game's own formula allows.
@@ -73,9 +114,28 @@ export default async (req) => {
   if (rec.score > max + 5) why.push('score');
   if (rec.ults > Math.floor(rec.t / 28) + 1) why.push('ult');
   if (rec.kills > rec.t * 6 + 200) why.push('kills');
-  if (rec.lv > 120) why.push('lv2');   // 一局 5 分钟实测能升到 49 重，以前的 45 上限会误伤正常玩家
+  if (rec.kills > KILL_CAP[rec.diff]) why.push('cap');          // 刷怪总量决定的击杀上限
+  if (rec.lv > LV_CAP) why.push('lv2');   // 实测最高 62 重
   if (rec.t < 360 && rec.win) why.push('win');   // 一局 6 分钟；遮天蔽日最多推迟到 380 秒
-  if (why.length) { rec.cheat = 1; rec.why = why.join(','); }
+  {   // 凭证核对
+    const tk = parseTok(b.tok);
+    const run = tk ? await store.get('run:' + tk.id, { type: 'json' }) : null;
+    if (!run) why.push('notoken');
+    else if (run.done) why.push('reuse');
+    else {
+      run.why.forEach((w) => why.push(w));
+      const wall = (Date.now() - run.ts) / 1000;
+      if (rec.t > wall * 1.15 + 8) why.push('speed');
+      const need = Math.floor(rec.t / 30) - 3;       // 允许丢几个上报包
+      if (run.cps.length < need) why.push('nocp');
+      const last = run.cps[run.cps.length - 1];
+      if (last && (rec.kills < last.kills || rec.lv < last.lv || rec.kills - last.kills > Math.max(0, rec.t - last.t) * 20 + 100)) why.push('jump');
+      if (run.diff !== rec.diff) why.push('diff');
+      rec.dev = run.dev;   // 设备以服务器记录为准
+      run.done = true; await store.setJSON('run:' + tk.id, run);
+    }
+  }
+  if (why.length) { rec.cheat = 1; rec.why = [...new Set(why)].join(','); }
 
   if (rec.win && !why.length) {   // 只记正常通关的名字；撞车就重试几次，失败也不影响成绩提交
     for (let i = 0; i < 4; i++) {
