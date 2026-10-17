@@ -9,6 +9,7 @@ const CHEAT_CAP = 20;       // 功德簿里最多保留多少条作弊成绩
 const CLEARED_KEY = 'cleared';   // 通关过的名字（不受排行榜 100 名限制），用来给一休解锁
 const KEEP = 100;          // stored entries
 const EPOCH = '2026-10-17-reset1';   // 改这个值 = 下次有人访问时清空功德簿的排名（top / cheat）；通关名单 cleared 保留，已解锁一休的人不受影响
+const PURGE = { id: '2026-10-17-purge1', hit: (n) => /^test果/i.test(String(n).replace(/\s/g, '')) };   // 改 id = 下次访问时按 hit 规则从功德簿删除成绩（一次性）；这次删掉「Test果汁」
 const SHOW = 100;          // entries returned to the game (排行榜分普通/困难两列显示)
 
 const clean = (v) => String(v ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 10);
@@ -30,6 +31,11 @@ export default async (req) => {
 
   if ((await store.get('epoch')) !== EPOCH) {   // 一次性清榜
     await store.setJSON(KEY, []); await store.setJSON(CHEAT_KEY, []); await store.set('epoch', EPOCH);
+  }
+
+  if ((await store.get('purge')) !== PURGE.id) {   // 一次性删除指定名字的成绩
+    for (const k of [KEY, CHEAT_KEY]) { const { list } = await read(k); await store.setJSON(k, list.filter((r) => !PURGE.hit(r.name))); }
+    await store.set('purge', PURGE.id);
   }
 
   const q = new URL(req.url).searchParams;
