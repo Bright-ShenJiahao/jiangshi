@@ -2505,6 +2505,11 @@ function updateGan() {
   }
   updateGanPets();
   updateGanDemon();
+  if (gUlt('wy')) {   // 尸力跨过门槛时提醒：能召什么
+    const pw = gPower(), tier = pw >= 22 ? 3 : pw >= 10 ? 2 : pw > 0 ? 1 : 0;
+    if (tier > (G.tier || 0) && tier >= 2) { S.texts.push({ x: P.x, y: P.y - 58, v: tier === 3 ? '尸力 22 · 可召「犼」' : '尸力 10 · 可召「旱魃」', t: 1.8, c: tier === 3 ? '#ffd060' : '#ff7a3a', big: true }); sfx('ultcard'); }
+    G.tier = tier;
+  }
   for (const f of G.fx) f.t += DT;
   G.fx = G.fx.filter(f => f.t < (f.k === 'soul' ? 0.6 : f.k === 'tiger' ? 0.5 : f.k === 'zslash' ? 0.3 : f.k === 'slam' ? 0.35 : 0.4));
 }
@@ -2799,6 +2804,16 @@ function drawGanHud() {
   const txt = '尸傀 ' + n + '/' + cap + mode + (gUlt('wy') ? ' · 灵物 ' + G.spirits.length + '/' + gSpCap() + ' · 尸力 ' + gPower() : '');
   const tw = Math.ceil(g.measureText(txt).width) + 8; g.fillStyle = 'rgba(14,8,24,.6)'; g.fillRect(VW / 2 - tw / 2, y0 - 9, tw, 9);
   g.fillStyle = '#9af0b0'; g.fillText(txt, VW / 2, y0 - 2);
+  if (gUlt('wy')) {   // 尸力长条：夜叉 | 旱魃（10）| 犼（22）
+    const pw = gPower(), MAXP = 30, w = 120, x0 = Math.round(VW / 2 - w / 2), y1 = y0 - 21, X = v => x0 + Math.round(w * Math.min(v, MAXP) / MAXP);
+    const tier = pw >= 22 ? 'hou' : pw >= 10 ? 'hanba' : 'yecha', col = G_DEMON[tier].c;
+    g.fillStyle = 'rgba(14,8,24,.7)'; g.fillRect(x0 - 1, y1 - 1, w + 2, 6);
+    g.fillStyle = col; g.fillRect(x0, y1, X(pw) - x0, 4);
+    g.fillStyle = '#ffffff'; g.fillRect(X(10), y1 - 1, 1, 6); g.fillRect(X(22), y1 - 1, 1, 6);
+    g.font = 'bold 6px monospace';
+    for (const [v, k] of [[5, 'yecha'], [16, 'hanba'], [26, 'hou']]) { g.fillStyle = tier === k ? G_DEMON[k].c : 'rgba(220,210,230,.55)'; g.fillText(G_DEMON[k].n, X(v), y1 - 3); }
+    if (S.ultCd <= 0 && pw > 0 && Math.floor(S.t * 2) % 2) { g.fillStyle = col; g.fillText('Q 献祭 → ' + G_DEMON[tier].n, VW / 2, y1 - 11); }
+  }
 }
 const DIFF = {
   normal: { name: '普通', hp: 1, dmg: 1, inv: 0.9, spawn: 1, skill: 1, mul: 1 },
@@ -3767,7 +3782,7 @@ addEventListener('blur', () => { if (S && S.state === 'play') togglePause(); });
 
 // ---------- 分享 / 复活 ----------
 const SITE = 'https://jiangshidaozhang.netlify.app/';
-const BUILD = '2610190200';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
+const BUILD = '2610190211';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
 const shareUrl = () => ((typeof WEB !== 'undefined' && WEB) ? location.origin + location.pathname : SITE) + '?v=' + BUILD;
 function shichenNow() { let n = '子时'; for (const [a, t] of SHI) if (S.t >= t) n = a; return n; }
 async function copyText(s) {
