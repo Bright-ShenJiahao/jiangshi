@@ -1,3 +1,9 @@
 src/game.html
 __pycache__/
 *.pyc
+
+# 本地快照 / 备份，不进仓库
+.snapshots/
+*.bundle
+node_modules/
+
