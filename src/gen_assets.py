@@ -76,6 +76,20 @@ _q.add_data('https://jiangshidaozhang.netlify.app/'); _q.make(fit=True)
 sprites['qr'] = _q.make_image(fill_color='black', back_color='white').convert('RGBA')
 bg, objsprites, data = map_gen5.build()
 sprites.update(objsprites)
+# ---- 章节地图：每章单独打包成 public/ch/<id>.js，选中时才下载；标题页只带小缩略图 ----
+import map_heian, map_london, map_nanyang, map_qin
+CHAPTERS = {}
+def _qpng(im, colors=112):
+    q = im.convert('RGB').quantize(colors=colors, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+    buf = io.BytesIO(); q.save(buf, 'PNG', optimize=True)
+    return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
+def _thumb(im):
+    t = im.convert('RGB'); sc = 132 / t.width; return t.resize((132, max(1, round(t.height * sc))), Image.BOX)
+sprites['th_ren'] = _thumb(bg)
+for _cid, _mod in (('heian', map_heian), ('london', map_london), ('nanyang', map_nanyang), ('qin', map_qin)):
+    _bg, _sp, _data, _ = _mod.build()
+    _as = {k: b64(v) for k, v in _sp.items()}; _as['bg_' + _cid] = _qpng(_bg)
+    CHAPTERS[_cid] = (_data, _as); sprites['th_' + _cid] = _thumb(_bg)
 assets = {k: b64(v) for k, v in sprites.items()}
 assets['bg'] = b64(bg.convert('RGB'))
 import glob, os
@@ -113,6 +127,10 @@ if os.path.isdir(pub):
             '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">\n'
             + meta + html[:he] + '\n</head>\n<body><div style="display:none"><img src="share.png" alt="暂时停止呼吸"></div>' + html[he:] + '\n</body>\n</html>\n')
     open(os.path.join(pub, 'index.html'), 'w', encoding='utf-8').write(page)
+    chd = os.path.join(pub, 'ch'); os.makedirs(chd, exist_ok=True)
+    for _cid, (_data, _as) in CHAPTERS.items():
+        _js = "(window.__CH=window.__CH||{})[%s]={map:%s,assets:%s};" % (json.dumps(_cid), json.dumps(_data, separators=(',', ':')), json.dumps(_as, separators=(',', ':')))
+        open(os.path.join(chd, _cid + '.js'), 'w', encoding='utf-8').write(_js); print('chapter', _cid, len(_js) // 1024, 'KB')
     print('wrote', os.path.normpath(os.path.join(pub, 'index.html')))
 
 

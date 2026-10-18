@@ -47,7 +47,7 @@ export default async (req) => {
     return json({ cleared: names.includes(nm) || onBoard });
   }
   // 功德簿 = 新记录 + 旧作弊榜（标注作弊）；同名同难度同角色，作弊和不作弊各占一行；作弊成绩最多 CHEAT_CAP 条
-  const keyOf = (r) => r.name + '|' + r.diff + '|' + (r.hero || 'tao') + '|' + (r.cheat ? 1 : 0);
+  const keyOf = (r) => r.name + '|' + r.diff + '|' + (r.hero || 'tao') + '|' + (r.cheat ? 1 : 0) + (r.ch && r.ch !== 'ren' ? '|' + r.ch : '');   // 章节不同各占一行；任家镇沿用旧键
   const shape = (list) => {
     const best = new Map();
     for (const r of list) { const k = keyOf(r); const o = best.get(k); if (!o || o.score < r.score) best.set(k, r); }
@@ -108,6 +108,7 @@ export default async (req) => {
     at: int(b.at, 0, 4102444800000),
     ults: int(b.ults, 0, 9999),
     hero: b.hero === 'monk' || b.hero === 'priest' ? b.hero : 'tao',
+    ch: ['heian', 'london', 'nanyang', 'qin'].includes(b.ch) ? b.ch : 'ren',
     cheat: 0,
     dev: b.dev === 't' ? 't' : b.dev === 'k' ? 'k' : '',
   };

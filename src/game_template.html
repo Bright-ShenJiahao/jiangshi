@@ -60,6 +60,14 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 .hero small { font-size: 11px; color: var(--muted); }
 .hero.on { border-color: var(--talisman); color: var(--talisman); background: rgba(240,192,32,.08); }
 .hero.lock { opacity: .5; }
+.chaps { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 6px; margin: 4px 0 2px; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
+.chap { flex: 0 0 112px; scroll-snap-align: center; background: transparent; border: 2px solid var(--line); color: var(--text); font: 14px var(--display); padding: 0; cursor: pointer; display: grid; text-align: center; position: relative; white-space: nowrap; }
+.chap img { width: 100%; height: 66px; object-fit: cover; image-rendering: pixelated; display: block; border-bottom: 2px solid var(--line); }
+.chap b { padding: 3px 2px 0; }
+.chap small { font-size: 10px; color: var(--muted); padding: 0 2px 4px; }
+.chap.on { border-color: var(--talisman); color: var(--talisman); background: rgba(240,192,32,.08); }
+.chap.lock { filter: grayscale(.9) brightness(.65); }
+.chap .ok { position: absolute; top: 2px; right: 5px; color: #7ee08a; font-size: 14px; text-shadow: 0 1px 0 #000; }
 .rankTabs { display: flex; justify-content: center; gap: 8px; margin: -4px 0 10px; }
 .rankTabs button { background: transparent; border: 2px solid var(--line); color: var(--text); font: 15px var(--display); padding: 4px 14px; cursor: pointer; }
 .rankTabs button.on { border-color: var(--talisman); color: var(--talisman); }
@@ -218,6 +226,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
       </div>
       <div class="nameRow"><input id="startName" maxlength="10" placeholder="道长尊姓大名？" autocomplete="off" aria-label="道号"><span id="nameTip"></span></div>
       <div class="heroes"><button type="button" class="hero on" id="heroTao"><b>☯︎ 一眉道人</b><small>林九</small></button><button type="button" class="hero" id="heroMonk"><b>卍︎ 伏魔禅师</b><small id="monkSub">一休</small></button><button type="button" class="hero" id="heroPriest"><b>✝︎ 天主圣徒</b><small id="priestSub">Father 柴</small></button></div>
+      <div class="chaps" id="chapRow" aria-label="选择章节"></div>
       <div class="diffs"><button class="btn" id="startBtn">开坛 · 普通</button><button class="btn hard" id="hardBtn">开坛 · 困难</button></div>
       <p class="hint">困难：怪更硬更疼、出招更勤，积分 ×1.5</p>
       <div class="shareRow"><button class="btn ghost rankBtn" id="rankBtn" type="button">功德簿 · 排名</button></div>
@@ -284,9 +293,10 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 
 <script>
 const A = /*ASSETS*/{};
-const MAP = /*MAP*/{};
+const MAP0 = /*MAP*/{};
+let MAP = MAP0;
 const VO = /*VO*/{};
-const GRAVES = MAP.graves || [], COFFINS = MAP.coffins || [], EX = MAP.extX || 0;
+let GRAVES = MAP.graves || [], COFFINS = MAP.coffins || [], EX = MAP.extX || 0;
 const NIGHT = 360, BOSS_AT = 220, ROOSTER_AT = 330, PARADE_AT = 120;
 // 尸王伤害倍率：普通 ×1.5；困难不再叠加困难的 ×1.5，只额外 ×1.2
 const bossDmg = () => 1.5 * (S.diff === 'hard' ? 1.2 : 1);
@@ -1804,13 +1814,15 @@ function wuAI(e) {
   }
   return false;
 }
+const SP0 = () => MAP.start || [700 + EX, 700 + (MAP.townH || 0)];
 function newGame(diff = 'normal') {
   stopZoneMusic();
+  applyMap(CH);
   setHero(HERO);
   S = {
     hero: HERO, mk: { fx: [], beads: [], seals: [], bowls: [], pest: [], waves: [], lz: [], ch: 0, jiaT: 6, rezT: -99 },
-    diff, bossKilled: false, parade: false, state: 'play', t: 0, kills: 0, lv: 1, xp: 0, need: 5, bossSpawned: false, roosterShown: false,
-    p: { x: 700 + EX, y: 700 + (MAP.townH || 0), hp: 100, max: 100, face: 1, inv: 0, moving: false, walk: 0, breath: 0, breathCd: 0, sprint: 0, sprintCd: 0 },
+    ch: CH, diff, bossKilled: false, parade: false, state: 'play', t: 0, kills: 0, lv: 1, xp: 0, need: 5, bossSpawned: false, roosterShown: false,
+    p: { x: SP0()[0], y: SP0()[1], hp: 100, max: 100, face: 1, inv: 0, moving: false, walk: 0, breath: 0, breathCd: 0, sprint: 0, sprintCd: 0 },
     mods: { speed: 0, magnet: 0, cd: 0, hp: 0, dmg: 0, regen: 0 },
     w: HERO === 'monk' ? { zhang: 1, jia: 1 } : HERO === 'priest' ? { cross: 1 } : { sword: 1 }, timers: {}, swordAng: 0, pr: HERO === 'priest' ? prNew() : null,
     objs: (MAP.objs || []).map(o => ({ ...o, burnt: false, state: 'ok', fireT: 0, smoke: 0, tk: 0 })), ult: null, ultCd: 0, sweeps: [], taijis: [], palms: [], afterimgs: [], ev: {}, allies: [], decor: [], batFx: [], rumorQ: [], guas: [], shield: 0, shieldT: null, chests: [], lvQueue: 0, eliteT: 60, eliteN: 0, vampOut: false, wgCd: 8, eshots: [], npcs: [], npcT: 15, loot: [], aw: null, awDone: false, yamT: 0, gongVo: 0, dawnT: null, yz: (MAP.yz || []).map(([x, y, o]) => ({ x, y, open: !!o, pre: !!o, t: 0 })), yzT: rnd(40, 60), fish: [], fishT: 2, cam: { x: 0, y: 0 },
@@ -1827,7 +1839,8 @@ function newGame(diff = 'normal') {
   startAmbient();
   $('nameForm').hidden = true; boardNote = ''; myEntry = null;
   $('hud').hidden = false; $('breath').hidden = false; $('sprint').hidden = false; $('ult').hidden = true; $('banner').hidden = true;
-  for (let k = 0; k < 200 && !freeAt(S.p.x, S.p.y); k++) { S.p.x = 700 + EX + rnd(-60, 60); S.p.y = 700 + (MAP.townH || 0) + rnd(-60, 60); }
+  for (let k = 0; k < 200 && !freeAt(S.p.x, S.p.y); k++) { S.p.x = SP0()[0] + rnd(-60, 60); S.p.y = SP0()[1] + rnd(-60, 60); }
+  if (CH !== 'ren') { const c = CHAPS.find(q => q.id === CH); banner(c.sub.replace(/ · .*/, '') + ' · ' + c.n, 2.8); }
   last = performance.now();
 }
 
@@ -1865,8 +1878,8 @@ function spawn(type, x, y, opt = {}) {
   const T = ETYPE[type], t = S.t, minion = !['king', 'vampire', 'hand', 'wuchang'].includes(type), hpMul = type === 'king' || type === 'wuchang' ? 1 : (1 + t / 120) * (minion ? 1.25 : 1);
   if (x === undefined) {
     let ok = false;
-    for (let k = 0; k < 10 && !ok; k++) {
-      const a = Math.random() * Math.PI * 2, R = Math.max(VW, VH) / 2 + 30;
+    for (let k = 0; k < 24 && !ok; k++) {
+      const a = Math.random() * Math.PI * 2, R = Math.max(VW, VH) / 2 + 30 + (k > 9 ? rnd(0, 170) : 0);
       x = Math.max(14, Math.min(WORLD.w - 14, S.p.x + Math.cos(a) * R)); y = Math.max(20, Math.min(WORLD.h - 12, S.p.y + Math.sin(a) * R));
       ok = type === 'ghost' || freeAt(x, y);
     }
@@ -2641,7 +2654,7 @@ function endGame(win) {
   $('endP').textContent = win ? `撑过一整夜，伏尸 ${S.kills} 具，修为 ${cn(S.lv)}重。` : `撑了 ${m} 分 ${s} 秒，伏尸 ${S.kills} 具，修为 ${cn(S.lv)}重。`;
   S.score = Math.round((S.kills + S.lv * 20 + Math.floor(S.t) * 2 + (win ? 1000 : 0) + (S.bossKilled ? 500 : 0)) * DIFF[S.diff].mul);
   S.win = win; $('scoreV').textContent = S.score; stopZoneMusic();
-  if (win) { try { localStorage.setItem('ztzh_monk', '1'); } catch (e) {} }
+  if (win) { try { localStorage.setItem('ztzh_monk', '1'); localStorage.setItem('ztzh_chc_' + (S.ch || 'ren'), '1'); } catch (e) {} }
   renderHeroes();
   $('endP').textContent += `（${DIFF[S.diff].name}）`;
   if (S.freed) { $('endT').textContent = '不在六道轮回之中'; $('endP').textContent += '　逆天改命，躲过五指山，如来放你去了'; }
@@ -2754,7 +2767,7 @@ function drawPearlSprites(list) {
 // ---------- 围墙：被怪群推倒 ----------
 // 围墙是一段一段的（石墙约 34px、铁艺围墙同），碰撞在运行时才加进通行网格。
 // 怪群卡在某一段墙边一阵子（卡住的怪越多、推得越快），这一段连同两侧的邻段就会被推倒，向玩家这一侧倒下，留下残砖。
-const WCNT = new Uint8Array((MAP.cols || 1) * (MAP.rows || 1));
+let WCNT = new Uint8Array((MAP.cols || 1) * (MAP.rows || 1));
 const WALLPAR = { s: { thr: 8, need: 3.2, name: '院墙' }, i: { thr: 4.5, need: 1.4, name: '铁艺围墙' } };   // 铁艺围墙更容易被推倒
 function wallCells(w) {
   const [x0, y0, x1, y1] = w.r, out = [], R = (WCNT.length / COLS) | 0;
@@ -3286,9 +3299,9 @@ function update() {
   const rooster = S.t >= ROOSTER_AT + (S.nightX || 0);
   if (rooster && !S.roosterShown) { S.roosterShown = true; banner('喔喔喔——鸡鸣将至！', 2.5); sfx('rooster'); }
   if (S.t >= BOSS_AT && !S.bossSpawned) {
-    S.bossSpawned = true; const tb = MAP.tomb;
+    S.bossSpawned = true; const tb = MAP.tomb || MAP.boss;
     const rz = S.en.find(e => e.renZ && !e.dead); if (rz) { rz.goal = [tb[0] + 30, tb[1] + 20]; rz.goalT = S.t + 25; rz.goalPts = null; rz.spd *= 2.2; rz.noclip = true; rumor(['任老爷赶来护父！'], true); }
-    if (tb) { const k = spawn('king', tb[0], tb[1] + 6); k.rise = 2.4; k.fromTomb = true; for (let i = 0; i < 40; i++) S.parts.push({ x: tb[0] + rnd(-14, 14), y: tb[1] + 4, vx: rnd(-80, 80), vy: rnd(-160, -60), t: rnd(0.5, 1.1), c: Math.random() < 0.5 ? '#7e6278' : '#4a3650' }); banner('老太爷破坟而出！', 3); }
+    if (tb) { const k = spawn('king', tb[0], tb[1] + 6); k.rise = 2.4; k.fromTomb = !!MAP.tomb; for (let i = 0; i < 40; i++) S.parts.push({ x: tb[0] + rnd(-14, 14), y: tb[1] + 4, vx: rnd(-80, 80), vy: rnd(-160, -60), t: rnd(0.5, 1.1), c: Math.random() < 0.5 ? '#7e6278' : '#4a3650' }); banner(MAP.tomb ? '老太爷破坟而出！' : '尸王出世！', 3); }
     else { spawn('king'); banner('尸王出世！', 2.5); }
     S.shake = 0.5; sfx('boss');
   }
@@ -3679,7 +3692,7 @@ function draw() {
   if (S.shake > 0) { const m = S.shake > 0.15 ? 3 : 1; cx += Math.round(rnd(-m, m)); cy += Math.round(rnd(-m, m)); }
   g.fillStyle = '#140c22'; g.fillRect(0, 0, VW, VH);
   g.save(); g.translate(-cx, -cy);
-  g.drawImage(IMG.bg, 0, 0);
+  g.drawImage(IMG[BGK], 0, 0);
 
   // 义庄被掀开的棺材
   for (const c of S.yz) {
@@ -4060,7 +4073,7 @@ function updateTips() {
   if (S.ult && !S.ultTipShown) { S.ultTipShown = true; showTip(TOUCH ? '右下角出现了大招按钮，点它释放！' : '获得大招！按 Q 或点右下角按钮释放', true, 4.5); }
 }
 // ---------- 跃过树木 / 棺材 ----------
-const SOFT = [...(MAP.objs || []).filter(o => o.k === 'tree').map(o => [o.x, o.y]), ...(MAP.coffins || [])];
+let SOFT = [...(MAP.objs || []).filter(o => o.k === 'tree').map(o => [o.x, o.y]), ...(MAP.coffins || [])];
 function nearSoft(e) { for (const [x, y] of SOFT) if ((e.x - x) ** 2 + (e.y - y) ** 2 < 26 * 26) return true; return false; }
 // ---------- 天气（只有画面） ----------
 const WEATHER = { rain: '天降细雨', storm: '雷雨交加', snow: '大雪纷飞', moon: '月光普照', wind: '阴风四起', bats: '群蝠夜飞' };
@@ -4197,7 +4210,7 @@ function handAI(e) {
   if (e.t > (e.keep || (e.grab ? 1.9 : 1.4)) || (e.keep && !(P.grabT > 0))) { e.gone = true; if (e.grab && !e.keep) P.grabT = 0; }
 }
 // ---------- 吸血鬼 ----------
-const VHOME = MAP.vhome || [1395, 446 + (MAP.townH || 0)];
+let VHOME = MAP.vhome || [1395, 446 + (MAP.townH || 0)];
 function spawnVampire() {
   S.vampOut = true; for (const o of S.objs) if (o.img === 'church') o.img = 'churchO';   // 大门敞开
   banner('教堂的门开了……吸血伯爵现身！', 2.4); sfx('bell'); setTimeout(() => sfx('bell'), 450);
@@ -4314,7 +4327,7 @@ function updateMap() {
 function drawMap(act) {
   const cv2 = $('mmCv'), c = cv2.getContext('2d'), W = cv2.width, H = cv2.height, sx = W / WORLD.w, sy = H / WORLD.h;
   c.imageSmoothingEnabled = false; c.clearRect(0, 0, W, H);
-  if (IMG.bg && IMG.bg.complete) { c.globalAlpha = 0.5; c.drawImage(IMG.bg, 0, 0, WORLD.w, WORLD.h, 0, 0, W, H); c.globalAlpha = 1; }
+  if (IMG[BGK] && IMG[BGK].complete) { c.globalAlpha = 0.5; c.drawImage(IMG[BGK], 0, 0, WORLD.w, WORLD.h, 0, 0, W, H); c.globalAlpha = 1; }
   c.fillStyle = 'rgba(12,6,22,.12)'; c.fillRect(0, 0, W, H);
   const C = S.cam; c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1; c.strokeRect(Math.round(C.x * sx) + .5, Math.round(C.y * sy) + .5, Math.round(VW * sx), Math.round(VH * sy));
   const pulse = 5 + 1.5 * Math.sin(S.t * 6);
@@ -4396,14 +4409,78 @@ function begin(diff) {
   if (!nm) { const el = $('startName'); el.classList.remove('bad'); void el.offsetWidth; el.classList.add('bad'); $('nameTip').textContent = '道长还没留下尊姓大名'; el.focus(); return; }
   PNAME = nm; try { localStorage.setItem('ztzh_name', nm); } catch (e) {}
   audioInit();
-  const play = $('storyChk').checked; let mOnly = false;
+  const play = $('storyChk').checked && CH === 'ren'; let mOnly = false;
   if (!play && HERO === 'monk') { try { mOnly = localStorage.getItem('ztzh_mscene') !== '1'; } catch (e) {} }
   if (!play && HERO === 'priest') { try { mOnly = localStorage.getItem('ztzh_pscene') !== '1'; } catch (e) {} }
-  whenReady(() => { try { play || mOnly ? playStory(() => { try { newGame(diff); } catch (e) { startFail(e); throw e; } }, mOnly) : newGame(diff); } catch (e) { startFail(e); throw e; } });
+  whenReady(() => loadChapter(CH, () => { try { play || mOnly ? playStory(() => { try { newGame(diff); } catch (e) { startFail(e); throw e; } }, mOnly) : newGame(diff); } catch (e) { startFail(e); throw e; } }, msg => startFail(new Error(msg))));
 }
 try { $('storyChk').checked = localStorage.getItem('ztzh_story') !== '1'; } catch (e) { $('storyChk').checked = true; }
 $('startBtn').onclick = () => begin('normal');
 $('hardBtn').onclick = () => begin('hard');
+// ---------- 章节：通关任家镇后四章开放；每章的地图和贴图单独打包，选中时才下载 ----------
+const CHAPS = [
+  { id: 'ren', n: '任家镇', sub: '第一章 · 荒坟夜', short: '' },
+  { id: 'heian', n: '决战平安京', sub: '第二章 · 日本', short: '日' },
+  { id: 'london', n: '雾都伦敦', sub: '第三章 · 欧洲', short: '欧' },
+  { id: 'nanyang', n: '下南洋', sub: '第四章 · 南洋', short: '南' },
+  { id: 'qin', n: '地底天宫', sub: '第五章 · 秦陵', short: '秦' },
+];
+let CH = 'ren', BGK = 'bg';
+try { const c0 = localStorage.getItem('ztzh_chap'); if (CHAPS.some(c => c.id === c0)) CH = c0; } catch (e) {}
+const chapUnlocked = id => id === 'ren' || monkUnlocked();
+const chapCleared = id => { try { return localStorage.getItem('ztzh_chc_' + id) === '1'; } catch (e) { return false; } };
+const CHLOAD = {};
+function loadChapter(id, ok, fail) {
+  if (id === 'ren' || CHLOAD[id] === 'ok') return ok();
+  if (CHLOAD[id]) { CHLOAD[id].cbs.push([ok, fail]); return; }
+  const rec = CHLOAD[id] = { cbs: [[ok, fail]] }; let fin = false, keys = [];
+  const done = err => {
+    if (fin) return; fin = true; clearTimeout(tm);
+    const cbs = rec.cbs;
+    if (err) { delete CHLOAD[id]; for (const k of keys) delete IMG[k]; if (window.__CH) delete window.__CH[id]; } else CHLOAD[id] = 'ok';
+    cbs.forEach(([o, f]) => err ? f(err) : o());
+  };
+  const tm = setTimeout(() => done('地图下载太慢了，换个网络再试'), 25000);
+  const s = document.createElement('script'); s.src = 'ch/' + id + '.js?v=' + BUILD;
+  s.onerror = () => done('地图文件没下载下来');
+  s.onload = () => {
+    const c = window.__CH && window.__CH[id]; if (!c) return done('地图文件损坏');
+    keys = Object.keys(c.assets); let n = 0, bad = 0;
+    if (!keys.length) return done('地图里没有贴图');
+    for (const k of keys) { const im = new Image(); im.onload = () => { if (++n === keys.length) done(bad ? '地图贴图损坏' : null); }; im.onerror = () => { bad++; if (++n === keys.length) done('地图贴图损坏'); }; im.src = c.assets[k]; IMG[k] = im; }
+  };
+  document.head.appendChild(s);
+}
+function applyMap(id) {
+  const c = id !== 'ren' && window.__CH && window.__CH[id];
+  MAP = c ? c.map : MAP0; BGK = c ? 'bg_' + id : 'bg';
+  GRAVES = MAP.graves || []; COFFINS = MAP.coffins || []; EX = MAP.extX || 0;
+  WORLD.w = MAP.w || 1600; WORLD.h = MAP.h || 1200;
+  GRID = MAP.grid || ''; COLS = MAP.cols || 1; CELLSZ = MAP.cell || 8;
+  VHOME = MAP.vhome || [1395, 446 + (MAP.townH || 0)];
+  SOFT = [...(MAP.objs || []).filter(o => o.k === 'tree').map(o => [o.x, o.y]), ...(MAP.coffins || [])];
+  WCNT = new Uint8Array((MAP.cols || 1) * (MAP.rows || 1));
+  FLOW = null; FLOWNEED = false;
+}
+function renderChapters() {
+  const box = $('chapRow'); if (!box) return; box.textContent = '';
+  for (const c of CHAPS) {
+    const un = chapUnlocked(c.id), b = document.createElement('button'); b.type = 'button';
+    b.className = 'chap' + (CH === c.id ? ' on' : '') + (un ? '' : ' lock');
+    const im = new Image(); im.src = A['th_' + c.id] || ''; im.alt = ''; b.appendChild(im);
+    const t = document.createElement('b'); t.textContent = c.n; b.appendChild(t);
+    const sm = document.createElement('small'); sm.textContent = un ? c.sub : '🔒 通关任家镇解锁'; b.appendChild(sm);
+    if (un && chapCleared(c.id)) { const k = document.createElement('span'); k.className = 'ok'; k.textContent = '✔'; b.appendChild(k); }
+    b.onclick = () => {
+      if (!chapUnlocked(c.id)) { $('nameTip').textContent = '先用任何角色在任家镇撑到鸡鸣，其余四章就开放了'; sfx('hurt'); return; }
+      CH = c.id; try { localStorage.setItem('ztzh_chap', CH); } catch (e) {} $('nameTip').textContent = '';
+      renderChapters(); sfx('pick');
+      if (CH !== 'ren') loadChapter(CH, () => {}, () => {});   // 预先下载，开坛时就不用等
+    };
+    box.appendChild(b);
+  }
+  const on = box.querySelector('.on'); if (on && on.scrollIntoView) { try { box.scrollLeft = Math.max(0, on.offsetLeft - (box.clientWidth - on.offsetWidth) / 2); } catch (e) {} }
+}
 function renderHeroes() {
   const un = monkUnlocked(); if (!un && HERO !== 'tao') HERO = 'tao';
   $('heroTao').className = 'hero' + (HERO === 'tao' ? ' on' : '');
@@ -4411,6 +4488,7 @@ function renderHeroes() {
   $('heroPriest').className = 'hero' + (HERO === 'priest' ? ' on' : '') + (un ? '' : ' lock');
   $('monkSub').textContent = un ? '一休' : '🔒 撑到鸡鸣解锁';
   $('priestSub').textContent = un ? 'Father 柴' : '🔒 撑到鸡鸣解锁';
+  renderChapters();
   $('startName').placeholder = HERO === 'monk' ? '大师法号？' : HERO === 'priest' ? '神父怎么称呼？' : '道长尊姓大名？';
 }
 $('heroTao').onclick = () => { HERO = 'tao'; try { localStorage.setItem('ztzh_hero', 'tao'); } catch (e) {} renderHeroes(); sfx('pick'); };
@@ -4992,6 +5070,7 @@ function runTick() {
 const devMark = (r) => (r.dev === 't' ? '📱' : r.dev === 'k' ? '💻' : '');
 async function webGet() { const r = await fetch('/api/scores', { cache: 'no-store' }); if (!r.ok) throw new Error('http ' + r.status); const j = await r.json(); if (!Array.isArray(j)) throw new Error('bad'); return j; }
 async function webPost(rec) { const r = await fetch('/api/scores', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rec) }); if (!r.ok) throw new Error('http ' + r.status); const j = await r.json(); if (!Array.isArray(j)) throw new Error('bad'); return j; }
+const chTag = r => { const c = CHAPS.find(q => q.id === r.ch); return c && c.short ? ' [' + c.short + ']' : ''; };
 function localBoard() { try { return JSON.parse(localStorage.getItem('ztzh_board') || '[]'); } catch (e) { return []; } }
 // ---------- 标题页：功德簿排名（普通 / 困难两列）----------
 async function loadRank(board) {
@@ -5014,7 +5093,7 @@ async function showRank(board) {
     const t = document.createElement('table');
     list.slice(0, 20).forEach((r, i) => {
       const tr = document.createElement('tr'); tr.className = (me && r.name === me ? 'me ' : '') + (r.cheat ? 'ch' : '');
-      for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : r.hero === 'priest' ? '✝︎ ' : '☯︎ ') + String(r.name || '无名道士').slice(0, 10) + (r.win ? ' ☀' : '') + (r.cheat ? ' 【作弊】' : ''), Number(r.score) || 0]) { const td = document.createElement('td'); if (typeof v === 'string') { const sp = document.createElement('span'); sp.className = 'nm'; sp.textContent = v; td.appendChild(sp); } else td.textContent = v; tr.appendChild(td); }
+      for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : r.hero === 'priest' ? '✝︎ ' : '☯︎ ') + String(r.name || '无名道士').slice(0, 10) + chTag(r) + (r.win ? ' ☀' : '') + (r.cheat ? ' 【作弊】' : ''), Number(r.score) || 0]) { const td = document.createElement('td'); if (typeof v === 'string') { const sp = document.createElement('span'); sp.className = 'nm'; sp.textContent = v; td.appendChild(sp); } else td.textContent = v; tr.appendChild(td); }
       t.appendChild(tr);
     });
     el.appendChild(t);
@@ -5045,7 +5124,7 @@ async function renderBoard() {
     const tr = document.createElement('tr');
     if (myEntry && r.at === myEntry.at && r.name === myEntry.name) tr.className = 'me';
     if (r.cheat) tr.className += ' ch';
-    for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : r.hero === 'priest' ? '✝︎ ' : '☯︎ ') + String(r.name || '无名道士').slice(0, 10), Number(r.score) || 0, r.diff === 'hard' ? '困难' : '普通', (r.win ? '天亮' : '倒下') + (r.cheat ? ' · 作弊' : '')]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
+    for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : r.hero === 'priest' ? '✝︎ ' : '☯︎ ') + String(r.name || '无名道士').slice(0, 10) + chTag(r), Number(r.score) || 0, r.diff === 'hard' ? '困难' : '普通', (r.win ? '天亮' : '倒下') + (r.cheat ? ' · 作弊' : '')]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
     t.appendChild(tr);
   });
   box.appendChild(t);
@@ -5056,7 +5135,7 @@ async function saveRecord(name) {
   if (!S || S.state !== 'over' || S.saved) return;
   S.saved = true;
   if (S.tips) { myEntry = null; boardNote = '新手教学局，不计入排行。'; renderBoard(); $('bragNote').textContent = ''; $('brag').hidden = false; return; }
-  const rec = { name, score: S.score, kills: S.kills, lv: S.lv, t: Math.floor(S.t), win: !!S.win, diff: S.diff, at: Date.now(), hero: S.hero, ults: S.ultN || 0, cheat: S.cheat || 0, dev: DEVTAG() };
+  const rec = { name, score: S.score, kills: S.kills, lv: S.lv, t: Math.floor(S.t), win: !!S.win, diff: S.diff, at: Date.now(), hero: S.hero, ch: S.ch || 'ren', ults: S.ultN || 0, cheat: S.cheat || 0, dev: DEVTAG() };
   try { if (S.run && S.run.p) await Promise.race([S.run.p, new Promise(r => setTimeout(r, 4000))]); } catch (e) {}
   rec.tok = (S.run && S.run.tok) || '';
   myEntry = rec;
