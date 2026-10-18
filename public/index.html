@@ -1027,7 +1027,7 @@ const WEAPONS_PD = {
 const TAGS_P = { cross: ['伤害', '近身'], bible: ['伤害'], water: ['伤害', '持续'], aegis: ['防御'], stake: ['伤害'], pistol: ['伤害', '穿透'], pulse: ['控制', '范围'], cage: ['控制'] };
 const ULTS_P = {
   fall: { name: '堕入黑暗', qn: '血雾潜行', seal: '血', desc: [
-    '大招：接受撒旦的诱惑，喝下撒旦之血，永久化身<b>吸血鬼神官</b>，八件法器全部转为黑暗形态（血十字、黑暗圣经、血色圣水、骷髅盾牌、人骨钉、猎魂手枪、黑暗法阵、血色牢笼）。<br>Q：<b>血雾潜行</b>——潜入血泊 4 秒，无敌、移速 +50%，留下吸血的血泊；穿过的怪被咬一口，吸回一半伤害（每秒最多 6 点）。<br><span class="syn">代价：斩杀回阳、圣水回血失效，食物只回一半，主要靠吸血活着（每秒最多 3 点）</span>',
+    '大招：接受撒旦的诱惑，喝下撒旦之血，永久化身<b>吸血鬼神官</b>，八件法器全部转为黑暗形态（血十字、黑暗圣经、血色圣水、骷髅盾牌、人骨钉、猎魂手枪、黑暗法阵、血色牢笼）。<br>Q：<b>血雾潜行</b>——潜入血泊 4 秒，无敌、移速 +50%，留下吸血的血泊；穿过的怪被咬一口，吸回一半伤害（每秒最多 6 点）。<br><span class="syn">代价：斩杀回阳、圣水回血失效，食物只回一半，主要靠吸血活着（每秒最多 4 点）。放血雾潜行要先付 15% 当前阳气；阳气过半时进入<b>血祭</b>：法器伤害 +25%，每次出手扣 1 点阳气（每秒最多 2 点），掉到一半以下自动停止</span>',
     '血雾潜行 5 秒，血泊更宽', '血雾潜行 6 秒，浮出时「猩红盛宴」：被吸过血的怪全部受创，并吸回一大口血'] },
   grace: { name: '神爱世人', qn: '天使之怒', seal: '圣', desc: [
     '大招：获得圣光加冕，永久化身<b>光明神官</b>：法器伤害 +15%、对鬼魂伤害翻倍、阳气上限 +30；法器命中给怪叠「圣印」，满 3 层净化炸开，并回 1 点阳气。<br>Q：<b>天使之怒</b>——天使从天而降挥剑砸下，中心伤害最高往外递减（带圣印的怪伤害翻倍），之后护卫你 4 秒，受到的伤害减半',
@@ -1052,18 +1052,26 @@ function prDrain(v, free) {   // 黑暗形态吸血：每秒最多 3 点（猩�
   R.dAcc += v;
   while (R.dAcc >= 1) {
     if (S.t - R.ds0 >= 1) { R.ds0 = S.t; R.dsN = 0; }
-    if (P.hp >= P.max || (!free && R.dsN >= 3)) { R.dAcc = Math.min(R.dAcc, 1); break; }
+    if (P.hp >= P.max || (!free && R.dsN >= 4)) { R.dAcc = Math.min(R.dAcc, 1); break; }
     R.dAcc -= 1; if (!free) R.dsN++; P.hp = Math.min(P.max, P.hp + 1);
     if (Math.random() < 0.4) S.texts.push({ x: P.x + rnd(-6, 6), y: P.y - 30, v: '+1', t: 0.5, c: '#ff6a7a' });
   }
 }
 const prInBlood = e => e.bloodT > S.t;
+const PR_RITE = { cross: 1, bible: 1, water: 1, aegis: 1, stake: 1, stakeB: 1, pistol: 1, pulse: 1, cage: 1 };
+const prRite = () => prDark() && S.pr.mist <= 0 && S.p.hp > S.p.max / 2;
 const PR_BAL = 0.736;   // 2026-10-19 再削 8%（原 0.80）   // 平衡：神父法器总伤害系数（模拟测试里比一休、道长强太多，整体下调）
 function prHit(e, dmg, kb, fx, fy, src, tag) {   // 神父法器统一走这里：记下伤害来源，处理吸血和圣印
   if (e.dead) return 0;
   dmg *= PR_BAL;
+  const ritual = PR_RITE[src] && prRite();   // 血祭：阳气过半时黑暗法器伤害 +25%，每次出手扣 1 点阳气（每秒最多 2 点）
+  if (ritual) dmg *= 1.25;
   const h0 = e.hp, R = S.pr; R.src = src; hurt(e, dmg, kb, fx, fy, tag); R.src = null;
   const dealt = Math.max(0, h0 - Math.max(0, e.hp));
+  if (ritual && dealt > 0) {
+    if (S.t - (R.rtT ?? -9) >= 1) { R.rtT = S.t; R.rtN = 0; }
+    if (R.rtN < 2) { R.rtN++; S.p.hp = Math.max(1, S.p.hp - 1); }
+  }
   if (prDark() && dealt > 0 && PR_DRAIN[src]) {
     let r = PR_DRAIN[src];
     if (src === 'cross' && prInBlood(e)) r *= 2;
@@ -1151,6 +1159,7 @@ function prTransform(k) {
 function prUlt(k, lv) {
   const P = S.p, R = S.pr;
   if (k === 'fall') {   // 血雾潜行
+    const cost = Math.floor(P.hp * 0.15); if (cost > 0) { P.hp = Math.max(1, P.hp - cost); S.texts.push({ x: P.x, y: P.y - 30, v: '-' + cost + ' 以血为祭', t: 0.9, c: '#ff5a6a' }); }   // 血雾潜行：先付 15% 当前阳气
     R.mist = [0, 4, 5, 6][lv]; R.mistLv = lv; R.mistTk = 0; P.inv = Math.max(P.inv, R.mist + 0.1); sfx('whoosh');
     for (const e of S.en) { e.wx = rnd(-1, 1); e.wy = rnd(-1, 1); e.drained = 0; }
     S.texts.push({ x: P.x, y: P.y - 40, v: '血雾潜行', t: 1.2, c: '#ff5a6a', big: true });
@@ -1499,6 +1508,11 @@ function drawCrossPx(x, y, dark, gold) {   // 环绕的小十字架（血十字�
 function drawPriestGround() {
   if (S.hero !== 'priest' || !S.pr) return;
   const R = S.pr;
+  if (prRite()) {   // 血祭中：脚下一圈暗红光
+    const P = S.p, a = 0.35 + 0.15 * Math.sin(S.t * 6);
+    g.globalAlpha = a; g.strokeStyle = '#c8202c'; g.lineWidth = 2; g.beginPath(); g.ellipse(P.x, P.y, 13, 5, 0, 0, 7); g.stroke();
+    g.globalAlpha = a * 0.5; g.fillStyle = '#7a0a1a'; g.beginPath(); g.ellipse(P.x, P.y, 11, 4, 0, 0, 7); g.fill(); g.globalAlpha = 1;
+  }
   for (const q of R.pools) {
     const k = Math.min(1, (q.max - q.life) / 0.2), fade = Math.min(1, q.life / 0.6), r = q.r * (0.4 + 0.6 * k);
     g.globalAlpha = (q.blood ? 0.55 : 0.4) * fade;
@@ -3098,7 +3112,7 @@ addEventListener('blur', () => { if (S && S.state === 'play') togglePause(); });
 
 // ---------- 分享 / 复活 ----------
 const SITE = 'https://jiangshidaozhang.netlify.app/';
-const BUILD = '2610190033';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
+const BUILD = '2610190038';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
 const shareUrl = () => ((typeof WEB !== 'undefined' && WEB) ? location.origin + location.pathname : SITE) + '?v=' + BUILD;
 function shichenNow() { let n = '子时'; for (const [a, t] of SHI) if (S.t >= t) n = a; return n; }
 async function copyText(s) {
