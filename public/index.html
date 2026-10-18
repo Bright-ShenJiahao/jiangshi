@@ -2528,7 +2528,7 @@ addEventListener('blur', () => { if (S && S.state === 'play') togglePause(); });
 
 // ---------- 分享 / 复活 ----------
 const SITE = 'https://jiangshidaozhang.netlify.app/';
-const BUILD = '2610181441';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
+const BUILD = '2610181503';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
 const shareUrl = () => ((typeof WEB !== 'undefined' && WEB) ? location.origin + location.pathname : SITE) + '?v=' + BUILD;
 function shichenNow() { let n = '子时'; for (const [a, t] of SHI) if (S.t >= t) n = a; return n; }
 async function copyText(s) {
@@ -4380,7 +4380,7 @@ function frame(now) {
 requestAnimationFrame(frame);
 const ready = () => Object.values(IMG).every(im => im.complete && im.naturalWidth);
 let readyT0 = 0;
-function whenReady(fn) { if (!readyT0) readyT0 = Date.now(); if (ready() || Date.now() - readyT0 > 6000) { readyT0 = 0; fn(); } else setTimeout(() => whenReady(fn), 50); }
+function whenReady(fn) { if (!readyT0) readyT0 = Date.now(); if (ready() || Date.now() - readyT0 > 6000) { if (!ready()) { try { const bad = Object.keys(IMG).filter(k => !(IMG[k].complete && IMG[k].naturalWidth)); $('nameTip').textContent = '有 ' + bad.length + ' 张贴图没加载：' + bad.slice(0, 3).join(','); } catch (e) {} } readyT0 = 0; fn(); } else setTimeout(() => whenReady(fn), 50); }
 function startFail(e) { try { $('nameTip').textContent = '启动失败：' + (e && e.message || e); } catch (x) {} }
 addEventListener('error', ev => { if (!document.body.classList.contains('playing') && $('nameTip')) startFail(ev.error || ev.message); });
 let PNAME = '';
