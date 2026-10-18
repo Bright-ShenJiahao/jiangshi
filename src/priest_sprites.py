@@ -51,9 +51,10 @@ def priest(gun=False, form=''):
     s.clear((10 + O, 12), (16 + O, 12)); P(10, 12, 'k'); P(16, 12, 'k')
     R(10, 5, 12, 5, 'k'); R(14, 5, 16, 5, 'k'); R(10, 6, 10, 7, 'k'); R(16, 6, 16, 7, 'k')   # 中分刘海，两侧发丝垂在脸旁
     R(11, 7, 12, 7, 'k'); R(14, 7, 15, 7, 'k')                   # 细眉
-    for cx in (11, 15):                                          # 圆眼镜
-        P(cx, 8, 'G'); P(cx, 10, 'G'); P(cx - 1, 9, 'G'); P(cx + 1, 9, 'G'); P(cx, 9, 'r' if vamp else 'k')
-    P(13, 9, 'G')
+    for cx in (11, 15):                                          # 圆眼镜（吸血鬼形态摘掉眼镜，只剩红眼）
+        if not vamp: P(cx, 8, 'G'); P(cx, 10, 'G'); P(cx - 1, 9, 'G'); P(cx + 1, 9, 'G')
+        P(cx, 9, 'r' if vamp else 'k')
+    if not vamp: P(13, 9, 'G')
     R(12, 11, 14, 11, 'X' if vamp else skinS)                     # 嘴
     if vamp:
         P(12, 12, 'w'); P(14, 12, 'w')                           # 獠牙

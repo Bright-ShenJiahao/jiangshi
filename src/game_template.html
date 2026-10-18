@@ -4365,7 +4365,10 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 const ready = () => Object.values(IMG).every(im => im.complete && im.naturalWidth);
-function whenReady(fn) { if (ready()) fn(); else setTimeout(() => whenReady(fn), 50); }
+let readyT0 = 0;
+function whenReady(fn) { if (!readyT0) readyT0 = Date.now(); if (ready() || Date.now() - readyT0 > 6000) { readyT0 = 0; fn(); } else setTimeout(() => whenReady(fn), 50); }
+function startFail(e) { try { $('nameTip').textContent = '启动失败：' + (e && e.message || e); } catch (x) {} }
+addEventListener('error', ev => { if (!document.body.classList.contains('playing') && $('nameTip')) startFail(ev.error || ev.message); });
 let PNAME = '';
 function cleanName(v) { return (v || '').replace(/\s+/g, ' ').trim().slice(0, 10); }
 function nameState() { $('startBtn').parentNode.classList.toggle('off', !cleanName($('startName').value)); }
@@ -4396,7 +4399,7 @@ function begin(diff) {
   const play = $('storyChk').checked; let mOnly = false;
   if (!play && HERO === 'monk') { try { mOnly = localStorage.getItem('ztzh_mscene') !== '1'; } catch (e) {} }
   if (!play && HERO === 'priest') { try { mOnly = localStorage.getItem('ztzh_pscene') !== '1'; } catch (e) {} }
-  whenReady(() => play || mOnly ? playStory(() => newGame(diff), mOnly) : newGame(diff));
+  whenReady(() => { try { play || mOnly ? playStory(() => { try { newGame(diff); } catch (e) { startFail(e); throw e; } }, mOnly) : newGame(diff); } catch (e) { startFail(e); throw e; } });
 }
 try { $('storyChk').checked = localStorage.getItem('ztzh_story') !== '1'; } catch (e) { $('storyChk').checked = true; }
 $('startBtn').onclick = () => begin('normal');
