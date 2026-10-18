@@ -1660,7 +1660,7 @@ function drawPriestHud() {
 const WEAPONS_J = {
   fei: { name: '飞剑', seal: '剑', w: 1, desc: ['两把飞剑绕身旋转，碰到就斩', '伤害提升', '三把', '绕得更远', '四把，伤害大增；斩杀回阳（每秒最多 2 点）'] },
   liumai: { name: '玄门六脉剑', seal: '脉', w: 1, desc: ['每 1.5 秒指尖射出剑气追最近的怪。开二脉：少商（重剑、击退）、商阳（快剑）', '开三脉：中冲（剑气更宽，穿透三只）', '开四脉：关冲（打中定身 0.5 秒）', '开五脉：少冲（一次三连发）', '六脉全开：少泽（穿透，命中后折向下一只）；间隔缩短到 1.25 秒，六脉齐发'] },
-  zhen: { name: '九宫八卦剑阵', seal: '阵', w: 1, desc: ['每 12 秒在脚下召唤剑阵，留在原地 6 秒：八个方位各插一剑，怪踏进哪一格，那一剑就刺出去；中宫剑每 1.5 秒震开四周', '剑阵更大', '剑阵持续 8 秒', '每 9 秒召唤一次', '收阵时八剑齐飞，射向八方'] },
+  zhen: { name: '九宫八卦剑阵', seal: '阵', w: 1, desc: ['在脚下召唤剑阵，留在原地 6 秒：八个方位各插一剑，怪踏进哪一格，那一剑就刺出去；中宫剑每 1.5 秒震开四周。同时只有一个剑阵，收阵后 12 秒再召', '剑阵更大', '剑阵持续 7 秒', '收阵后 9 秒再召', '收阵时八剑齐飞，射向八方'] },
   shen: { name: '如有神助', seal: '神', w: 1, desc: ['每 20 秒随机一位神明附身 5 秒：二郎神（伤害 +25%，哮天犬助战）、雷公（命中引小雷）、张天师（受伤 -30%，出手快 25%，清除减速）、李冰（移速 +20%，命中减速，身边涌浪推开怪）', '每 18 秒一次，附身 6 秒', '每 16 秒一次', '每 14 秒一次，附身 7 秒', '每 12 秒一次，附身 8 秒；两位神明同时附身'] },
   chun: { name: '三清纯阳功', seal: '阳', w: 1, desc: ['身周一圈纯阳光环：灼烧贴身的怪（鬼魂双倍），每秒回 0.3 点阳气', '光环更大，每秒回 0.4 点', '灼烧伤害提升，每秒回 0.5 点', '光环更大，每秒回 0.6 点', '每秒回 0.8 点；光环里烧死的怪再回 1 点（每秒最多 2 点）'] },
   ci: { name: '刺剑式', seal: '刺', w: 1, desc: ['朝移动方向刺出巨剑，近距离穿刺。走着出剑快，站着出剑慢（朝最近的怪）。刺、劈命中少量吸血，偶尔打断怪的进攻', '伤害提升', '一次连刺两剑', '剑更长，剑尖带出剑气', '三连刺，最后一刺伤害翻倍'] },
@@ -1869,8 +1869,8 @@ function updateJian() {
   }
   R.qi = R.qi.filter(q => q.life > 0);
   // ---------- 九宫八卦剑阵（留在原地） ----------
-  if (W.zhen && jTick('zhen', W.zhen >= 4 ? 9 : 12)) {
-    const lv = W.zhen, Rr = lv >= 2 ? 82 : 68, dur = lv >= 3 ? 8 : 6;
+  if (W.zhen && !R.zhens.length && jTick('zhen', W.zhen >= 4 ? 9 : 12)) {   // 同时只有一个剑阵；收阵后才重新计时
+    const lv = W.zhen, Rr = lv >= 2 ? 82 : 68, dur = lv >= 3 ? 7 : 6;
     R.zhens.push({ x: P.x, y: P.y, Rr, t: 0, dur, lv, cd: new Array(8).fill(0), ext: new Array(8).fill(0), cT: 0.6 });
     sfx('bell'); S.texts.push({ x: P.x, y: P.y - 40, v: '九宫八卦剑阵', t: 1, c: '#bfe8ff' });
   }
@@ -1882,10 +1882,10 @@ function updateJian() {
       const a = i * Math.PI / 4, sx = z.x + Math.cos(a) * z.Rr * 0.72, sy = z.y + Math.sin(a) * z.Rr * 0.72 * 0.75;
       const e = S.en.find(o => !o.dead && (o.x - sx) ** 2 + ((o.y - sy) / 0.75) ** 2 < 26 * 26);
       if (!e) continue;
-      z.cd[i] = 0.55; z.ext[i] = 1; jHit(e, 26, 70, z.x, z.y, 'zhen');
+      z.cd[i] = 0.55; z.ext[i] = 1; jHit(e, 22, 35, z.x, z.y, 'zhen');
     }
     z.cT -= DT;
-    if (z.cT <= 0) { z.cT = 1.5; R.fx.push({ k: 'ring', x: z.x, y: z.y - 4, R: 40, t: 0, c: '#bfe8ff' }); for (const e of S.en) if (!e.dead && inEll(e, z.x, z.y, 40 + e.r)) jHit(e, 14, 90, z.x, z.y, 'zhenC'); }
+    if (z.cT <= 0) { z.cT = 1.5; R.fx.push({ k: 'ring', x: z.x, y: z.y - 4, R: 40, t: 0, c: '#bfe8ff' }); for (const e of S.en) if (!e.dead && inEll(e, z.x, z.y, 40 + e.r)) jHit(e, 14, 50, z.x, z.y, 'zhenC'); }
     if (z.t >= z.dur) {
       z.done = true;
       if (z.lv >= 5) { for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; R.fly.push({ x: z.x + Math.cos(a) * z.Rr * 0.72, y: z.y - 10 + Math.sin(a) * z.Rr * 0.54, vx: Math.cos(a) * 280, vy: Math.sin(a) * 210, life: 1, dmg: 45, hit: new Set(), straight: true, src: 'zhenF' }); } sfx('ult'); }
