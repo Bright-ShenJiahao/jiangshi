@@ -1666,11 +1666,20 @@ function jianKill(e) {
 function jianHurt() { S.jx.stack = 0; }   // 受伤：天罗步移速清零
 function jPose(k, dir) { const R = S.jx; R.pose = { k, t: k === 'T' ? 0.16 : 0.2, face: Math.cos(dir) >= 0 ? 1 : -1 }; }
 const JIAN_AX = 13;   // 出招图里身体中心所在列
-function jianImgKey() {   // 当前要画的人物图：出招 > 行走 > 站立
+const jFly = () => (S.w.tianluo || 0) >= 5;   // 天罗步五重：背上的剑落到脚下，御剑飞行
+function jianImgKey() {   // 当前要画的人物图：出招（站着，或出招方向和移动方向一致）> 御剑 > 站立
   const R = S.jx, P = S.p;
-  if (R && R.pose) return 'jian' + R.pose.k;
-  if (P.moving) return Math.floor(P.walk * 7) % 2 ? 'jianW1' : 'jianW2';
+  if (jFly()) return 'jianF';
+  if (R && R.pose && (!P.moving || R.pose.face === P.face)) return 'jian' + R.pose.k;
   return 'jian';
+}
+function jDrawFlySword(x, y, face) {   // 脚下的巨剑：剑尖朝前，红穗拖在后面
+  const f = face < 0 ? -1 : 1, X = (a, w) => (f > 0 ? x + a : x - a - w + 1);
+  px(X(-16, 34), y - 2, 34, 5, '#1a0e1e');
+  px(X(-9, 24), y - 1, 24, 3, '#c8d0e0'); px(X(-9, 24), y - 1, 24, 1, '#ffffff'); px(X(15, 2), y, 2, 1, '#ffffff');
+  px(X(-11, 2), y - 3, 2, 7, '#1a0e1e'); px(X(-11, 2), y - 2, 2, 5, '#e8b430');
+  px(X(-15, 4), y, 4, 1, '#6a3818'); px(X(-19, 3), y - 1 + Math.round(Math.sin(S.t * 9)), 3, 2, '#d22c28');
+  if (S.p.moving) for (let i = 0; i < 2; i++) px(X(-24 - i * 5 - Math.round((S.t * 40) % 5), 3), y + 1 - i, 3, 1, '#7fe0f0');
 }
 function jDir(reach) {   // 出剑方向：走着朝移动方向（前方有怪时）；前方没怪或站着，就转向最近的怪
   const P = S.p, R0 = reach || 70;
@@ -1871,9 +1880,9 @@ function updateJian() {
   }
   for (const gh of R.ghosts) {
     gh.t += DT;
-    if (gh.t >= 0.25 && gh.n > 0 && gh.t >= 0.25 + (gh.done || 0) * 0.2) { gh.done = (gh.done || 0) + 1; gh.n--; const t = S.en.filter(e => !e.dead && (e.x - gh.x) ** 2 + (e.y - gh.y) ** 2 < 70 * 70).sort((a, b) => dist2(a, gh) - dist2(b, gh))[0]; if (t) gh.dir = Math.atan2(t.y - gh.y, t.x - gh.x); jStrike(gh.kind, gh.x, gh.y, gh.dir, gh.mul, 'ghost'); }
+    if (gh.t >= 0.5 && gh.n > 0 && gh.t >= 0.5 + (gh.done || 0) * 0.3) { gh.done = (gh.done || 0) + 1; gh.n--; const t = S.en.filter(e => !e.dead && (e.x - gh.x) ** 2 + (e.y - gh.y) ** 2 < 70 * 70).sort((a, b) => dist2(a, gh) - dist2(b, gh))[0]; if (t) gh.dir = Math.atan2(t.y - gh.y, t.x - gh.x); gh.face = Math.cos(gh.dir) >= 0 ? 1 : -1; jStrike(gh.kind, gh.x, gh.y, gh.dir, gh.mul, 'ghost'); }
   }
-  R.ghosts = R.ghosts.filter(gh => gh.t < 0.75);
+  R.ghosts = R.ghosts.filter(gh => gh.t < 1.4);
   // ---------- 大招里的飞剑（御剑飞虹 + 剑阵收阵飞剑） ----------
   for (const f of R.fly) {
     f.life -= DT;
@@ -1996,9 +2005,9 @@ function drawJianList(list) {
   const D = R.dog;
   if (D && IMG.dog) list.push({ y: D.y, f: () => { const im = D.face < 0 ? flipped('dog') : IMG.dog; g.globalAlpha = Math.max(0, 1 - (D.leave || 0) / 0.6); g.drawImage(im, Math.round(D.x - im.width / 2), Math.round(D.y - im.height + 2 - Math.abs(Math.sin(D.ph)) * 2)); g.globalAlpha = 1; } });
   for (const gh of R.ghosts) list.push({ y: gh.y - 1, f: () => {   // 剑招残影
-    const key = 'jian' + gh.kind, im = gh.face < 0 ? flipped(key) : IMG[key]; if (!im || !im.width) return;
+    const key = gh.done ? 'jian' + gh.kind : (jFly() ? 'jianF' : 'jian'), im = gh.face < 0 ? flipped(key) : IMG[key]; if (!im || !im.width) return;
     const x = gh.face > 0 ? gh.x - JIAN_AX : gh.x - im.width + JIAN_AX;
-    g.globalAlpha = 0.4 * (1 - gh.t / 0.75); g.drawImage(im, Math.round(x), Math.round(gh.y - im.height + 3)); g.globalAlpha = 1;
+    g.globalAlpha = 0.45 * Math.min(1, (1.4 - gh.t) / 0.5); g.drawImage(im, Math.round(x), Math.round(gh.y - im.height + 3)); g.globalAlpha = 1;
   } });
   const X = R.xiang;
   if (X) list.push({ y: P.y - 2, f: () => {   // 法相：剑仙身后一尊三倍大的虚影
@@ -2314,7 +2323,7 @@ function newGame(diff = 'normal') {
   };
   wallsInit();
   GUARD.reset(); if (HERO === 'monk') GUARD.pickW();
-  if (HERO === 'jian') { S.p.hp = S.p.max = 90; setTimeout(() => { if (S && S.hero === 'jian' && S.state === 'play') rumor(['温：青城剑仙，前来斩妖！'], false); }, 2500); }
+  if (HERO === 'jian') { S.p.hp = S.p.max = 90; setTimeout(() => { if (S && S.hero === 'jian' && S.state === 'play') { window.sayKey && window.sayKey('j_open'); S.texts.push({ x: S.p.x, y: S.p.y - 46, v: '御剑乘风来，唯我青城剑仙！', t: 3.2, c: '#bff6ff', big: true }); } }, 1500); }
   if (HERO === 'priest') setTimeout(() => { if (S && S.hero === 'priest' && S.state === 'play') rumor(['Father 柴：Lord, give me strength!'], false); }, 2500);   // 一休开局自带袈裟，防作弊的法器计数要把它算进去
   for (const k of ['title', 'end', 'levelup', 'pause', 'revive', 'brag', 'tip', 'tipArrow', 'mmPanel', 'evArrow']) $(k).hidden = true;
   $('mm').hidden = false; $('mmBtn').classList.remove('alert');
@@ -3138,7 +3147,7 @@ document.addEventListener('selectstart', e => { const t = e.target; if (!(t && (
 function endGame(win) {
   if (!win && S.didRevive && window.sayDeath) sayDeath();
   S.state = 'over';
-  $('endT').textContent = win ? '鸡鸣，天亮了！' : S.hero === 'monk' ? '贫僧无能……' : S.hero === 'priest' ? '主啊……天还没亮' : S.hero === 'jian' ? '剑……还没出完' : '道长……天还没亮';
+  $('endT').textContent = win ? '鸡鸣，天亮了！' : S.hero === 'monk' ? '贫僧无能……' : S.hero === 'priest' ? '主啊……天还没亮' : S.hero === 'jian' ? '我的剑……' : '道长……天还没亮';
   const m = Math.floor(S.t / 60), s = Math.floor(S.t % 60);
   $('endP').textContent = win ? `撑过一整夜，伏尸 ${S.kills} 具，修为 ${cn(S.lv)}重。` : `撑了 ${m} 分 ${s} 秒，伏尸 ${S.kills} 具，修为 ${cn(S.lv)}重。`;
   S.score = Math.round((S.kills + S.lv * 20 + Math.floor(S.t) * 2 + (win ? 1000 : 0) + (S.bossKilled ? 500 : 0)) * DIFF[S.diff].mul);
@@ -3830,7 +3839,7 @@ function update() {
     if (P.grabT > 0) P.grabT -= DT;
     const sp = 62 * (1 + 0.1 * S.mods.speed) * (S.mk && S.mk.awk ? 1.15 : 1) * (P.slowT > 0 ? 0.6 : 1) * (P.grabT > 0 ? 0 : 1) * (P.sprint > 0 ? 1.5 : 1) * (S.pr && S.pr.mist > 0 ? 1.5 : 1) * (S.jx ? jSpd() : 1);
     moveBy(P, mx / ml * sp * DT, my / ml * sp * DT); P.walk += DT;
-    if (Math.abs(mx) > 0.2) P.face = Math.sign(mx);
+    if (Math.abs(mx) > 0.05) P.face = Math.sign(mx);
     P.dir = Math.atan2(my, mx);
   }
   P.x = Math.max(16, Math.min(WORLD.w - 16, P.x)); P.y = Math.max(28, Math.min(WORLD.h - 14, P.y));
@@ -4174,6 +4183,7 @@ function drawHand(e) {
 function draw() {
   const P = S.p;
   let fx = P.x, fy = P.y - 10;
+  if (S.jx && S.jx.dun) { fx = S.jx.dun.ox; fy = S.jx.dun.oy - 10; }
   if (S.dawnT != null) { const k = Math.min(1, S.dawnT / 0.9) * (S.dawnT > 3.2 ? Math.max(0, 1 - (S.dawnT - 3.2) / 0.9) : 1), e2 = k * k * (3 - 2 * k); fx += (S.dawn.x - fx) * e2; fy += (S.dawn.y + 40 - fy) * e2; }
   let cx = Math.round(Math.max(0, Math.min(WORLD.w - VW, fx - VW / 2)));
   let cy = Math.round(Math.max(0, Math.min(WORLD.h - VH, fy - VH / 2)));
@@ -4368,14 +4378,16 @@ function draw() {
     if (it.p) {
       g.fillStyle = 'rgba(14,8,24,.5)'; g.beginPath(); g.ellipse(P.x, P.y, 8, 2.5, 0, 0, 7); g.fill();
       const bob = P.moving ? Math.round(Math.abs(Math.sin(P.walk * 12)) * -1.5) : 0;
-      for (const a of S.afterimgs) if (a.t >= 0) { const ak = S.jx ? 'jian' : HK(), ai = a.face < 0 ? flipped(ak) : IMG[ak]; g.globalAlpha = 0.45 * (1 - a.t / 0.45); g.drawImage(ai, Math.round(a.x - ai.width / 2), Math.round(a.y - ai.height + 3)); g.globalAlpha = 1; }
+      for (const a of S.afterimgs) if (a.t >= 0) { const ak = S.jx ? (jFly() ? 'jianF' : 'jian') : HK(), ai = a.face < 0 ? flipped(ak) : IMG[ak]; g.globalAlpha = 0.45 * (1 - a.t / 0.45); g.drawImage(ai, Math.round(a.x - ai.width / 2), Math.round(a.y - ai.height + 3)); g.globalAlpha = 1; }
       const held = P.breath > 0 ? 2.8 - P.breath : 0, tk = HK() + (held > 1.7 ? 'R2' : held > 0.7 ? 'R1' : '');
-      const pf = S.jx && S.jx.pose ? S.jx.pose.face : P.face, im = pf < 0 ? flipped(tk) : IMG[tk];
+      const pf = S.jx && S.jx.pose && !P.moving && !jFly() ? S.jx.pose.face : P.face, im = pf < 0 ? flipped(tk) : IMG[tk];
       if (S.pr && S.pr.mist > 0) { drawPriestMist(P); continue; }
       if (P.inv > 0 && P.inv < 50 && Math.floor(P.inv * 20) % 2 && !(S.jx && S.jx.dun)) continue;
       if (P.breath > 0) g.globalAlpha = 0.65;
       const hx = S.jx && im.width > 30 ? (pf > 0 ? P.x - JIAN_AX : P.x - im.width + JIAN_AX) : P.x - im.width / 2;
-      g.drawImage(im, Math.round(hx), Math.round(P.y - im.height + 3 + bob));
+      const fly = S.jx && jFly() ? 5 + Math.round(Math.sin(S.t * 4) * 1.5) : 0;
+      if (fly) jDrawFlySword(P.x, P.y + 1 - fly, pf);
+      g.drawImage(im, Math.round(hx), Math.round(P.y - im.height + 3 + (fly ? -fly : bob)));
       g.globalAlpha = 1;
       if (P.breath > 0) {
         px(P.x - 1 + P.face * 5, P.y - 23, 3, 2, '#8fd8f0');
@@ -5480,7 +5492,7 @@ window.sayDeath = () => {
   if (!voiceOn || muted) return;
   audioInit();
   loadVoices().then(() => {
-    const b = VOB[S && S.hero === 'monk' ? 'death_m' : S && S.hero === 'priest' ? 'death_p' : 'death']; if (!b || !AC) return;
+    const b = VOB[S && S.hero === 'monk' ? 'death_m' : S && S.hero === 'priest' ? 'death_p' : S && S.hero === 'jian' ? 'death_j' : 'death']; if (!b || !AC) return;
     stopVoice(); const g2 = AC.createGain(); g2.gain.value = 1;
     vSrc = AC.createBufferSource(); vSrc.buffer = b; vSrc.connect(g2).connect(AC.destination); vSrc.start();
     const d = b.duration + 0.1;

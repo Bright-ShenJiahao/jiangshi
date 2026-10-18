@@ -1,5 +1,5 @@
 # 第四位主角：青城剑仙 · 温。需先 exec sprites.py（Spr / PAL）；热血物语式大头，身高与道长一致
-# 站立 jianke()；行走 jian_walk(1/2)；刺剑式 jian_thrust()；劈剑式 jian_cleave()
+# 站立 jianke()；御剑 jian_fly()；行走 jian_walk(1/2)（游戏里不用）；刺剑式 jian_thrust()；劈剑式 jian_cleave()
 # 出招图比站立图宽：人物身体都画在左边 0~25 列，游戏里按 JIAN_AX（身体中心 = 13）对齐
 import math
 PAL.update({'ql': (70, 170, 190), 'qd': (30, 96, 120), 'qr': (190, 232, 240)})
@@ -64,6 +64,11 @@ def jianke(drawn=False, step=0):
 
 def jian_walk(step):
     return jianke(False, step)
+
+
+def jian_fly():
+    """天罗步五重：背上的巨剑落到脚下御剑飞行，人物背后不再背剑（剑在游戏里画在脚下）"""
+    s = Spr(26, 37); _jbody(s, 0, back=False); s.outline(); return s
 
 
 def jian_thrust():

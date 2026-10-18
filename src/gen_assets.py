@@ -50,8 +50,8 @@ for _gun in (False, True):
         _k = _n + ('G' if _gun else ''); sprites[_k] = g['priest'](_gun, _f).img()
         sprites[_k + 'R1'] = _redface(sprites[_k], 1); sprites[_k + 'R2'] = _redface(sprites[_k], 2)
 sprites.update({'angel': g['angel']().img(), 'cherub': g['cherub']().img()})
-exec(open('jian_sprites.py').read(), g)   # 青城剑仙：站立、行走两帧、刺剑、劈剑（出招图身体在左，游戏里按 JIAN_AX 对齐）
-for _k, _im in (('jian', g['jianke']().img()), ('jianW1', g['jian_walk'](1).img()), ('jianW2', g['jian_walk'](2).img()), ('jianT', g['jian_thrust']().img()), ('jianC', g['jian_cleave']().img())):
+exec(open('jian_sprites.py').read(), g)   # 青城剑仙：站立、御剑（背后无剑）、刺剑、劈剑（出招图身体在左，游戏里按 JIAN_AX 对齐）
+for _k, _im in (('jian', g['jianke']().img()), ('jianF', g['jian_fly']().img()), ('jianT', g['jian_thrust']().img()), ('jianC', g['jian_cleave']().img())):
     sprites[_k] = _im; sprites[_k + 'R1'] = _redface(_im, 1); sprites[_k + 'R2'] = _redface(_im, 2)
 sprites['jfly'] = g['jian_flysword']().img()
 exec(open('gods_sprites.py').read(), g)
