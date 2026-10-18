@@ -2171,7 +2171,7 @@ const TAGS_G = { ling: ['伤害', '近身'], jing: ['伤害', '范围'], ding: [
 const ULTS_G = {
   zk: { name: '钟馗附体', qn: '钟馗吞鬼', seal: '馗', desc: ['<b>镇鬼</b>。永久化身钟馗，尸傀变成麾下小鬼（伤害 +30%）。Q：<b>钟馗吞鬼</b>（30 秒）——把身边小怪吸来一口吞掉，按数量回阳气<br><span class="syn">加持：八卦镜化作八方神光；被定尸符定住的怪受伤翻倍，钟馗自动出剑斩；两件伤害 +30%。镇鬼铃：摄魂铃打鬼魂伤害翻倍，打中的怪现形</span>', '吞得更远，回阳气更多', '吞得最远；精英也会被一口吞掉'] },
   wy: { name: '万业尸仙', qn: '万尸献祭', seal: '尸', desc: ['<b>召唤</b>。灵物不再消散（会被打死，但多挨一下），最多 6 + 驭灵术重数只；起尸时 60% 化作灵物。Q：<b>万尸献祭</b>（40 秒）——献祭全部尸傀和灵物，按尸力召夜叉 / 旱魃 / 犼助战 15 秒<br><span class="syn">加持：驭灵术、引魂幡伤害 +30%。招灵铃：铜铃齐鸣时召出一只灵物</span>', '妖魔持续 17 秒，伤害提升', '妖魔持续 20 秒，伤害再提升'] },
-  hb: { name: '生人回避', qn: '铃响尸动', seal: '避', desc: ['<b>赶尸</b>。尸傀上限 +3，攻击、攻速、血量 +30%，起尸几率 +20%；驭灵术召唤时 60% 化作尸傀；尸傀打死贴符的怪必定起尸；喜神不灭：尸傀死后 5 秒复活。Q：<b>铃响尸动</b>（3 秒）——切换 守（尸傀围成一圈把怪弹开，你受到伤害 -30%，大家走得慢些）/ 攻（尸傀狂暴冲向四方）<br><span class="syn">加持：纸钱、起尸术、苗疆尸蛊伤害 +30%。赶尸铃：铜铃每响一下尸傀攻速提升，齐鸣时尸傀一起跳起砸地</span>', '尸傀攻击、攻速、血量 +40%，4 秒复活', '尸傀攻击、攻速、血量 +50%，3 秒复活'] },
+  hb: { name: '生人回避', qn: '铃响尸动', seal: '避', desc: ['<b>赶尸</b>。尸傀上限 +3，攻击、攻速、血量 +30%，起尸几率 +20%；驭灵术召唤时 60% 化作尸傀；尸傀打死贴符的怪必定起尸；尸傀只存在 22 秒，到点倒下。Q：<b>铃响尸动</b>（3 秒）——切换 守（尸傀围成一圈把怪弹开，你受到伤害 -30%，大家走得慢些）/ 攻（尸傀狂暴冲向四方）<br><span class="syn">加持：纸钱、起尸术、苗疆尸蛊伤害 +30%。赶尸铃：铜铃每响一下尸傀攻速提升，齐鸣时尸傀一起跳起砸地</span>', '尸傀攻击、攻速、血量 +40%', '尸傀攻击、攻速、血量 +50%'] },
 };
 const ULTSYN_G = {}, ULTSYN2_G = {};
 const G_LINK = { zk: ['jing', 'ding'], wy: ['yu', 'fan'], hb: ['qian', 'qi', 'gu'] };
@@ -2200,7 +2200,7 @@ function gAddSpirit(k, x, y, life) {   // 加一只灵物（超出上限就不�
 }
 function gAddPet(x, y, q, rise) {
   const G = S.gx, mx = gPetMax(q);
-  G.pets.push({ id: ++G.petId, x, y, q, hp: mx, max: mx, cd: 0, ph: Math.random() * 6, face: x > S.p.x ? -1 : 1, rise: rise ?? 0.6, hurtCd: 0, slot: Math.random() * 6.283 });
+  G.pets.push({ id: ++G.petId, born: S.t, x, y, q, hp: mx, max: mx, cd: 0, ph: Math.random() * 6, face: x > S.p.x ? -1 : 1, rise: rise ?? 0.6, hurtCd: 0, slot: Math.random() * 6.283 });
 }
 function gQual(e) {
   const base = { walker: 1, zombie: 2, jumper: 3 }[e.type] || 2, sk = { zP: 4, zW: 5, zG: 6, walkF: 2, walkS: 3, jumperM: 4, vampM: 3, thrall: 2 }[e.skin] || 0;
@@ -2259,7 +2259,7 @@ function ganPick(k) {   // 选定大招时：钟馗附体当场变身
     S.texts.push({ x: P.x, y: P.y - 60, v: '天师钟馗在此！', t: 1.8, c: '#ff8a7a', big: true });
     for (let i = 0; i < 30; i++) { const a = Math.random() * 6.283, sp = rnd(40, 110); S.parts.push({ x: P.x, y: P.y - 20, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.6 - 30, t: rnd(0.5, 1), c: Math.random() < 0.5 ? '#d22c28' : '#ffd860' }); }
   } else if (k === 'wy') { banner('万业尸仙', 2); sfx('wisp'); S.texts.push({ x: P.x, y: P.y - 50, v: '灵物不再消散', t: 1.5, c: '#9af0b0', big: true }); for (const sp of G.spirits) { sp.life = 1e9; sp.hits++; } }
-  else { G.mode = 'atk'; banner('生人回避', 2); sfx('bell'); S.texts.push({ x: P.x, y: P.y - 50, v: '按 Q 切换 守 / 攻', t: 2, c: '#ffe9a0', big: true }); }
+  else { G.mode = 'atk'; for (const p of G.pets) p.born = S.t; banner('生人回避', 2); sfx('bell'); S.texts.push({ x: P.x, y: P.y - 50, v: '按 Q 切换 守 / 攻', t: 2, c: '#ffe9a0', big: true }); }
   for (const p of G.pets) { p.max = gPetMax(p.q); p.hp = p.max; }
 }
 function ganToggle() {   // 铃响尸动：守 / 攻 切换，不算大招次数
@@ -2557,9 +2557,11 @@ function updateGanPets() {
     const a = G.pets[i], b = G.pets[j], dx = b.x - a.x, dy = b.y - a.y, d2 = dx * dx + dy * dy;
     if (d2 < 100 && d2 > 0.01) { const d = Math.sqrt(d2), k = (10 - d) * 0.5 / d; a.x -= dx * k; a.y -= dy * k; b.x += dx * k; b.y += dy * k; }
   }
-  for (const p of G.pets) if (p.hp <= 0) {   // 倒下：生人回避有喜神不灭
+  const G_LIFE = 22;   // 生人回避：尸傀只存在 22 秒
+  if (gUlt('hb')) for (const p of G.pets) if (S.t - (p.born ?? S.t) >= G_LIFE && p.hp > 0) { p.hp = 0; p.expired = true; }
+  for (const p of G.pets) if (p.hp <= 0) {   // 倒下
     for (let i = 0; i < 8; i++) S.parts.push({ x: p.x + rnd(-5, 5), y: p.y - 12, vx: rnd(-40, 40), vy: rnd(-70, -20), t: rnd(0.4, 0.7), c: Math.random() < 0.5 ? '#2a2638' : '#d6b260' });
-    if (gUlt('hb')) { G.souls.push({ x: p.x, y: p.y - 14, q: p.q, t: 0, dur: [0, 5, 4, 3][S.ult.lv] }); S.texts.push({ x: p.x, y: p.y - 30, v: '喜神不灭', t: 0.8, c: '#9af0d0' }); }
+    if (p.expired) S.texts.push({ x: p.x, y: p.y - 30, v: '尸气散尽', t: 0.7, c: '#c8c0d0' });
   }
   G.pets = G.pets.filter(p => p.hp > 0);
   for (const s of G.souls) {   // 魂火飞回赶尸王身边，到时复活
@@ -2699,6 +2701,7 @@ function drawGanList(list) {
     if (rise < 1) { const h = Math.round(im.height * rise); g.drawImage(im, 0, 0, im.width, h, Math.round(p.x - im.width / 2), Math.round(p.y - h + 2), im.width, h); return; }
     g.drawImage(im, Math.round(p.x - im.width / 2), Math.round(p.y - im.height + 2 - hop));
     if (p.flash > 0) { g.globalAlpha = 0.6; g.globalCompositeOperation = 'lighter'; g.drawImage(im, Math.round(p.x - im.width / 2), Math.round(p.y - im.height + 2 - hop)); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; }
+    if (gUlt('hb')) { const lf = Math.max(0, 1 - (S.t - (p.born ?? S.t)) / 22); px(p.x - 6, p.y - im.height - 5 - hop, 12, 1, '#1a0e1e'); px(p.x - 6, p.y - im.height - 5 - hop, Math.max(1, Math.round(12 * lf)), 1, lf < 0.25 ? '#ff8a6a' : '#d6c8a0'); }
     if (p.hp < p.max) { px(p.x - 6, p.y - im.height - 2 - hop, 12, 2, '#1a0e1e'); px(p.x - 6, p.y - im.height - 2 - hop, Math.max(1, Math.round(12 * p.hp / p.max)), 2, '#7af0a0'); }
     if (p.q >= 5) { g.globalAlpha = 0.8; px(p.x - 1, p.y - im.height - 5 - hop, 2, 2, p.q >= 7 ? '#ff6a5a' : '#d0a0ff'); g.globalAlpha = 1; }
   } });
@@ -3782,7 +3785,7 @@ addEventListener('blur', () => { if (S && S.state === 'play') togglePause(); });
 
 // ---------- 分享 / 复活 ----------
 const SITE = 'https://jiangshidaozhang.netlify.app/';
-const BUILD = '2610190223';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
+const BUILD = '2610190310';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
 const shareUrl = () => ((typeof WEB !== 'undefined' && WEB) ? location.origin + location.pathname : SITE) + '?v=' + BUILD;
 function shichenNow() { let n = '子时'; for (const [a, t] of SHI) if (S.t >= t) n = a; return n; }
 async function copyText(s) {
