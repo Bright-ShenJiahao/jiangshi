@@ -1,5 +1,43 @@
+# Netlify 配置
+# 纯静态单文件 + 一个 Functions 目录（功德簿 /api/scores）
+
 [build]
   publish = "public"
+  command = ""
 
 [functions]
   directory = "netlify/functions"
+
+# --- 安全头（对当前单文件游戏是安全的，不影响内联脚本运行）---
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+
+# 注意：暂时不加 CSP。游戏脚本是内联的，加 CSP 必须配 'unsafe-inline' 或 sha256，
+# 否则整页白屏。等 P0-1 把脚本外置成 /assets/app.js 之后再加严格 CSP。
+
+# --- 缓存 ---
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/share.png"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+# 素材拆分后启用（P0-1）：
+# [[headers]]
+#   for = "/assets/*"
+#   [headers.values]
+#     Cache-Control = "public, max-age=31536000, immutable"

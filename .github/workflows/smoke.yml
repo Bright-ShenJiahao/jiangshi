@@ -1,0 +1,20 @@
+name: 线上烟雾测试
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 1 * * *'   # 每天 10:00 JST
+
+jobs:
+  live-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: 检查线上站点与接口
+        run: node scripts/live-check.js
+      - name: 汇总
+        if: always()
+        run: echo "线上检查完成。若上面出现 ❌，去 Netlify 后台看最近一次部署。"
