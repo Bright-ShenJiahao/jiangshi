@@ -107,7 +107,7 @@ export default async (req) => {
     score: int(b.score, 0, 200000),
     at: int(b.at, 0, 4102444800000),
     ults: int(b.ults, 0, 9999),
-    hero: b.hero === 'monk' || b.hero === 'priest' ? b.hero : 'tao',
+    hero: b.hero === 'monk' || b.hero === 'priest' || b.hero === 'jian' ? b.hero : 'tao',
     ch: ['heian', 'london', 'nanyang', 'qin'].includes(b.ch) ? b.ch : 'ren',
     cheat: 0,
     dev: b.dev === 't' ? 't' : b.dev === 'k' ? 'k' : '',

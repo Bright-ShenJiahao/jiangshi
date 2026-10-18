@@ -54,7 +54,8 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
 .btn:focus-visible, .opt:focus-visible, #breath:focus-visible { outline: 3px solid var(--jade); outline-offset: 2px; }
 .opts { display: grid; gap: 10px; margin-top: 14px; }
-.heroes { display: flex; gap: 10px; justify-content: center; margin: 6px 0 2px; }
+.heroes { display: grid; grid-template-columns: repeat(4, minmax(0, 132px)); gap: 10px; justify-content: center; margin: 6px 0 2px; }
+@media (max-width: 600px) { .heroes { grid-template-columns: repeat(2, minmax(0, 150px)); } .hero { max-width: none; } }
 .hero { background: transparent; border: 2px solid var(--line); color: var(--text); font: 16px var(--display); padding: 6px 10px; cursor: pointer; display: grid; gap: 2px; min-width: 0; flex: 1 1 0; max-width: 132px; white-space: nowrap; }
 @media (max-width: 420px) { .heroes { gap: 6px; } .hero { font-size: 14px; padding: 5px 4px; } .hero small { font-size: 10px; } }
 .hero small { font-size: 11px; color: var(--muted); }
@@ -227,7 +228,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
         <span>暂停</span><span>P 键</span>
       </div>
       <div class="nameRow"><input id="startName" maxlength="10" placeholder="道长尊姓大名？" autocomplete="off" aria-label="道号"><span id="nameTip"></span></div>
-      <div class="heroes"><button type="button" class="hero on" id="heroTao"><b>☯︎ 一眉道人</b><small>林九</small></button><button type="button" class="hero" id="heroMonk"><b>卍︎ 伏魔禅师</b><small id="monkSub">一休</small></button><button type="button" class="hero" id="heroPriest"><b>✝︎ 天主圣徒</b><small id="priestSub">Father 柴</small></button></div>
+      <div class="heroes"><button type="button" class="hero on" id="heroTao"><b>☯︎ 一眉道人</b><small>林九</small></button><button type="button" class="hero" id="heroMonk"><b>卍︎ 伏魔禅师</b><small id="monkSub">一休</small></button><button type="button" class="hero" id="heroPriest"><b>✝︎ 天主圣徒</b><small id="priestSub">Father 柴</small></button><button type="button" class="hero" id="heroJian"><b>⚔︎ 青城剑仙</b><small id="jianSub">温</small></button></div>
       <div class="chaps" id="chapRow" aria-label="选择章节"></div>
       <div class="diffs"><button class="btn" id="startBtn">开坛 · 普通</button><button class="btn hard" id="hardBtn">开坛 · 困难</button></div>
       <p class="hint">困难：怪更硬更疼、出招更勤，积分 ×1.5</p>
@@ -439,20 +440,21 @@ const ULTSYN2_M = {
   liuzi: [{ w: 'gun', name: '真言棍', text: '少林棍横扫后偶尔再扩散一圈金色真言音波', ch: [0, 0.10, 0.15, 0.20] },
     { w: 'chu', name: '真言杵', text: '降魔杵落地偶尔念出一个真言字（与木鱼共用六字）', ch: [0, 0.10, 0.15, 0.20] }],
 };
-const PASS_CD = { tao: '符、铜钱剑、墨斗、铃、八卦掌、金光咒的间隔 -8%（不影响大招）', monk: '棍、佛珠、木鱼、经文、降魔杵、钵、袈裟的间隔 -8%（不影响大招）', priest: '圣经、圣水、木桩、手枪、法阵、法咒的间隔 -8%（不影响大招）' };
+const PASS_CD = { jian: '六脉剑、剑阵、刺剑、劈剑、纯阳功的间隔 -8%（不影响大招）', tao: '符、铜钱剑、墨斗、铃、八卦掌、金光咒的间隔 -8%（不影响大招）', monk: '棍、佛珠、木鱼、经文、降魔杵、钵、袈裟的间隔 -8%（不影响大招）', priest: '圣经、圣水、木桩、手枪、法阵、法咒的间隔 -8%（不影响大招）' };
 const LZ = '唵嘛呢叭咪吽';
 let HERO = 'tao';
-try { const h0 = localStorage.getItem('ztzh_hero'); HERO = h0 === 'monk' || h0 === 'priest' ? h0 : 'tao'; } catch (e) {}
+try { const h0 = localStorage.getItem('ztzh_hero'); HERO = h0 === 'monk' || h0 === 'priest' || h0 === 'jian' ? h0 : 'tao'; } catch (e) {}
 function monkUnlocked() {
   try { if (/[?&]unlock\b/.test(location.search)) localStorage.setItem('ztzh_monk', '1'); return localStorage.getItem('ztzh_monk') === '1'; } catch (e) { return /[?&]unlock\b/.test(location.search); }
 }
 function setHero(h) {
-  HERO = h === 'monk' || h === 'priest' ? h : 'tao';
+  HERO = h === 'monk' || h === 'priest' || h === 'jian' ? h : 'tao';
   const m = HERO === 'monk', pr = HERO === 'priest';
   WEAPONS = pr ? WEAPONS_P : m ? WEAPONS_M : WEAPONS_T; ULTS = pr ? ULTS_P : m ? ULTS_M : ULTS_T; ULTSYN = pr ? ULTSYN_P : m ? ULTSYN_M : ULTSYN_T; ULTSYN2 = pr ? ULTSYN2_P : m ? ULTSYN2_M : ULTSYN2_T; TAGS = pr ? TAGS_P : m ? TAGS_M : TAGS_T;
+  if (HERO === 'jian') { WEAPONS = WEAPONS_J; ULTS = ULTS_J; ULTSYN = ULTSYN_J; ULTSYN2 = ULTSYN2_J; TAGS = TAGS_J; }
   PASSIVES.cd.desc = PASS_CD[HERO];
 }
-const HK = () => (S && S.hero === 'monk' ? 'monk' : S && S.hero === 'priest' && S.pr ? prKey() : 'taoist');
+const HK = () => (S && S.hero === 'jian' && S.jx ? jianImgKey() : S && S.hero === 'monk' ? 'monk' : S && S.hero === 'priest' && S.pr ? prKey() : 'taoist');
 const mBig = e => e.type === 'king' || e.type === 'vampire' || e.type === 'hand' || e.type === 'wuchang' || e.special || e.banana || e.audience || e.onBike;
 const mGhost = e => e.type === 'ghost' || e.skin === 'ghostR' || e.banana;
 // 控制递减：2 秒内第二次眩晕减半，第三次免疫；尸王等大怪只减速
@@ -1592,6 +1594,473 @@ function drawPriestHud() {
   g.fillStyle = 'rgba(14,8,24,.6)'; g.fillRect(VW / 2 - 30, 30, 60, 11);
   for (let i = 0; i < need; i++) px(VW / 2 - 25 + i * 11, 33, 6, 5, i < n ? '#b08aff' : '#3a2a5a');
 }
+// ================= 青城剑仙 · 温（第四位主角）=================
+// 三条路：气宗（以气驭剑）联动 飞剑 / 玄门六脉剑 / 九宫八卦剑阵；请神（法天象地）联动 如有神助 / 三清纯阳功；
+// 剑宗（天遁剑法）联动 刺剑式 / 劈剑式 / 天罗步。剑宗三件「走着出剑快、站着出剑慢」。
+const WEAPONS_J = {
+  fei: { name: '飞剑', seal: '剑', w: 1, desc: ['两把飞剑绕身旋转；每转满一圈，一把飞出去刺最近的怪再飞回', '伤害提升', '三把', '绕得更远，飞出去的剑飞得更远', '四把，伤害大增；每圈飞出两把；斩杀回阳（每秒最多 2 点）'] },
+  liumai: { name: '玄门六脉剑', seal: '脉', w: 1, desc: ['每 1.5 秒指尖射出剑气追最近的怪。开二脉：少商（重剑、击退）、商阳（快剑）', '开三脉：中冲（剑气更宽，穿透三只）', '开四脉：关冲（打中定身 0.5 秒）', '开五脉：少冲（一次三连发）', '六脉全开：少泽（穿透，命中后折向下一只）；间隔缩短到 1.25 秒，六脉齐发'] },
+  zhen: { name: '九宫八卦剑阵', seal: '阵', w: 1, desc: ['每 12 秒在脚下召唤剑阵，留在原地 6 秒：八个方位各插一剑，怪踏进哪一格，那一剑就刺出去；中宫剑每 1.5 秒震开四周', '剑阵更大', '剑阵持续 8 秒', '每 9 秒召唤一次', '收阵时八剑齐飞，射向八方'] },
+  shen: { name: '如有神助', seal: '神', w: 1, desc: ['每 20 秒随机一位神明附身 5 秒：二郎神（伤害 +25%，哮天犬助战）、雷公（命中引小雷）、张天师（受伤 -30%，出手快 25%，清除减速）、李冰（移速 +20%，命中减速，身边涌浪推开怪）', '每 18 秒一次，附身 6 秒', '每 16 秒一次', '每 14 秒一次，附身 7 秒', '每 12 秒一次，附身 8 秒；两位神明同时附身'] },
+  chun: { name: '三清纯阳功', seal: '阳', w: 1, desc: ['身周一圈纯阳光环：灼烧贴身的怪（鬼魂双倍），每秒回 0.3 点阳气', '光环更大，每秒回 0.4 点', '灼烧伤害提升，每秒回 0.5 点', '光环更大，每秒回 0.6 点', '每秒回 0.8 点；光环里烧死的怪再回 1 点（每秒最多 2 点）'] },
+  ci: { name: '刺剑式', seal: '刺', w: 1, desc: ['朝移动方向刺出巨剑，近距离穿刺。走着出剑快，站着出剑慢（朝最近的怪）', '伤害提升', '一次连刺两剑', '剑更长，剑尖带出剑气', '三连刺，最后一刺伤害翻倍'] },
+  pi: { name: '劈剑式', seal: '劈', w: 1, desc: ['朝移动方向的两侧各劈一剑，击退。走着出剑快，站着出剑慢', '劈得更宽', '伤害提升', '劈完留下剑痕，片刻后再打一次', '前后左右四面齐劈'] },
+  tianluo: { name: '天罗步', seal: '步', w: 1, desc: ['一直走且不受伤，每秒移速 +2%（最多 +8%），受伤清零；走动时身后留下刺或劈的剑招残影，片刻后自己出剑', '移速最多 +12%', '残影更频繁', '移速最多 +16%，残影伤害提升', '一步杀十人：移速最多 +20%，残影出剑两次'] },
+};
+const TAGS_J = { fei: ['伤害', '近身'], liumai: ['伤害', '穿透'], zhen: ['控制', '范围'], shen: ['被动'], chun: ['防御', '持续'], ci: ['伤害', '近身'], pi: ['伤害', '范围'], tianluo: ['被动'] };
+const ULTS_J = {
+  qi: { name: '以气驭剑', qn: '御剑飞虹', seal: '驭', desc: ['<b>气宗</b>。Q：<b>御剑飞虹</b>——6 把飞剑脱手，各自锁怪穿刺 8 秒，剑过留下青虹残影<br><span class="syn">加持：飞剑、玄门六脉剑、九宫八卦剑阵伤害 +30%；飞剑绕得更远，每圈多飞出一把</span>', '7 把飞剑，伤害提升', '8 把飞剑；收剑时八剑回身，震开四周'] },
+  fa: { name: '法天象地', qn: '法天象地', seal: '象', desc: ['<b>请神</b>。Q：身后升起神明法相 6 秒，每 1.5 秒一掌拍向怪最密处；脚下八卦阵：受到伤害 -50%，每秒回 1 点阳气<br><span class="syn">加持：如有神助、三清纯阳功效果 +40%；如有神助间隔 -20%</span>', '法相持续 7 秒，掌印更大', '法相持续 8 秒；最后一掌震地，全屏受伤'] },
+  dun: { name: '天遁剑法', qn: '天遁连斩', seal: '遁', desc: ['<b>剑宗</b>。Q：<b>天遁连斩</b>——无敌，在附近 8 只怪之间瞬移连斩（先斩精英和尸王），最后回到原位<br><span class="syn">加持：刺剑式、劈剑式、天罗步伤害 +30%；天罗步残影更频繁，移速上限 +10%</span>', '连斩 9 只，伤害提升', '连斩 10 只；回到原位时一道剑气横扫四周'] },
+};
+const ULTSYN_J = {}, ULTSYN2_J = {};
+const J_LINK = { qi: ['fei', 'liumai', 'zhen'], fa: ['shen', 'chun'], dun: ['ci', 'pi', 'tianluo'] };
+const J_SRC = { fei: 'fei', throw: 'fei', liumai: 'liumai', zhen: 'zhen', zhenC: 'zhen', zhenF: 'zhen', chun: 'chun', ci: 'ci', pi: 'pi', piMark: 'pi', ghost: 'tianluo', dog: 'shen', bolt: 'shen', wave: 'shen' };
+const J_BAL = 0.92;   // 平衡：剑仙法器总伤害系数（自动玩家测试：三条路整体略强于一休，整体下调 8%）
+const J_GODS = { er: { n: '二郎神', c: '#ffd860', g: '二' }, lei: { n: '雷公', c: '#c890ff', g: '雷' }, tian: { n: '张天师', c: '#7fe0d0', g: '天' }, li: { n: '李冰', c: '#7ac8ff', g: '冰' } };
+const jOn = () => S && S.hero === 'jian' && S.jx;
+const jUlt = k => S.ult && S.ult.k === k;
+const jGod = k => S.jx.gods.some(q => q.k === k && q.t > 0);
+const jFa = () => (jUlt('fa') ? 1.4 : 1);   // 法天象地：请神两件效果 +40%
+function jNew() { return { fx: [], throws: [], qi: [], zhens: [], fly: [], ghosts: [], marks: [], gods: [], dog: null, stack: 0, ghostT: 0, pose: null, revAcc: 0, healAcc: 0, godT: 8, xiang: null, dun: null, ciQ: [], hk: 0, yjN: 0 }; }
+function jRate() {   // 剑宗出剑频率：站着 60%，走着 100%，天罗步叠满 120%
+  const P = S.p; if (!P.moving) return 0.6;
+  const cap = jStackCap(); return 1 + (cap ? 0.2 * S.jx.stack / cap : 0);
+}
+const jStackCap = () => (S.w.tianluo ? [0, 8, 12, 12, 16, 20][S.w.tianluo] + (jUlt('dun') ? 10 : 0) : 0);
+function jSpd() { const R = S.jx; return 1.1 * (1 + R.stack / 100) * (jGod('li') ? 1 + 0.2 * jFa() : 1); }
+function jDR() {   // 减伤：张天师、法天象地；合计最多 70%
+  let k = 1; if (jGod('tian')) k *= 1 - Math.min(0.42, 0.3 * jFa()); if (S.jx.xiang) k *= 0.5;
+  return Math.max(0.3, k);
+}
+const jCdK = () => (jGod('tian') ? 1 / (1 + 0.25 * jFa()) : 1);
+function jTick(name, base) { return tick(name, base * jCdK()); }
+function jHeal(v) {
+  const P = S.p, R = S.jx; if (P.hp >= P.max) { R.healAcc = 0; return; }
+  R.healAcc += v; while (R.healAcc >= 1 && P.hp < P.max) { R.healAcc -= 1; P.hp = Math.min(P.max, P.hp + 1); if (Math.random() < 0.3) S.texts.push({ x: P.x + rnd(-6, 6), y: P.y - 30, v: '+1', t: 0.5, c: '#7ef0a0' }); }
+}
+function jHealCap(n) {   // 斩杀回阳一类：每秒最多 2 点（与桃木剑同规则）
+  const P = S.p; if (P.hp >= P.max) return;
+  if (S.t - (S.lsT0 || -9) >= 1) { S.lsT0 = S.t; S.lsN = 0; }
+  for (let i = 0; i < n && S.lsN < 2 && P.hp < P.max; i++) { S.lsN++; P.hp = Math.min(P.max, P.hp + 1); if (Math.random() < 0.3) S.texts.push({ x: P.x + rnd(-6, 6), y: P.y - 30, v: '+1', t: 0.5, c: '#7ef0a0' }); }
+}
+function jHit(e, dmg, kb, fx, fy, src, tag) {   // 剑仙法器统一走这里：记来源、大招加持、神明增益
+  if (e.dead) return 0;
+  const w = J_SRC[src] || src;
+  dmg *= J_BAL;
+  if (S.ult && J_LINK[S.ult.k] && J_LINK[S.ult.k].includes(w)) dmg *= S.ult.k === 'fa' ? 1.4 : 1.3;
+  if (jGod('er')) dmg *= 1 + 0.25 * jFa();
+  const R = S.jx, h0 = e.hp; R.src = src; hurt(e, dmg, kb, fx, fy, tag); R.src = null;
+  if (e.dead) return h0;
+  if (jGod('li') && !mBig(e)) e.slow = Math.max(e.slow || 0, S.t + 0.8);
+  if (jGod('lei') && src !== 'bolt' && S.t > (R.boltT || 0) && Math.random() < 0.2) {
+    R.boltT = S.t + 0.35; S.areas.push({ k: 'bolt', x: e.x, y: e.y, life: 0.15, dmg: 22 * jFa() * J_BAL, r: 22, done: false, seed: Math.random(), small: true, jian: 1 });
+  }
+  return Math.max(0, h0 - Math.max(0, e.hp));
+}
+function jianKill(e) {
+  const R = S.jx, src = R.src, W = S.w;
+  if (W.fei >= 5 && (src === 'fei' || src === 'throw')) jHealCap(1);
+  if (W.chun >= 5 && src === 'chun') jHealCap(1);
+}
+function jianHurt() { S.jx.stack = 0; }   // 受伤：天罗步移速清零
+function jPose(k, dir) { const R = S.jx; R.pose = { k, t: k === 'T' ? 0.16 : 0.2, face: Math.cos(dir) >= 0 ? 1 : -1 }; }
+const JIAN_AX = 13;   // 出招图里身体中心所在列
+function jianImgKey() {   // 当前要画的人物图：出招 > 行走 > 站立
+  const R = S.jx, P = S.p;
+  if (R && R.pose) return 'jian' + R.pose.k;
+  if (P.moving) return Math.floor(P.walk * 7) % 2 ? 'jianW1' : 'jianW2';
+  return 'jian';
+}
+function jDir(reach) {   // 出剑方向：走着朝移动方向（前方有怪时）；前方没怪或站着，就转向最近的怪
+  const P = S.p, R0 = reach || 70;
+  if (P.moving && P.dir != null) {
+    const d = P.dir, ahead = S.en.some(e => !e.dead && dist2(e, P) < (R0 + 10) ** 2 && angD(Math.atan2(e.y - P.y, e.x - P.x), d) < 1.05);
+    if (ahead) return d;
+  }
+  const t = nearest(1, R0 + 20)[0]; return t ? Math.atan2(t.y - P.y, t.x - P.x) : (P.dir ?? (P.face > 0 ? 0 : Math.PI));
+}
+function jLine(x, y, dir, L, w, dmg, kb, src, hitSet) {   // 直线穿刺判定
+  const c = Math.cos(dir), s = Math.sin(dir); let n = 0;
+  for (const e of S.en) {
+    if (e.dead || (hitSet && hitSet.has(e.id))) continue;
+    const dx = e.x - x, dy = e.y - 8 - (y - 10), a = dx * c + dy * s, b = Math.abs(-dx * s + dy * c);
+    if (a > -4 && a < L + e.r && b < w + e.r) { if (hitSet) hitSet.add(e.id); jHit(e, dmg, kb, x, y, src); n++; }
+  }
+  return n;
+}
+function jArc(x, y, dir, Rr, half, dmg, kb, src) {   // 扇形劈砍判定
+  let n = 0;
+  for (const e of S.en) {
+    if (e.dead) continue;
+    const dx = e.x - x, dy = (e.y - y) / 0.75, d = Math.hypot(dx, dy);
+    if (d > Rr + e.r) continue;
+    if (d > 6 && angD(Math.atan2(dy, dx), dir) > half) continue;
+    jHit(e, dmg, kb, x, y, src); n++;
+  }
+  return n;
+}
+function jStrike(kind, x, y, dir, mul, src) {   // 一次刺 / 劈（本体和残影共用）
+  const W = S.w, R = S.jx;
+  if (kind === 'T') {
+    const lv = W.ci || 1, L = lv >= 4 ? 66 : 52, dmg = [0, 28, 34, 34, 38, 42][lv] * mul;
+    const hs = new Set(); jLine(x, y, dir, L, 7, dmg, 30, src, hs);
+    R.fx.push({ k: 'thrust', x, y: y - 10, dir, L, t: 0, ghost: src === 'ghost' });
+    if (lv >= 4) { R.fx.push({ k: 'thrust', x: x + Math.cos(dir) * L, y: y - 10 + Math.sin(dir) * L, dir, L: 26, t: 0, qi: true }); jLine(x + Math.cos(dir) * L, y + Math.sin(dir) * L, dir, 26, 6, dmg * 0.5, 10, src, hs); }
+  } else {
+    const lv = W.pi || 1, Rr = lv >= 2 ? (lv >= 5 ? 58 : 54) : 46, dmg = [0, 30, 30, 38, 38, 42][lv] * mul;
+    const dirs = lv >= 5 ? [dir + Math.PI / 2, dir - Math.PI / 2, dir, dir + Math.PI] : [dir + Math.PI / 2, dir - Math.PI / 2];
+    for (const a of dirs) { jArc(x, y, a, Rr, 1.05, dmg, 55, src); R.fx.push({ k: 'cleave', x, y: y - 8, dir: a, Rr, t: 0, ghost: src === 'ghost' }); }
+    if (lv >= 4 && src !== 'ghost') R.marks.push({ x, y, dirs, Rr, dmg: dmg * 0.5, t: 0 });
+  }
+}
+function jPickGod(ex) { const ks = Object.keys(J_GODS).filter(k => !ex.includes(k)); return ks[Math.floor(Math.random() * ks.length)]; }
+function jSummon(k, dur) {
+  const R = S.jx, P = S.p, G = J_GODS[k];
+  R.gods.push({ k, t: dur, max: dur });
+  S.texts.push({ x: P.x, y: P.y - 44 - R.gods.length * 10, v: G.n + '附身！', t: 1.3, c: G.c, big: true }); sfx('bell');
+  for (let i = 0; i < 18; i++) { const a = Math.random() * 6.283, sp = rnd(30, 90); S.parts.push({ x: P.x, y: P.y - 14, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.6 - 30, t: rnd(0.4, 0.8), c: G.c }); }
+  if (k === 'er' && !R.dog) R.dog = { x: P.x - 14, y: P.y + 4, face: 1, cd: 0, ph: 0, tgt: null };
+}
+function updateJian() {
+  if (!jOn()) return;
+  const P = S.p, W = S.w, R = S.jx;
+  if (R.pose) { R.pose.t -= DT; if (R.pose.t <= 0) R.pose = null; }
+  // 天罗步：一直走且没受伤，移速慢慢叠上去
+  if (W.tianluo && P.moving) R.stack = Math.min(jStackCap(), R.stack + 2 * DT); else if (!P.moving) R.stack = Math.max(0, R.stack - 4 * DT);
+  if (!W.tianluo) R.stack = 0;
+  // 天遁连斩进行中：人在怪群里瞬移，别的法器照常
+  if (R.dun) updateJianDun();
+  // ---------- 飞剑：环绕 + 每圈飞出 ----------
+  if (W.fei) {
+    const lv = W.fei, n = swordN(lv), Rr = (lv >= 4 ? 30 : 24) * (jUlt('qi') ? 1.2 : 1), dmg = (lv >= 2 ? 20 : 14) * (lv >= 5 ? 1.4 : 1);
+    const dA = DT * 4.2; S.swordAng += dA; R.revAcc += dA;
+    for (let i = 0; i < n; i++) {
+      const a = S.swordAng + i * Math.PI * 2 / n, cx = P.x + Math.cos(a) * Rr, cy = P.y - 10 + Math.sin(a) * Rr * 0.75;
+      for (const e of S.en) {
+        if (e.dead || (e.hitCd['j' + i] || 0) > S.t) continue;
+        if ((e.x - cx) ** 2 + (e.y - 10 - cy) ** 2 < (e.r + 7) ** 2) { e.hitCd['j' + i] = S.t + 0.45; jHit(e, dmg, 45, P.x, P.y, 'fei'); }
+      }
+    }
+    if (R.revAcc >= 6.283) {
+      R.revAcc -= 6.283;
+      const k = (lv >= 5 ? 2 : 1) + (jUlt('qi') ? 1 : 0), tg = nearest(k, lv >= 4 ? 180 : 140);
+      for (let i = 0; i < tg.length; i++) { const a = S.swordAng + i * Math.PI; R.throws.push({ x: P.x + Math.cos(a) * Rr, y: P.y - 10 + Math.sin(a) * Rr * 0.75, tgt: tg[i], back: false, dmg: dmg * 1.15, hit: new Set(), life: 2.5, ang: 0 }); }
+      if (tg.length) sfx('throw');
+    }
+  }
+  for (const t of R.throws) {
+    t.life -= DT;
+    const tx = t.back ? P.x : t.tgt ? t.tgt.x : t.x, ty = t.back ? P.y - 10 : t.tgt ? t.tgt.y - 10 : t.y;
+    if (!t.back && (!t.tgt || t.tgt.dead)) { t.back = true; continue; }
+    const dx = tx - t.x, dy = ty - t.y, l = Math.hypot(dx, dy) || 1, sp = 300 * DT;
+    t.ang = Math.atan2(dy, dx);
+    if (l < sp + 4) { if (t.back) { t.life = 0; continue; } jHit(t.tgt, t.dmg, 50, t.x, t.y, 'throw'); t.back = true; continue; }
+    t.x += dx / l * sp; t.y += dy / l * sp;
+  }
+  R.throws = R.throws.filter(t => t.life > 0);
+  // ---------- 玄门六脉剑 ----------
+  if (W.liumai && jTick('liumai', W.liumai >= 5 ? 1.25 : 1.5)) {
+    const lv = W.liumai, MAI = ['shao', 'shang', 'zhong', 'guan', 'chong', 'ze'].slice(0, lv + 1), tg = nearest(6, 230);
+    MAI.forEach((m, i) => {
+      const t = tg.length ? tg[i % tg.length] : null, a0 = t ? Math.atan2(t.y - P.y, t.x - P.x) : (P.face > 0 ? 0 : Math.PI);
+      const shots = m === 'chong' ? 3 : 1;
+      for (let s = 0; s < shots; s++) {
+        const a = a0 + (shots > 1 ? (s - 1) * 0.18 : 0), spd = m === 'shang' ? 330 : m === 'shao' ? 190 : 250;
+        R.qi.push({ m, x: P.x + Math.cos(a) * 8, y: P.y - 14, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, tgt: t, life: 1.1, hit: new Set(), pierce: m === 'zhong' ? 3 : m === 'ze' ? 3 : 1, dmg: m === 'shao' ? 17 : m === 'chong' ? 5 : 10.5, r: m === 'zhong' ? 9 : m === 'shao' ? 6 : 4, delay: i * 0.05 + s * 0.06 });
+      }
+    });
+    sfx('throw');
+  }
+  for (const q of R.qi) {
+    if (q.delay > 0) { q.delay -= DT; continue; }
+    q.life -= DT;
+    if (q.tgt && !q.tgt.dead && (q.m === 'ze' || q.m === 'shang' || q.m === 'guan')) {   // 轻微追踪
+      const dx = q.tgt.x - q.x, dy = q.tgt.y - 10 - q.y, l = Math.hypot(dx, dy) || 1, sp = Math.hypot(q.vx, q.vy);
+      q.vx += (dx / l * sp - q.vx) * Math.min(1, DT * 5); q.vy += (dy / l * sp - q.vy) * Math.min(1, DT * 5);
+    }
+    q.x += q.vx * DT; q.y += q.vy * DT;
+    for (const e of S.en) {
+      if (e.dead || q.hit.has(e.id)) continue;
+      if ((e.x - q.x) ** 2 + (e.y - 10 - q.y) ** 2 > (e.r + q.r) ** 2) continue;
+      q.hit.add(e.id); jHit(e, q.dmg, q.m === 'shao' ? 70 : 15, q.x - q.vx * 0.05, q.y - q.vy * 0.05, 'liumai');
+      if (q.m === 'guan') mStun(e, 0.5);
+      if (--q.pierce <= 0) { q.life = 0; break; }
+      if (q.m === 'ze') { const n = S.en.filter(o => !o.dead && !q.hit.has(o.id) && dist2(o, q) < 110 * 110).sort((a, b) => dist2(a, q) - dist2(b, q))[0]; if (n) { const sp = Math.hypot(q.vx, q.vy), a = Math.atan2(n.y - 10 - q.y, n.x - q.x); q.vx = Math.cos(a) * sp; q.vy = Math.sin(a) * sp; q.tgt = n; } }
+    }
+  }
+  R.qi = R.qi.filter(q => q.life > 0);
+  // ---------- 九宫八卦剑阵（留在原地） ----------
+  if (W.zhen && jTick('zhen', W.zhen >= 4 ? 9 : 12)) {
+    const lv = W.zhen, Rr = lv >= 2 ? 82 : 68, dur = lv >= 3 ? 8 : 6;
+    R.zhens.push({ x: P.x, y: P.y, Rr, t: 0, dur, lv, cd: new Array(8).fill(0), ext: new Array(8).fill(0), cT: 0.6 });
+    sfx('bell'); S.texts.push({ x: P.x, y: P.y - 40, v: '九宫八卦剑阵', t: 1, c: '#bfe8ff' });
+  }
+  for (const z of R.zhens) {
+    z.t += DT;
+    for (let i = 0; i < 8; i++) {
+      z.ext[i] = Math.max(0, z.ext[i] - DT * 5); z.cd[i] -= DT;
+      if (z.cd[i] > 0) continue;
+      const a = i * Math.PI / 4, sx = z.x + Math.cos(a) * z.Rr * 0.72, sy = z.y + Math.sin(a) * z.Rr * 0.72 * 0.75;
+      const e = S.en.find(o => !o.dead && (o.x - sx) ** 2 + ((o.y - sy) / 0.75) ** 2 < 26 * 26);
+      if (!e) continue;
+      z.cd[i] = 0.55; z.ext[i] = 1; jHit(e, 26, 70, z.x, z.y, 'zhen');
+    }
+    z.cT -= DT;
+    if (z.cT <= 0) { z.cT = 1.5; R.fx.push({ k: 'ring', x: z.x, y: z.y - 4, R: 40, t: 0, c: '#bfe8ff' }); for (const e of S.en) if (!e.dead && inEll(e, z.x, z.y, 40 + e.r)) jHit(e, 14, 90, z.x, z.y, 'zhenC'); }
+    if (z.t >= z.dur) {
+      z.done = true;
+      if (z.lv >= 5) { for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; R.fly.push({ x: z.x + Math.cos(a) * z.Rr * 0.72, y: z.y - 10 + Math.sin(a) * z.Rr * 0.54, vx: Math.cos(a) * 280, vy: Math.sin(a) * 210, life: 1, dmg: 45, hit: new Set(), straight: true, src: 'zhenF' }); } sfx('ult'); }
+    }
+  }
+  R.zhens = R.zhens.filter(z => !z.done);
+  // ---------- 如有神助 ----------
+  if (W.shen) {
+    const lv = W.shen;
+    R.godT -= DT * (jUlt('fa') ? 1.25 : 1);
+    if (R.godT <= 0) {
+      R.godT = [0, 20, 18, 16, 14, 12][lv];
+      const dur = [0, 5, 6, 6, 7, 8][lv], a = jPickGod([]); jSummon(a, dur);
+      if (lv >= 5) jSummon(jPickGod([a]), dur);
+    }
+  }
+  for (const q of R.gods) q.t -= DT;
+  R.gods = R.gods.filter(q => q.t > 0);
+  if (jGod('tian')) P.slowT = 0;
+  if (jGod('li') && jTick('liwave', 2)) {   // 李冰：身边涌出水浪，推开怪
+    R.fx.push({ k: 'ring', x: P.x, y: P.y - 4, R: 52, t: 0, c: '#7ac8ff' }); sfx('pulse');
+    for (const e of S.en) if (!e.dead && inEll(e, P.x, P.y, 52 + e.r)) jHit(e, 8 * jFa(), 110, P.x, P.y, 'wave');
+  }
+  const D = R.dog;
+  if (D) {   // 哮天犬：二郎神附身时扑咬，神明走了它也跑开
+    if (!jGod('er')) { D.leave = (D.leave || 0) + DT; if (D.leave > 0.6) R.dog = null; }
+    else {
+      D.leave = 0; D.cd -= DT; D.ph += DT * 14;
+      if (!D.tgt || D.tgt.dead || dist2(D.tgt, P) > 200 * 200) D.tgt = S.en.filter(e => !e.dead && !e.audience && dist2(e, P) < 170 * 170).sort((a, b) => dist2(a, D) - dist2(b, D))[0];
+      const tx = D.tgt ? D.tgt.x : P.x - 16 * P.face, ty = D.tgt ? D.tgt.y : P.y + 4, dx = tx - D.x, dy = ty - D.y, l = Math.hypot(dx, dy) || 1;
+      if (l > 8) { const sp = 150 * DT; D.x += dx / l * Math.min(sp, l); D.y += dy / l * Math.min(sp, l); D.face = dx >= 0 ? 1 : -1; }
+      if (D.tgt && l < 12 && D.cd <= 0) { D.cd = 0.5; jHit(D.tgt, 18 * jFa(), 30, D.x, D.y, 'dog'); }
+    }
+  }
+  // ---------- 三清纯阳功 ----------
+  if (W.chun) {
+    const lv = W.chun, Rr = [0, 32, 38, 38, 46, 46][lv] * (jUlt('fa') ? 1.15 : 1);
+    jHeal([0, 0.3, 0.4, 0.5, 0.6, 0.8][lv] * jFa() * DT);
+    if (jTick('chun', 0.5)) for (const e of S.en) if (!e.dead && e.type !== 'hand' && inEll(e, P.x, P.y, Rr + e.r)) jHit(e, [0, 5, 5, 8, 8, 10][lv] * jFa() * (mGhost(e) ? 2 : 1), 0, P.x, P.y, 'chun', 'burn');
+  }
+  // ---------- 刺剑式 / 劈剑式（站慢走快） ----------
+  const rate = jRate();
+  const idle = !P.moving && !nearest(1, 100).length;
+  if (W.ci && jTick('ci', 0.7 / rate) && !idle) {
+    const lv = W.ci, n = lv >= 5 ? 3 : lv >= 3 ? 2 : 1, d = jDir(lv >= 4 ? 66 : 52);
+    for (let i = 0; i < n; i++) R.ciQ.push({ t: i * 0.12, dir: d, mul: lv >= 5 && i === n - 1 ? 2 : 1 });
+  }
+  for (const c of R.ciQ) { c.t -= DT; if (c.t <= 0) { c.done = true; const d = c.dir; jStrike('T', P.x, P.y, d, c.mul, 'ci'); jPose('T', d); sfx('throw'); } }
+  R.ciQ = R.ciQ.filter(c => !c.done);
+  if (W.pi && jTick('pi', 1.1 / rate) && !idle) { const d = jDir(60); jStrike('C', P.x, P.y, d, 1, 'pi'); jPose('C', d); sfx('whoosh'); }
+  for (const m of R.marks) { m.t += DT; if (m.t >= 0.35 && !m.done) { m.done = true; for (const a of m.dirs) { jArc(m.x, m.y, a, m.Rr, 0.9, m.dmg, 20, 'piMark'); R.fx.push({ k: 'cleave', x: m.x, y: m.y - 8, dir: a, Rr: m.Rr, t: 0, mark: true }); } } }
+  R.marks = R.marks.filter(m => !m.done);
+  // ---------- 天罗步：剑招残影 ----------
+  if (W.tianluo && P.moving) {
+    const lv = W.tianluo; R.ghostT -= DT;
+    if (R.ghostT <= 0) {
+      R.ghostT = [0, 1, 1, 0.7, 0.7, 0.5][lv] * (jUlt('dun') ? 0.7 : 1);
+      R.hk++; const kind = W.ci && W.pi ? (R.hk % 2 ? 'T' : 'C') : W.pi ? 'C' : 'T';
+      R.ghosts.push({ x: P.x, y: P.y, dir: P.dir ?? 0, kind, t: 0, n: lv >= 5 ? 2 : 1, face: P.face, mul: 0.75 * (lv >= 4 ? 1.3 : 1) * ((kind === 'T' ? W.ci : W.pi) ? 1 : 0.75) });
+    }
+  }
+  for (const gh of R.ghosts) {
+    gh.t += DT;
+    if (gh.t >= 0.25 && gh.n > 0 && gh.t >= 0.25 + (gh.done || 0) * 0.2) { gh.done = (gh.done || 0) + 1; gh.n--; const t = S.en.filter(e => !e.dead && (e.x - gh.x) ** 2 + (e.y - gh.y) ** 2 < 70 * 70).sort((a, b) => dist2(a, gh) - dist2(b, gh))[0]; if (t) gh.dir = Math.atan2(t.y - gh.y, t.x - gh.x); jStrike(gh.kind, gh.x, gh.y, gh.dir, gh.mul, 'ghost'); }
+  }
+  R.ghosts = R.ghosts.filter(gh => gh.t < 0.75);
+  // ---------- 大招里的飞剑（御剑飞虹 + 剑阵收阵飞剑） ----------
+  for (const f of R.fly) {
+    f.life -= DT;
+    if (!f.straight) {
+      if (!f.tgt || f.tgt.dead || S.t > f.reT) { f.tgt = S.en.filter(e => !e.dead && !e.audience && dist2(e, P) < 230 * 230 && !(e.hitCd['yj' + f.i] > S.t)).sort((a, b) => (b.elite || mBig(b) ? 1 : 0) - (a.elite || mBig(a) ? 1 : 0) || dist2(a, f) - dist2(b, f))[0]; f.reT = S.t + 0.6; }
+      const tx = f.tgt ? f.tgt.x : P.x + Math.cos(S.t * 3 + f.i) * 40, ty = f.tgt ? f.tgt.y - 10 : P.y - 10 + Math.sin(S.t * 3 + f.i) * 30;
+      const dx = tx - f.x, dy = ty - f.y, l = Math.hypot(dx, dy) || 1;
+      f.vx += (dx / l * 290 - f.vx) * Math.min(1, DT * 6); f.vy += (dy / l * 290 - f.vy) * Math.min(1, DT * 6);
+    }
+    f.x += f.vx * DT; f.y += f.vy * DT;
+    (f.tr = f.tr || []).unshift([f.x, f.y]); if (f.tr.length > 7) f.tr.pop();
+    for (const e of S.en) {
+      if (e.dead) continue;
+      if ((e.x - f.x) ** 2 + (e.y - 10 - f.y) ** 2 > (e.r + 7) ** 2) continue;
+      if (f.straight) { if (f.hit.has(e.id)) continue; f.hit.add(e.id); jHit(e, f.dmg, 60, f.x - f.vx * 0.05, f.y - f.vy * 0.05, f.src); continue; }
+      if ((e.hitCd['yj' + f.i] || 0) > S.t) continue;
+      e.hitCd['yj' + f.i] = S.t + 0.45; jHit(e, f.dmg, 40, f.x - f.vx * 0.05, f.y - f.vy * 0.05, 'ult');
+    }
+    if (!f.straight && f.life <= 0 && f.end) { R.fx.push({ k: 'ring', x: P.x, y: P.y - 6, R: 90, t: 0, c: '#bff6ff' }); for (const e of S.en) if (!e.dead && inEll(e, P.x, P.y, 90 + e.r)) jHit(e, 40, 110, P.x, P.y, 'ult'); sfx('ult'); }
+  }
+  R.fly = R.fly.filter(f => f.life > 0);
+  // ---------- 法天象地 ----------
+  const X = R.xiang;
+  if (X) {
+    X.t += DT; X.slam -= DT; jHeal(DT);
+    if (X.slam <= 0) {
+      X.slam = 1.5; const last = X.lv >= 3 && X.t + 1.5 > X.dur;
+      const t = mDense(170); const x = t ? t.x : P.x + P.face * 40, y = t ? t.y : P.y;
+      R.fx.push({ k: 'palm', x, y, R: X.R, t: 0, c: J_GODS[X.god].c }); S.shake = Math.max(S.shake, 0.18); sfx('thud');
+      let nh = 0; for (const e of S.en) if (!e.dead && inEll(e, x, y, X.R + e.r)) jHit(e, X.dmg * dimin(++nh), 90, x, y, 'ult', 'light');
+      if (last) { S.flash = Math.max(S.flash, 0.1); S.shake = 0.5; const C = S.cam; let nn = 0; for (const e of S.en) if (!e.dead && e.x > C.x && e.x < C.x + VW && e.y > C.y && e.y < C.y + VH) jHit(e, 60 * dimin(++nn), 60, P.x, P.y, 'ult', 'light'); }
+    }
+    if (X.t >= X.dur) R.xiang = null;
+  }
+  // 特效计时
+  for (const f of R.fx) f.t = Math.max(0, f.t + DT);
+  R.fx = R.fx.filter(f => f.t < (f.k === 'palm' ? 0.5 : f.k === 'dunline' ? 0.35 : 0.3));
+}
+function jianUlt(k, lv) {
+  const P = S.p, R = S.jx;
+  if (k === 'qi') {   // 御剑飞虹
+    const n = [0, 6, 7, 8][lv];
+    for (let i = 0; i < n; i++) { const a = i / n * 6.283; R.fly.push({ i, x: P.x + Math.cos(a) * 20, y: P.y - 12 + Math.sin(a) * 15, vx: Math.cos(a) * 200, vy: Math.sin(a) * 150 - 60, life: 8, dmg: [0, 18, 22, 26][lv], end: lv >= 3 && i === 0 }); }
+    S.texts.push({ x: P.x, y: P.y - 44, v: '御剑飞虹！', t: 1.3, c: '#bff6ff', big: true });
+  } else if (k === 'fa') {   // 法天象地：法相用当前附身的神明，没有就请张天师
+    const cur = R.gods.length ? R.gods[0].k : 'tian';
+    R.xiang = { t: 0, dur: [0, 6, 7, 8][lv], lv, slam: 0.6, R: lv >= 2 ? 72 : 62, dmg: [0, 55, 70, 85][lv], god: cur };
+    S.texts.push({ x: P.x, y: P.y - 54, v: '法天象地 · ' + J_GODS[cur].n, t: 1.6, c: J_GODS[cur].c, big: true });
+  } else {   // 天遁连斩
+    const n = [0, 8, 9, 10][lv];
+    const c = S.en.filter(e => !e.dead && !e.audience && e.type !== 'hand' && !(e.batT > 0) && !(e.god === 'rl') && dist2(e, P) < 240 * 240)
+      .sort((a, b) => ((b.elite || mBig(b)) ? 1 : 0) - ((a.elite || mBig(a)) ? 1 : 0) || dist2(a, P) - dist2(b, P)).slice(0, n);
+    R.dun = { list: c, i: 0, t: 0, ox: P.x, oy: P.y, dmg: [0, 80, 95, 110][lv], lv, px: P.x, py: P.y };
+    P.inv = Math.max(P.inv, c.length * 0.09 + 0.5);
+    S.texts.push({ x: P.x, y: P.y - 44, v: '天遁连斩！', t: 1.2, c: '#bff6ff', big: true });
+  }
+}
+function updateJianDun() {
+  const P = S.p, R = S.jx, D = R.dun;
+  D.t -= DT; P.inv = Math.max(P.inv, 0.3);
+  if (D.t > 0) { P.x = D.px; P.y = D.py; return; }
+  if (D.i < D.list.length) {
+    let e = D.list[D.i++];
+    if (e.dead) e = S.en.find(o => !o.dead && !o.audience && o.type !== 'hand' && dist2(o, P) < 160 * 160) || null;
+    if (e) {
+      const fx = P.x, fy = P.y, side = e.x >= P.x ? -1 : 1;
+      S.afterimgs.push({ x: fx, y: fy, face: P.face, t: 0 });
+      P.x = e.x + side * 10; P.y = e.y; P.face = -side; D.px = P.x; D.py = P.y;
+      R.fx.push({ k: 'dunline', x1: fx, y1: fy - 12, x2: P.x, y2: P.y - 12, t: 0 });
+      jHit(e, D.dmg * dimin(D.i), 80, P.x, P.y, 'ult'); jPose('C', side > 0 ? Math.PI : 0); sfx('hit');
+    }
+    D.t = 0.09; return;
+  }
+  // 收招：回到原位
+  S.afterimgs.push({ x: P.x, y: P.y, face: P.face, t: 0 });
+  R.fx.push({ k: 'dunline', x1: P.x, y1: P.y - 12, x2: D.ox, y2: D.oy - 12, t: 0 });
+  P.x = D.ox; P.y = D.oy; R.dun = null;
+  if (D.lv >= 3) { R.fx.push({ k: 'ring', x: P.x, y: P.y - 6, R: 110, t: 0, c: '#bff6ff' }); let nh = 0; for (const e of S.en) if (!e.dead && inEll(e, P.x, P.y, 110 + e.r)) jHit(e, 60 * dimin(++nh), 100, P.x, P.y, 'ult'); sfx('ult'); }
+}
+// ---------- 剑仙绘制 ----------
+function jDrawSword(x, y, ang, a) {
+  const im = IMG.jfly; if (!im || !im.width) return;
+  g.save(); g.translate(Math.round(x), Math.round(y)); g.rotate(ang); if (a != null) g.globalAlpha = a; g.drawImage(im, -7, -2); g.restore(); g.globalAlpha = 1;
+}
+function drawJianGround() {
+  if (!jOn()) return;
+  const P = S.p, R = S.jx;
+  for (const z of R.zhens) {   // 剑阵：八卦图 + 九宫
+    const k = Math.max(0.05, Math.min(1, z.t / 0.3)), fade = Math.max(0, Math.min(1, (z.dur - z.t) / 0.4)), r = z.Rr * k;
+    g.globalAlpha = 0.18 * fade; g.fillStyle = '#7fd8f0'; g.beginPath(); g.ellipse(z.x, z.y, r, r * 0.75, 0, 0, 7); g.fill();
+    g.globalAlpha = 0.7 * fade; g.strokeStyle = '#bff6ff'; g.lineWidth = 1; g.beginPath(); g.ellipse(z.x, z.y, r, r * 0.75, 0, 0, 7); g.stroke();
+    g.beginPath(); g.ellipse(z.x, z.y, r * 0.45, r * 0.34, 0, 0, 7); g.stroke();
+    for (let i = 0; i < 8; i++) {   // 八卦符号：三爻
+      const a = i * Math.PI / 4 + Math.PI / 8, cx = z.x + Math.cos(a) * r * 0.88, cy = z.y + Math.sin(a) * r * 0.66;
+      for (let j = 0; j < 3; j++) { const brk = (i >> j) & 1; if (brk) { px(cx - 3, cy - 2 + j * 2, 2, 1, '#e8fbff'); px(cx + 1, cy - 2 + j * 2, 2, 1, '#e8fbff'); } else px(cx - 3, cy - 2 + j * 2, 6, 1, '#e8fbff'); }
+    }
+    g.globalAlpha = 1;
+  }
+  if (S.w.chun) {   // 纯阳光环
+    const lv = S.w.chun, Rr = [0, 32, 38, 38, 46, 46][lv] * (jUlt('fa') ? 1.15 : 1), pul = 0.5 + 0.5 * Math.sin(S.t * 5);
+    g.globalAlpha = 0.12 + 0.06 * pul; g.fillStyle = '#ffd860'; g.beginPath(); g.ellipse(P.x, P.y, Rr, Rr * 0.75, 0, 0, 7); g.fill();
+    g.globalAlpha = 0.45; g.strokeStyle = '#ffe9a0'; g.lineWidth = 1; g.beginPath(); g.ellipse(P.x, P.y, Rr, Rr * 0.75, 0, 0, 7); g.stroke(); g.globalAlpha = 1;
+  }
+  if (R.xiang) {   // 法天象地：脚下八卦阵跟着走
+    const X = R.xiang, c = J_GODS[X.god].c, r = 34;
+    g.globalAlpha = 0.5; g.strokeStyle = c; g.lineWidth = 2; g.beginPath(); g.ellipse(P.x, P.y, r, r * 0.75, 0, 0, 7); g.stroke();
+    yinyang(P.x, P.y, 10, S.t * 2, 0.6); g.globalAlpha = 1;
+  }
+  for (const gq of R.gods) {   // 附身：脚下一圈神光
+    const c = J_GODS[gq.k].c; g.globalAlpha = 0.35 * Math.min(1, gq.t * 2); g.fillStyle = c; g.beginPath(); g.ellipse(P.x, P.y, 12, 4, 0, 0, 7); g.fill(); g.globalAlpha = 1;
+  }
+}
+function drawJianList(list) {
+  if (!jOn()) return;
+  const P = S.p, R = S.jx;
+  for (const z of R.zhens) for (let i = 0; i < 8; i++) {   // 剑阵八剑：插在地上，刺出时往外一探
+    const a = i * Math.PI / 4, ext = z.ext[i] * 10, k = Math.max(0.05, Math.min(1, z.t / 0.3)), rr = z.Rr * 0.72 * k + ext, x = z.x + Math.cos(a) * rr, y = z.y + Math.sin(a) * rr * 0.75;
+    list.push({ y, f: () => { const fade = Math.min(1, (z.dur - z.t) / 0.4); px(x, y - 15, 2, 15, '#1a0e1e'); g.globalAlpha = fade; px(x, y - 14, 1, 12, '#e8fbff'); px(x - 2, y - 15, 5, 1, '#ffd860'); px(x, y - 18, 1, 3, '#7a4a20'); g.globalAlpha = 1; } });
+  }
+  const D = R.dog;
+  if (D && IMG.dog) list.push({ y: D.y, f: () => { const im = D.face < 0 ? flipped('dog') : IMG.dog; g.globalAlpha = Math.max(0, 1 - (D.leave || 0) / 0.6); g.drawImage(im, Math.round(D.x - im.width / 2), Math.round(D.y - im.height + 2 - Math.abs(Math.sin(D.ph)) * 2)); g.globalAlpha = 1; } });
+  for (const gh of R.ghosts) list.push({ y: gh.y - 1, f: () => {   // 剑招残影
+    const key = 'jian' + gh.kind, im = gh.face < 0 ? flipped(key) : IMG[key]; if (!im || !im.width) return;
+    const x = gh.face > 0 ? gh.x - JIAN_AX : gh.x - im.width + JIAN_AX;
+    g.globalAlpha = 0.4 * (1 - gh.t / 0.75); g.drawImage(im, Math.round(x), Math.round(gh.y - im.height + 3)); g.globalAlpha = 1;
+  } });
+  const X = R.xiang;
+  if (X) list.push({ y: P.y - 2, f: () => {   // 法相：剑仙身后一尊三倍大的虚影
+    const im = IMG.jian; if (!im || !im.width) return; const c = J_GODS[X.god].c;
+    const k = Math.max(0.05, Math.min(1, X.t / 0.5)), fade = Math.max(0, Math.min(1, (X.dur - X.t) / 0.5)), w = im.width * 3, h = im.height * 3, x = P.x - w / 2 - P.face * 6, y = P.y - h * k + 6;
+    g.globalAlpha = 0.18 * fade; g.fillStyle = c; g.beginPath(); g.ellipse(P.x, y + h * 0.5, w * 0.6, h * 0.55, 0, 0, 7); g.fill();
+    g.globalAlpha = 0.38 * fade; g.drawImage(im, Math.round(x), Math.round(y), w, h); g.globalAlpha = 1;
+    g.fillStyle = c; g.font = 'bold 12px serif'; g.textAlign = 'center'; g.globalAlpha = 0.8 * fade; g.fillText(J_GODS[X.god].g, P.x, y - 2); g.globalAlpha = 1;
+  } });
+}
+function drawJianWorld() {
+  if (!jOn()) return;
+  const P = S.p, R = S.jx, W = S.w;
+  if (W.fei && !R.dun) {   // 环绕飞剑：剑尖朝切线方向
+    const lv = W.fei, n = swordN(lv), Rr = (lv >= 4 ? 30 : 24) * (jUlt('qi') ? 1.2 : 1);
+    for (let i = 0; i < n; i++) { const a = S.swordAng + i * Math.PI * 2 / n; jDrawSword(P.x + Math.cos(a) * Rr, P.y - 10 + Math.sin(a) * Rr * 0.75, a + Math.PI / 2); }
+  }
+  for (const t of R.throws) jDrawSword(t.x, t.y, t.ang);
+  for (const f of R.fly) {
+    if (f.tr) for (let i = 1; i < f.tr.length; i++) { g.globalAlpha = 0.45 * (1 - i / f.tr.length); px(f.tr[i][0] - 1, f.tr[i][1] - 1, 3, 3, i % 2 ? '#7fe0f0' : '#bff6ff'); }
+    g.globalAlpha = 1; jDrawSword(f.x, f.y, Math.atan2(f.vy, f.vx), Math.min(1, f.life * 3));
+  }
+  const MC = { shao: '#ffe9a0', shang: '#bff6ff', zhong: '#7fe0f0', guan: '#c8a8ff', chong: '#ffffff', ze: '#9af0b0' };
+  for (const q of R.qi) {   // 六脉剑气：细长的光
+    if (q.delay > 0) continue; const a = Math.atan2(q.vy, q.vx), L = q.m === 'shao' ? 10 : q.m === 'zhong' ? 8 : 6;
+    g.strokeStyle = '#1a0e1e'; g.lineWidth = q.r >= 6 ? 4 : 3; g.beginPath(); g.moveTo(q.x - Math.cos(a) * L, q.y - Math.sin(a) * L); g.lineTo(q.x + Math.cos(a) * 2, q.y + Math.sin(a) * 2); g.stroke();
+    g.strokeStyle = MC[q.m]; g.lineWidth = q.r >= 6 ? 2 : 1; g.beginPath(); g.moveTo(q.x - Math.cos(a) * L, q.y - Math.sin(a) * L); g.lineTo(q.x + Math.cos(a) * 2, q.y + Math.sin(a) * 2); g.stroke();
+  }
+  for (const f of R.fx) {
+    const k = f.t / 0.3;
+    if (f.k === 'thrust') {
+      g.globalAlpha = (f.ghost ? 0.5 : 0.85) * (1 - k); g.strokeStyle = f.qi ? '#7fe0f0' : '#e8fbff'; g.lineWidth = f.qi ? 2 : 3;
+      g.beginPath(); g.moveTo(f.x + Math.cos(f.dir) * 6, f.y + Math.sin(f.dir) * 6); g.lineTo(f.x + Math.cos(f.dir) * (f.L * (0.6 + 0.4 * Math.min(1, k * 3))), f.y + Math.sin(f.dir) * f.L * (0.6 + 0.4 * Math.min(1, k * 3))); g.stroke();
+    } else if (f.k === 'cleave') {
+      g.globalAlpha = (f.mark ? 0.5 : f.ghost ? 0.5 : 0.85) * (1 - k); g.strokeStyle = f.mark ? '#7fe0f0' : '#e8fbff'; g.lineWidth = 2;
+      g.beginPath(); g.ellipse(f.x, f.y, f.Rr * 0.85, f.Rr * 0.64, 0, f.dir - 0.9, f.dir + 0.9); g.stroke();
+      g.strokeStyle = '#7fe0f0'; g.lineWidth = 1; g.beginPath(); g.ellipse(f.x, f.y, f.Rr * 0.65, f.Rr * 0.49, 0, f.dir - 0.7, f.dir + 0.7); g.stroke();
+    } else if (f.k === 'ring') {
+      const r = f.R * Math.max(0.05, Math.min(1, 0.3 + k)); g.globalAlpha = Math.max(0, 1 - k); g.strokeStyle = f.c; g.lineWidth = 2; g.beginPath(); g.ellipse(f.x, f.y, r, r * 0.72, 0, 0, 7); g.stroke();
+    } else if (f.k === 'palm') {   // 法相一掌：从天而降的掌印
+      const kk = Math.max(0, f.t / 0.5), drop = Math.min(1, kk * 4), r = f.R;
+      g.globalAlpha = 0.5 * (1 - kk); g.fillStyle = f.c; g.beginPath(); g.ellipse(f.x, f.y, r, r * 0.75, 0, 0, 7); g.fill();
+      g.globalAlpha = 0.9 * (1 - kk); const hx = f.x, hy = f.y - 40 * (1 - drop) - 6;
+      px(hx - 9, hy - 10, 18, 12, '#1a0e1e'); px(hx - 8, hy - 9, 16, 10, f.c); for (let i = 0; i < 4; i++) px(hx - 8 + i * 4, hy - 16, 3, 7, f.c);
+      g.globalAlpha = 1;
+    } else if (f.k === 'dunline') {
+      const kk = f.t / 0.35; g.globalAlpha = 1 - kk; g.strokeStyle = '#e8fbff'; g.lineWidth = 2; g.beginPath(); g.moveTo(f.x1, f.y1); g.lineTo(f.x2, f.y2); g.stroke();
+      g.strokeStyle = '#7fe0f0'; g.lineWidth = 1; g.beginPath(); g.moveTo(f.x1, f.y1 + 2); g.lineTo(f.x2, f.y2 + 2); g.stroke();
+    }
+    g.globalAlpha = 1;
+  }
+  // 附身神明：头顶一个字
+  R.gods.forEach((q, i) => { const G = J_GODS[q.k]; g.font = 'bold 9px serif'; g.textAlign = 'center'; const x = P.x + (R.gods.length > 1 ? (i ? 7 : -7) : 0), y = P.y - 40 + Math.sin(S.t * 3 + i) * 1.5; g.fillStyle = '#1a0e1e'; g.fillText(G.g, x + 1, y + 1); g.fillStyle = G.c; g.fillText(G.g, x, y); });
+}
+function drawJianHud() {
+  if (!jOn() || !S.w.tianluo) return;
+  const cap = jStackCap(), R = S.jx; if (!cap) return;
+  const y0 = VH - 16;
+  g.fillStyle = 'rgba(14,8,24,.6)'; g.fillRect(VW / 2 - 31, y0, 62, 7);
+  g.fillStyle = '#7fe0f0'; g.fillRect(VW / 2 - 30, y0 + 1, Math.round(60 * R.stack / cap), 5);
+  g.fillStyle = '#e8fbff'; g.font = 'bold 7px monospace'; g.textAlign = 'center'; g.fillText('天罗步 +' + Math.floor(R.stack) + '%', VW / 2, y0 - 2);
+}
 const DIFF = {
   normal: { name: '普通', hp: 1, dmg: 1, inv: 0.9, spawn: 1, skill: 1, mul: 1 },
   hard: { name: '困难', hp: 1.5, dmg: 1.5, inv: 0.6, spawn: 1.25, skill: 1.6, mul: 1.5 },
@@ -1839,12 +2308,13 @@ function newGame(diff = 'normal') {
     ch: CH, diff, bossKilled: false, parade: false, state: 'play', t: 0, kills: 0, lv: 1, xp: 0, need: 5, bossSpawned: false, roosterShown: false,
     p: { x: SP0()[0], y: SP0()[1], hp: 100, max: 100, face: 1, inv: 0, moving: false, walk: 0, breath: 0, breathCd: 0, sprint: 0, sprintCd: 0 },
     mods: { speed: 0, magnet: 0, cd: 0, hp: 0, dmg: 0, regen: 0 },
-    w: HERO === 'monk' ? { zhang: 1, jia: 1 } : HERO === 'priest' ? { cross: 1 } : { sword: 1 }, timers: {}, swordAng: 0, pr: HERO === 'priest' ? prNew() : null,
+    w: HERO === 'monk' ? { zhang: 1, jia: 1 } : HERO === 'priest' ? { cross: 1 } : HERO === 'jian' ? { fei: 1 } : { sword: 1 }, timers: {}, swordAng: 0, pr: HERO === 'priest' ? prNew() : null, jx: HERO === 'jian' ? jNew() : null,
     objs: (MAP.objs || []).map(o => ({ ...o, burnt: false, state: 'ok', fireT: 0, smoke: 0, tk: 0 })), ult: null, ultCd: 0, sweeps: [], taijis: [], palms: [], afterimgs: [], ev: {}, allies: [], decor: [], batFx: [], rumorQ: [], guas: [], shield: 0, shieldT: null, chests: [], lvQueue: 0, eliteT: 60, eliteN: 0, vampOut: false, wgCd: 8, eshots: [], npcs: [], npcT: 15, loot: [], aw: null, awDone: false, yamT: 0, gongVo: 0, dawnT: null, yz: (MAP.yz || []).map(([x, y, o]) => ({ x, y, open: !!o, pre: !!o, t: 0 })), yzT: rnd(40, 60), fish: [], fishT: 2, cam: { x: 0, y: 0 },
     food: [], foodT: 18, parts: [], combo: 0, comboT: 0, stop: 0, flash: 0, en: [], shots: [], areas: [], orbs: [], fx: [], texts: [], spawnAcc: 0, nextId: 1, shake: 0,
   };
   wallsInit();
   GUARD.reset(); if (HERO === 'monk') GUARD.pickW();
+  if (HERO === 'jian') { S.p.hp = S.p.max = 90; setTimeout(() => { if (S && S.hero === 'jian' && S.state === 'play') rumor(['温：青城剑仙，前来斩妖！'], false); }, 2500); }
   if (HERO === 'priest') setTimeout(() => { if (S && S.hero === 'priest' && S.state === 'play') rumor(['Father 柴：Lord, give me strength!'], false); }, 2500);   // 一休开局自带袈裟，防作弊的法器计数要把它算进去
   for (const k of ['title', 'end', 'levelup', 'pause', 'revive', 'brag', 'tip', 'tipArrow', 'mmPanel', 'evArrow']) $(k).hidden = true;
   $('mm').hidden = false; $('mmBtn').classList.remove('alert');
@@ -1934,6 +2404,7 @@ function hurtPlayer(dmg) {
   if (S.hero === 'priest' && S.pr) { if (S.w.aegis && prBlock(dmg)) return false; if (S.pr.guardT > S.t) dmg = Math.max(1, Math.round(dmg * 0.5)); }
   if (S.shield > 0) { const cap = shieldCap(); shieldBurst(); dmg -= cap; if (dmg <= 0) return false; }
   if (S.hero === 'monk' && S.w.jia) dmg = Math.max(1, Math.round(dmg * (1 - [0, 0.15, 0.2, 0.2, 0.25, 0.25][S.w.jia])));
+  if (S.jx) { dmg = Math.max(1, Math.round(dmg * jDR())); jianHurt(); }
   const P = S.p; P.hp -= dmg; P.inv = DIFF[S.diff].inv; S.shake = Math.max(S.shake, 0.15); sfx('hurt');
   S.texts.push({ x: P.x, y: P.y - 30, v: '-' + dmg, t: 0.7, c: '#ff6a5a' });
   if (S.hero === 'monk' && S.w.jia) for (const e of S.en) if (!e.dead && (e.x - P.x) ** 2 + (e.y - P.y) ** 2 < 26 * 26) mBurn(e);   // 贴身打一休的怪被袈裟点燃
@@ -1977,6 +2448,7 @@ function hurt(e, dmg, kb = 0, fromX = S.p.x, fromY = S.p.y, tag) {
     if (e.onDie) e.onDie(e);
     if (S.hero === 'monk') monkKill(e);
     if (S.hero === 'priest' && S.pr) priestKill(e);
+    if (S.jx) jianKill(e);
     if (e.type === 'wuchang') { godDie(e); }
     const n = e.type === 'king' ? 20 : e.elite ? 3 : 1;
     for (let i = 0; i < n; i++) S.orbs.push({ x: e.x + rnd(-6, 6) * (n > 1), y: e.y + rnd(-6, 6) * (n > 1), v: (n > 1 ? 5 : e.xp) * (e.chT > S.t ? 1.25 : 1) * (S.fgT > S.t ? 2 : 1) * (e.orbMul || 1), du: e.chT > S.t || e.orbMul > 1 });
@@ -2200,6 +2672,7 @@ function renderOpts() {
     let desc = o.kind === 'w' || o.kind === 'u' ? D.desc[o.lv] : D.desc;
     if (o.kind === 'u' && ULTSYN[o.k]) desc += `<br><span class="syn">附带：${ULTSYN[o.k].text}${syn2L(o.k).map(q => '；' + q.text).join('')}</span>`;
     if (o.kind === 'w' && S.ult && syn2(S.ult.k, o.k)) desc += `<br><span class="syn">已获${ULTS[S.ult.k].name}加持：${syn2(S.ult.k, o.k).name}</span>`;
+    if (o.kind === 'w' && S.jx && S.ult && J_LINK[S.ult.k] && J_LINK[S.ult.k].includes(o.k)) desc += `<br><span class="syn">已获${ULTS[S.ult.k].name}加持：效果 +${S.ult.k === 'fa' ? 40 : 30}%</span>`;
     if (o.kind === 'w' && S.ult && ULTSYN[S.ult.k] && ULTSYN[S.ult.k].w === o.k) desc += `<br><span class="syn">已获${ULTS[S.ult.k].name}加持：${ULTSYN[S.ult.k].name}</span>`;
     const b = document.createElement('button'); b.className = o.kind === 'u' ? 'opt ult' : 'opt'; b.id = 'opt' + i;
     const tg = o.kind === 'w' ? TAGS[o.k] || [] : o.kind === 'p' ? ['被动'] : [];
@@ -2247,6 +2720,7 @@ function tryUlt() {
   S.ultCd = 30; sfx('ult'); banner(ULTS[k].qn || ULTS[k].name, 1.2); S.ultId = (S.ultId || 0) + 1; S.ultHits = {};
   if (S.hero === 'monk' && ULTS === ULTS_M) { mUlt(k, lv); return; }
   if (S.hero === 'priest' && S.pr) { prUlt(k, lv); return; }
+  if (S.jx) { jianUlt(k, lv); return; }
   if (k === 'thunder') {
     const n = [0, 12, 16, 24][lv];
     const vis = S.en.filter(e => !e.dead && e.x > C.x && e.x < C.x + VW && e.y > C.y && e.y < C.y + VH);
@@ -2664,7 +3138,7 @@ document.addEventListener('selectstart', e => { const t = e.target; if (!(t && (
 function endGame(win) {
   if (!win && S.didRevive && window.sayDeath) sayDeath();
   S.state = 'over';
-  $('endT').textContent = win ? '鸡鸣，天亮了！' : S.hero === 'monk' ? '贫僧无能……' : S.hero === 'priest' ? '主啊……天还没亮' : '道长……天还没亮';
+  $('endT').textContent = win ? '鸡鸣，天亮了！' : S.hero === 'monk' ? '贫僧无能……' : S.hero === 'priest' ? '主啊……天还没亮' : S.hero === 'jian' ? '剑……还没出完' : '道长……天还没亮';
   const m = Math.floor(S.t / 60), s = Math.floor(S.t % 60);
   $('endP').textContent = win ? `撑过一整夜，伏尸 ${S.kills} 具，修为 ${cn(S.lv)}重。` : `撑了 ${m} 分 ${s} 秒，伏尸 ${S.kills} 具，修为 ${cn(S.lv)}重。`;
   S.score = Math.round((S.kills + S.lv * 20 + Math.floor(S.t) * 2 + (win ? 1000 : 0) + (S.bossKilled ? 500 : 0)) * DIFF[S.diff].mul);
@@ -3215,7 +3689,7 @@ function drawEventSprites(list) {
     if (e.fade > 0) { const P = S.p; g.save(); g.globalAlpha = 0.5 * Math.abs(Math.sin(S.t * 12)); g.strokeStyle = '#ff4a3a'; g.lineWidth = 1; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(P.x, P.y - 6); g.lineTo(e.x, e.y - 6); g.stroke(); g.restore(); } } });
   for (const f of S.gfx || []) list.push({ y: f.k === 'dog' || f.art === 'palm' ? 99999 : -99999, f: () => drawGodFx(f) });
   for (const e of S.en) if (e.elite && e.affix && e.lblT > 0 && !e.dead) list.push({ y: e.y + 0.6, f: () => { const im0 = IMG[e.skin], a = Math.min(1, e.lblT / 0.8), x = Math.round(e.x), y = Math.round(e.y) - (im0 ? im0.height * 1.35 + 6 : 56); g.save(); g.globalAlpha = a; g.font = 'bold 9px monospace'; g.textAlign = 'center'; g.fillStyle = '#000'; g.fillText('〔' + AFFIX[e.affix].n + '〕', x + 1, y + 1); g.fillStyle = AFFIX[e.affix].c; g.fillText('〔' + AFFIX[e.affix].n + '〕', x, y); g.restore(); } });
-  drawPearlSprites(list); drawWG(list); drawChurch2(list); drawPriestList(list); drawWalls(list);
+  drawPearlSprites(list); drawWG(list); drawChurch2(list); drawPriestList(list); drawJianList(list); drawWalls(list);
   const E = S.ev;
   if (MAP.stage) { const [sx, sy] = MAP.stage, sing = E.opera === 1, b = sing ? Math.round(Math.abs(Math.sin(S.t * 3)) * 2) : 0;
     list.push({ y: sy - 1, f: () => { const a = IMG.operaDan, j = IMG.operaJing; if (a && a.complete) g.drawImage(a, Math.round(sx - 26 - a.width / 2), Math.round(sy - a.height + 2 - b)); if (j && j.complete) g.drawImage(j, Math.round(sx + 22 - j.width / 2), Math.round(sy - j.height + 2 - (sing ? Math.round(Math.abs(Math.cos(S.t * 3)) * 2) : 0))); } }); }
@@ -3354,7 +3828,7 @@ function update() {
   P.moving = ml > 0;
   if (ml) {
     if (P.grabT > 0) P.grabT -= DT;
-    const sp = 62 * (1 + 0.1 * S.mods.speed) * (S.mk && S.mk.awk ? 1.15 : 1) * (P.slowT > 0 ? 0.6 : 1) * (P.grabT > 0 ? 0 : 1) * (P.sprint > 0 ? 1.5 : 1) * (S.pr && S.pr.mist > 0 ? 1.5 : 1);
+    const sp = 62 * (1 + 0.1 * S.mods.speed) * (S.mk && S.mk.awk ? 1.15 : 1) * (P.slowT > 0 ? 0.6 : 1) * (P.grabT > 0 ? 0 : 1) * (P.sprint > 0 ? 1.5 : 1) * (S.pr && S.pr.mist > 0 ? 1.5 : 1) * (S.jx ? jSpd() : 1);
     moveBy(P, mx / ml * sp * DT, my / ml * sp * DT); P.walk += DT;
     if (Math.abs(mx) > 0.2) P.face = Math.sign(mx);
     P.dir = Math.atan2(my, mx);
@@ -3367,6 +3841,7 @@ function update() {
   updateWeapons();
   updateMonk();
   updatePriest();
+  updateJian();
   updateUlts();
   updateWorld();
 
@@ -3852,7 +4327,7 @@ function draw() {
     if (sk < 1) g.restore(); g.globalAlpha = 1;
   }
 
-  drawPriestGround();
+  drawPriestGround(); drawJianGround();
   // sprites sorted by y
   const list = S.en.filter(e => !e.hidden).map(e => ({ y: e.y, e })); list.push({ y: P.y, p: true });
   drawEventSprites(list);
@@ -3893,13 +4368,14 @@ function draw() {
     if (it.p) {
       g.fillStyle = 'rgba(14,8,24,.5)'; g.beginPath(); g.ellipse(P.x, P.y, 8, 2.5, 0, 0, 7); g.fill();
       const bob = P.moving ? Math.round(Math.abs(Math.sin(P.walk * 12)) * -1.5) : 0;
-      for (const a of S.afterimgs) if (a.t >= 0) { const ai = a.face < 0 ? flipped(HK()) : IMG[HK()]; g.globalAlpha = 0.45 * (1 - a.t / 0.45); g.drawImage(ai, Math.round(a.x - ai.width / 2), Math.round(a.y - ai.height + 3)); g.globalAlpha = 1; }
+      for (const a of S.afterimgs) if (a.t >= 0) { const ak = S.jx ? 'jian' : HK(), ai = a.face < 0 ? flipped(ak) : IMG[ak]; g.globalAlpha = 0.45 * (1 - a.t / 0.45); g.drawImage(ai, Math.round(a.x - ai.width / 2), Math.round(a.y - ai.height + 3)); g.globalAlpha = 1; }
       const held = P.breath > 0 ? 2.8 - P.breath : 0, tk = HK() + (held > 1.7 ? 'R2' : held > 0.7 ? 'R1' : '');
-      const im = P.face < 0 ? flipped(tk) : IMG[tk];
+      const pf = S.jx && S.jx.pose ? S.jx.pose.face : P.face, im = pf < 0 ? flipped(tk) : IMG[tk];
       if (S.pr && S.pr.mist > 0) { drawPriestMist(P); continue; }
-      if (P.inv > 0 && P.inv < 50 && Math.floor(P.inv * 20) % 2) continue;
+      if (P.inv > 0 && P.inv < 50 && Math.floor(P.inv * 20) % 2 && !(S.jx && S.jx.dun)) continue;
       if (P.breath > 0) g.globalAlpha = 0.65;
-      g.drawImage(im, Math.round(P.x - im.width / 2), Math.round(P.y - im.height + 3 + bob));
+      const hx = S.jx && im.width > 30 ? (pf > 0 ? P.x - JIAN_AX : P.x - im.width + JIAN_AX) : P.x - im.width / 2;
+      g.drawImage(im, Math.round(hx), Math.round(P.y - im.height + 3 + bob));
       g.globalAlpha = 1;
       if (P.breath > 0) {
         px(P.x - 1 + P.face * 5, P.y - 23, 3, 2, '#8fd8f0');
@@ -3989,7 +4465,7 @@ function draw() {
       (S.w.zhang ? drawStaff : drawSword)(P.x + Math.cos(a) * 3, P.y - 10 + Math.sin(a) * 2, Math.atan2(Math.sin(a) * 0.75, Math.cos(a)), swordLen(lv));
     }
   }
-  drawMonkWorld(); drawPriestWorld(); drawPestles(); drawExtraFx();
+  drawMonkWorld(); drawPriestWorld(); drawJianWorld(); drawPestles(); drawExtraFx();
   // shots
   for (const s of S.shots) {
     if (s.k === 'fu') {
@@ -4054,7 +4530,7 @@ function draw() {
   const vg = g.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.35, VW / 2, VH / 2, Math.max(VW, VH) * 0.75);
   vg.addColorStop(0, 'rgba(8,4,16,0)'); vg.addColorStop(1, 'rgba(8,4,16,.6)'); g.fillStyle = vg; g.fillRect(0, 0, VW, VH);
   if (P.breath > 0) { g.fillStyle = 'rgba(80,160,220,.12)'; g.fillRect(0, 0, VW, VH); }
-  drawMonkHud(); drawPriestHud();
+  drawMonkHud(); drawPriestHud(); drawJianHud();
   if (S.zt && S.dawnT == null) { const k = Math.min(1, (S.t - S.ztT) / 1.5); g.fillStyle = `rgba(30,0,12,${0.38 * k})`; g.fillRect(0, 0, VW, VH); }
   if (S.dark > 0) { g.fillStyle = `rgba(0,0,0,${Math.min(0.55, S.dark * 0.4)})`; g.fillRect(0, 0, VW, VH); }
   if (S.flash > 0) { g.fillStyle = `rgba(230,245,255,${Math.min(0.15, S.flash * 3)})`; g.fillRect(0, 0, VW, VH); }
@@ -4414,7 +4890,7 @@ function checkCleared() {
   fetch('/api/scores?cleared=' + encodeURIComponent(nm), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => {
     if (!j || !j.cleared || my !== cleChk || cleanName($('startName').value) !== nm) return;
     try { localStorage.setItem('ztzh_monk', '1'); } catch (e) {}
-    renderHeroes(); $('monkSub').textContent = '已解锁：' + nm + ' 通关过'; $('priestSub').textContent = '已解锁';
+    renderHeroes(); $('monkSub').textContent = '已解锁：' + nm + ' 通关过'; $('priestSub').textContent = '已解锁'; $('jianSub').textContent = '已解锁';
   }).catch(() => {});
 }
 let cleT = 0;
@@ -4515,8 +4991,10 @@ function renderHeroes() {
   $('heroPriest').className = 'hero' + (HERO === 'priest' ? ' on' : '') + (un ? '' : ' lock');
   $('monkSub').textContent = un ? '一休' : '🔒 撑到鸡鸣解锁';
   $('priestSub').textContent = un ? 'Father 柴' : '🔒 撑到鸡鸣解锁';
+  $('heroJian').className = 'hero' + (HERO === 'jian' ? ' on' : '') + (un ? '' : ' lock');
+  $('jianSub').textContent = un ? '温' : '🔒 撑到鸡鸣解锁';
   renderChapters();
-  $('startName').placeholder = HERO === 'monk' ? '大师法号？' : HERO === 'priest' ? '神父怎么称呼？' : '道长尊姓大名？';
+  $('startName').placeholder = HERO === 'monk' ? '大师法号？' : HERO === 'priest' ? '神父怎么称呼？' : HERO === 'jian' ? '剑仙怎么称呼？' : '道长尊姓大名？';
 }
 $('heroTao').onclick = () => { HERO = 'tao'; try { localStorage.setItem('ztzh_hero', 'tao'); } catch (e) {} renderHeroes(); sfx('pick'); };
 $('heroMonk').onclick = () => {
@@ -4526,6 +5004,10 @@ $('heroMonk').onclick = () => {
 $('heroPriest').onclick = () => {
   if (!monkUnlocked()) { $('priestSub').textContent = '🔒 先用一眉道人撑到鸡鸣'; sfx('hurt'); return; }
   HERO = 'priest'; try { localStorage.setItem('ztzh_hero', 'priest'); } catch (e) {} renderHeroes(); sfx('pick');
+};
+$('heroJian').onclick = () => {
+  if (!monkUnlocked()) { $('jianSub').textContent = '🔒 先用一眉道人撑到鸡鸣'; sfx('hurt'); return; }
+  HERO = 'jian'; try { localStorage.setItem('ztzh_hero', 'jian'); } catch (e) {} renderHeroes(); sfx('pick');
 };
 renderHeroes();
 // ---------- 序章 ----------
@@ -5120,7 +5602,7 @@ async function showRank(board) {
     const t = document.createElement('table');
     list.slice(0, 20).forEach((r, i) => {
       const tr = document.createElement('tr'); tr.className = (me && r.name === me ? 'me ' : '') + (r.cheat ? 'ch' : '');
-      for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : r.hero === 'priest' ? '✝︎ ' : '☯︎ ') + String(r.name || '无名道士').slice(0, 10) + chTag(r) + (r.win ? ' ☀' : '') + (r.cheat ? ' 【作弊】' : ''), Number(r.score) || 0]) { const td = document.createElement('td'); if (typeof v === 'string') { const sp = document.createElement('span'); sp.className = 'nm'; sp.textContent = v; td.appendChild(sp); } else td.textContent = v; tr.appendChild(td); }
+      for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : r.hero === 'priest' ? '✝︎ ' : r.hero === 'jian' ? '⚔︎ ' : '☯︎ ') + String(r.name || '无名道士').slice(0, 10) + chTag(r) + (r.win ? ' ☀' : '') + (r.cheat ? ' 【作弊】' : ''), Number(r.score) || 0]) { const td = document.createElement('td'); if (typeof v === 'string') { const sp = document.createElement('span'); sp.className = 'nm'; sp.textContent = v; td.appendChild(sp); } else td.textContent = v; tr.appendChild(td); }
       t.appendChild(tr);
     });
     el.appendChild(t);
@@ -5151,7 +5633,7 @@ async function renderBoard() {
     const tr = document.createElement('tr');
     if (myEntry && r.at === myEntry.at && r.name === myEntry.name) tr.className = 'me';
     if (r.cheat) tr.className += ' ch';
-    for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : r.hero === 'priest' ? '✝︎ ' : '☯︎ ') + String(r.name || '无名道士').slice(0, 10) + chTag(r), Number(r.score) || 0, r.diff === 'hard' ? '困难' : '普通', (r.win ? '天亮' : '倒下') + (r.cheat ? ' · 作弊' : '')]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
+    for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : r.hero === 'priest' ? '✝︎ ' : r.hero === 'jian' ? '⚔︎ ' : '☯︎ ') + String(r.name || '无名道士').slice(0, 10) + chTag(r), Number(r.score) || 0, r.diff === 'hard' ? '困难' : '普通', (r.win ? '天亮' : '倒下') + (r.cheat ? ' · 作弊' : '')]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
     t.appendChild(tr);
   });
   box.appendChild(t);
