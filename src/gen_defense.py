@@ -27,6 +27,7 @@ for k, f in (('wangpo', lambda: G['wangpo']()), ('wangpoG', lambda: G['wangpo_gh
              ('dabao', lambda: G['dabao']()), ('xiaobao', lambda: G['xiaobao']()), ('oilG', lambda: G['oil_ghost']()), ('iceZ', lambda: G['ice_corpse']()), ('iceW', lambda: G['ice_corpse'](True)),
              ('thugA', lambda: G['thug']()), ('thugB', lambda: G['thug'](True)), ('jiuju', lambda: G['jiuju']()), ('jiujuD', lambda: G['jiuju'](True)), ('feitou', lambda: G['feitou']()),
              ('xiaozun', lambda: G['xiaozun']()), ('moth', lambda: G['moth']()), ('xuemo', lambda: G['xuemo']()), ('cixi', lambda: G['cixi']()), ('qingbing', lambda: G['qingbing']()),
+             ('feiZ', lambda: G['fei_zombie']()), ('youZ', lambda: G['you_zombie']()), ('fuZ', lambda: G['fu_zombie']()), ('bugu', lambda: G['bugu']()),
              ('xuankui', lambda: G['xuankui']()), ('yangfy', lambda: G['yangfy']()), ('xieshen', lambda: G['xieshen']())):
     sprites[k] = f().img()
 sprites['capP'] = G['possessed'](sprites['cap']); sprites['soldP'] = G['possessed'](sprites['sold'])
