@@ -164,6 +164,56 @@ def machiya(w=84, var=0, red=False):
     return im, cx, by
 
 
+
+def pagoda():
+    """八坂塔（法观寺五重塔）：五层，逐层收窄，深色瓦檐，朱红柱，相轮"""
+    w, h = 110, 230
+    im, d = canvas(w, h); cx = w // 2; by = h - 4
+    shadow(d, cx, by, 40, 5)
+    box(d, cx - 36, by - 12, cx + 36, by, STONE_D); d.line([(cx - 35, by - 11), (cx + 35, by - 11)], fill=STONE_L)
+    y = by - 12
+    for i in range(5):
+        ww = 30 - i * 3; bh = 28 if i == 0 else 24
+        box(d, cx - ww, y - bh, cx + ww, y, (84, 60, 52)); d.rectangle([cx - ww + 2, y - bh + 2, cx + ww - 2, y - 2], fill=(150, 118, 96) if i % 2 else (166, 132, 104))
+        for x in (cx - ww + 3, cx, cx + ww - 3): d.rectangle([x - 1, y - bh + 2, x + 1, y - 2], fill=RED)
+        d.rectangle([cx - 5, y - bh + 8, cx + 5, y - 4], fill=(244, 196, 100) if i % 2 == 0 else (40, 32, 44))
+        ew = ww + 12
+        d.polygon([(cx - ew - 2, y - bh + 4), (cx + ew + 2, y - bh + 4), (cx + ew - 8, y - bh - 8), (cx - ew + 8, y - bh - 8)], fill=K)
+        d.polygon([(cx - ew, y - bh + 3), (cx + ew, y - bh + 3), (cx + ew - 7, y - bh - 7), (cx - ew + 7, y - bh - 7)], fill=TILE)
+        for x in range(cx - ew + 2, cx + ew, 5): d.line([(x, y - bh + 3), (x + (cx - x) // 8, y - bh - 7)], fill=TILE_D)
+        d.polygon([(cx - ew - 3, y - bh + 4), (cx - ew - 9, y - bh - 2), (cx - ew + 2, y - bh + 1)], fill=K); d.polygon([(cx + ew + 3, y - bh + 4), (cx + ew + 9, y - bh - 2), (cx + ew - 2, y - bh + 1)], fill=K)
+        y = y - bh - 6
+    d.line([(cx, y), (cx, y - 30)], fill=K, width=3); d.line([(cx, y), (cx, y - 30)], fill=(196, 170, 90), width=1)
+    for k in range(5): d.rectangle([cx - 6 + k, y - 6 - k * 5, cx + 6 - k, y - 4 - k * 5], fill=(196, 170, 90))
+    return im, cx, by
+
+
+def byodoin():
+    """平等院凤凰堂：中堂 + 两翼廊 + 尾廊，临池，屋顶上一对金凤凰"""
+    w, h = 400, 150
+    im, d = canvas(w, h); cx = w // 2; by = h - 4
+    shadow(d, cx, by, 180, 7)
+    box(d, cx - 190, by - 30, cx - 60, by, (150, 56, 46)); box(d, cx + 60, by - 30, cx + 190, by, (150, 56, 46))
+    for x in range(cx - 186, cx - 60, 12): d.line([(x, by - 28), (x, by - 2)], fill=(116, 40, 38))
+    for x in range(cx + 62, cx + 190, 12): d.line([(x, by - 28), (x, by - 2)], fill=(116, 40, 38))
+    for sx in (-1, 1):
+        d.polygon([(cx + sx * 194 - 6, by - 30), (cx + sx * 56 + 6, by - 30), (cx + sx * 66, by - 50), (cx + sx * 184, by - 50)], fill=K)
+        d.polygon([(cx + sx * 192 - 4, by - 31), (cx + sx * 58 + 4, by - 31), (cx + sx * 67, by - 49), (cx + sx * 183, by - 49)], fill=TILE)
+        d.line([(cx + sx * 66, by - 49), (cx + sx * 183, by - 49)], fill=TILE_L, width=2)
+    box(d, cx - 62, by - 72, cx + 62, by, (156, 58, 48)); d.rectangle([cx - 61, by - 72, cx + 61, by - 66], fill=(120, 40, 40))
+    for x in range(cx - 56, cx + 58, 14): d.rectangle([x - 2, by - 70, x + 2, by - 2], fill=RED_L)
+    box(d, cx - 22, by - 60, cx + 22, by - 4, (40, 26, 30)); d.rectangle([cx - 20, by - 58, cx + 20, by - 6], fill=(244, 196, 100))
+    for x in range(cx - 16, cx + 20, 8): d.line([(x, by - 58), (x, by - 6)], fill=WOOD_D)
+    Hn_roof = roof
+    Hn_roof(d, cx - 70, cx + 70, by - 72, by - 100, TILE, TILE_D, TILE_L, 18, 10)
+    Hn_roof(d, cx - 44, cx + 44, by - 100, by - 124, TILE, TILE_D, TILE_L, 12, 8)
+    d.line([(cx - 34, by - 124), (cx + 34, by - 124)], fill=(196, 170, 90), width=2)
+    for sx in (-1, 1):                                                              # 金凤凰
+        fx = cx + sx * 34
+        d.polygon([(fx - 4, by - 124), (fx + 4, by - 124), (fx + sx * 2, by - 140), (fx - sx * 6, by - 134)], fill=(230, 190, 80)); d.ellipse([fx - 3, by - 146, fx + 5, by - 138], fill=(230, 190, 80))
+    return im, cx, by
+
+
 def market_stall(kind=0):
     """集市摊：条纹遮阳 + 货物。kind 0 = 能面摊（一排白面具）、1 = 布料/酒摊"""
     im, d = canvas(78, 70); cx, by = 39, 66
@@ -239,7 +289,7 @@ SPRITES.update({
     'hn_rasho': lambda: gate(330, 2, True), 'hn_suzaku': lambda: gate(220, 1, False, True), 'hn_shishin': lambda: hall(280, 180),
     'hn_onmyo': onmyoryo, 'hn_hunyi': hunyi, 'hn_machiya0': lambda: machiya(84, 0), 'hn_machiya1': lambda: machiya(100, 1), 'hn_machiya2': lambda: machiya(72, 2),
     'hn_ochaya0': lambda: machiya(92, 3, True), 'hn_ochaya1': lambda: machiya(108, 4, True), 'hn_stall0': lambda: market_stall(0), 'hn_stall1': lambda: market_stall(1),
-    'hn_cart': oxcart, 'hn_brazier': brazier, 'hn_orange': mikoshi_tree, 'hn_fence': kakigaki,
+    'hn_pagoda': pagoda, 'hn_byodo': byodoin, 'hn_cart': oxcart, 'hn_brazier': brazier, 'hn_orange': mikoshi_tree, 'hn_fence': kakigaki,
 })
 
 
@@ -419,6 +469,9 @@ def build(seed=33):
     for i, x in enumerate(range(1340, 1900, 56)): put('jp_torii', x, 1440, None); blocks += [(x - 22, 1428, x - 14, 1440), (x + 14, 1428, x + 22, 1440)]
     for x in (1300, 1920): put('jp_fox', x, 1400, (-7, -5, 7, 0))
     for x, y in ((1400, 1330), (1600, 1520), (1800, 1340), (1900, 1510), (1250, 1500)): put('jp_cedar', x, y, (-5, -6, 5, 0))
+    put('hn_pagoda', 860, 1270, (-34, -14, 34, 0))                                   # 八坂塔
+    put('hn_byodo', 400, 282, (-190, -50, 190, 0))                                    # 平等院凤凰堂，倒映在神泉苑池里
+    for x, y in ((880, 1330), (820, 1200)): put('jp_lantern', x, y, (-5, -5, 5, 0))
     # 樱 / 柳 / 灯
     for x, y in ((1020, 1260), (1180, 1290), (900, 580), (1300, 580), (980, 1420), (1220, 1430), (460, 930), (1680, 940)): put('jp_sakura%d' % (x % 2), x, y, (-5, -6, 5, 0))
     # 鸟辺野墓地

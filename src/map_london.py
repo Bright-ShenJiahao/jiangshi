@@ -116,6 +116,97 @@ def tower_bridge():
     return im, w // 2, by
 
 
+
+def abbey():
+    """西敏寺：双塔哥特立面、大玫瑰窗、尖拱、飞扶壁"""
+    w, h = 340, 240
+    im, d = canvas(w, h); cx = w // 2; by = h - 4
+    shadow(d, cx, by, 160, 8)
+    box(d, 60, by - 100, w - 60, by, SAND); d.rectangle([61, by - 100, w - 61, by - 94], fill=SAND_L)
+    d.polygon([(54, by - 100), (w - 54, by - 100), (cx, by - 150)], fill=K); d.polygon([(58, by - 101), (w - 58, by - 101), (cx, by - 146)], fill=SAND)
+    d.ellipse([cx - 22, by - 126, cx + 22, by - 82], fill=K); d.ellipse([cx - 20, by - 124, cx + 20, by - 84], fill=(60, 50, 80))
+    for a in range(0, 360, 30): d.line([(cx, by - 104), (cx + 19 * math.cos(math.radians(a)), by - 104 + 19 * math.sin(math.radians(a)))], fill=(246, 204, 112))
+    d.ellipse([cx - 8, by - 112, cx + 8, by - 96], fill=(246, 204, 112)); d.ellipse([cx - 4, by - 108, cx + 4, by - 100], fill=(60, 50, 80))
+    d.polygon([(cx - 22, by), (cx - 22, by - 52), (cx, by - 74), (cx + 22, by - 52), (cx + 22, by)], fill=K); d.polygon([(cx - 19, by), (cx - 19, by - 51), (cx, by - 70), (cx + 19, by - 51), (cx + 19, by)], fill=(30, 22, 36))
+    d.polygon([(cx - 15, by), (cx - 15, by - 48), (cx, by - 62), (cx + 15, by - 48), (cx + 15, by)], fill=(246, 204, 112)); d.line([(cx, by - 62), (cx, by)], fill=SAND_D)
+    for x in (cx - 56, cx + 56):
+        d.polygon([(x - 9, by), (x - 9, by - 44), (x, by - 60), (x + 9, by - 44), (x + 9, by)], fill=K); d.polygon([(x - 7, by), (x - 7, by - 43), (x, by - 56), (x + 7, by - 43), (x + 7, by)], fill=(246, 204, 112) if x < cx else (60, 54, 70))
+    for tx in (30, w - 30):                                                           # 双塔
+        box(d, tx - 32, by - 190, tx + 32, by, SAND); d.rectangle([tx - 31, by - 190, tx + 31, by - 184], fill=SAND_L)
+        for yy in range(by - 8, by - 170, -26):
+            d.polygon([(tx - 10, yy), (tx - 10, yy - 16), (tx, yy - 26), (tx + 10, yy - 16), (tx + 10, yy)], fill=K); d.polygon([(tx - 8, yy), (tx - 8, yy - 16), (tx, yy - 23), (tx + 8, yy - 16), (tx + 8, yy)], fill=(246, 204, 112) if yy % 52 else (60, 54, 70))
+        for ox in (-30, 30):
+            d.rectangle([tx + ox - 4, by - 206, tx + ox + 4, by - 184], fill=K); d.rectangle([tx + ox - 3, by - 205, tx + ox + 3, by - 185], fill=SAND); d.polygon([(tx + ox - 5, by - 206), (tx + ox + 5, by - 206), (tx + ox, by - 222)], fill=SLATE_L)
+        d.polygon([(tx - 30, by - 190), (tx + 30, by - 190), (tx, by - 224)], fill=K); d.polygon([(tx - 27, by - 191), (tx + 27, by - 191), (tx, by - 220)], fill=SLATE)
+    for x in range(88, w - 80, 24): d.line([(x, by - 100), (x - 8, by - 120)], fill=SAND_D, width=2); d.line([(x, by - 100), (x + 8, by - 120)], fill=SAND_D, width=2)   # 飞扶壁
+    return im, cx, by
+
+
+def tudor(var=0):
+    """老伦敦桥上的半木结构房屋：层层向外挑出，深色木架 + 白灰泥 + 陡山墙"""
+    r = random.Random(var + 3)
+    im, d = canvas(58, 112); cx = 29; by = 108
+    shadow(d, cx, by, 24, 3)
+    floors = [(by - 34, by, 40), (by - 64, by - 34, 46), (by - 92, by - 64, 52)]
+    for y0, y1, ww in floors:
+        d.rectangle([cx - ww // 2 - 1, y0, cx + ww // 2 + 1, y1], fill=K); d.rectangle([cx - ww // 2, y0 + 1, cx + ww // 2, y1 - 1], fill=(206, 196, 170))
+        d.rectangle([cx - ww // 2, y0, cx + ww // 2, y0 + 3], fill=(64, 44, 40)); d.rectangle([cx - ww // 2, y1 - 3, cx + ww // 2, y1 - 1], fill=(64, 44, 40))
+        for x in range(cx - ww // 2 + 2, cx + ww // 2, 10): d.line([(x, y0), (x, y1)], fill=(64, 44, 40), width=2)
+        d.line([(cx - ww // 2, y0 + 4), (cx, y1 - 4)], fill=(64, 44, 40)); d.line([(cx + ww // 2, y0 + 4), (cx, y1 - 4)], fill=(64, 44, 40))
+        for wx in (cx - ww // 4 - 3, cx + ww // 4 - 3):
+            d.rectangle([wx, y0 + 10, wx + 7, y0 + 22], fill=(242, 202, 112) if r.random() < 0.55 else (40, 36, 56)); d.line([(wx + 3, y0 + 10), (wx + 3, y0 + 22)], fill=(64, 44, 40))
+    d.polygon([(cx - 31, by - 92), (cx + 31, by - 92), (cx, by - 112)], fill=K); d.polygon([(cx - 29, by - 93), (cx + 29, by - 93), (cx, by - 109)], fill=SLATE)
+    d.rectangle([cx - 8, by - 30, cx + 8, by], fill=(60, 44, 40)); d.rectangle([cx - 6, by - 28, cx + 6, by - 1], fill=(90, 60, 44))
+    return im, cx, by
+
+
+def tower_of_london():
+    """伦敦塔：白塔（四角带穹顶小塔）+ 双层城墙 + 圆形角楼"""
+    w, h = 340, 220
+    im, d = canvas(w, h); cx = w // 2; by = h - 4
+    shadow(d, cx, by, 160, 8)
+    STN, STN_D, STN_L = (150, 142, 124), (110, 104, 92), (186, 178, 154)
+    box(d, 10, by - 56, w - 10, by, STN); d.rectangle([11, by - 56, w - 11, by - 50], fill=STN_L)
+    for x in range(14, w - 10, 14): d.rectangle([x, by - 64, x + 8, by - 56], fill=K); d.rectangle([x + 1, by - 63, x + 7, by - 57], fill=STN)
+    for x in range(26, w - 20, 40): d.rectangle([x, by - 40, x + 5, by - 30], fill=K)
+    for tx in (22, w - 22):
+        d.ellipse([tx - 20, by - 94, tx + 20, by - 6], fill=K) if False else None
+        box(d, tx - 20, by - 88, tx + 20, by, STN_D); d.rectangle([tx - 20, by - 88, tx + 20, by - 82], fill=STN)
+        for x in range(tx - 18, tx + 18, 9): d.rectangle([x, by - 96, x + 5, by - 88], fill=K); d.rectangle([x + 1, by - 95, x + 4, by - 89], fill=STN)
+        d.rectangle([tx - 3, by - 70, tx + 3, by - 58], fill=(246, 204, 112))
+    box(d, cx - 64, by - 130, cx + 64, by - 40, STN)                                       # 白塔
+    d.rectangle([cx - 63, by - 130, cx + 63, by - 124], fill=STN_L)
+    for yy in range(by - 116, by - 46, 26):
+        for ox in range(-48, 49, 24):
+            d.polygon([(cx + ox - 5, yy + 16), (cx + ox - 5, yy + 4), (cx + ox, yy - 2), (cx + ox + 5, yy + 4), (cx + ox + 5, yy + 16)], fill=K); d.polygon([(cx + ox - 3, yy + 15), (cx + ox - 3, yy + 5), (cx + ox, yy), (cx + ox + 3, yy + 5), (cx + ox + 3, yy + 15)], fill=(246, 204, 112) if (yy + ox) % 3 else (40, 36, 56))
+    for x in range(cx - 62, cx + 62, 12): d.rectangle([x, by - 138, x + 7, by - 130], fill=K); d.rectangle([x + 1, by - 137, x + 6, by - 131], fill=STN)
+    for tx in (cx - 62, cx + 62):                                                           # 四角小塔（只画前两座）
+        box(d, tx - 12, by - 160, tx + 12, by - 126, STN_D); d.rectangle([tx - 12, by - 160, tx + 12, by - 156], fill=STN)
+        d.ellipse([tx - 12, by - 176, tx + 12, by - 156], fill=K); d.ellipse([tx - 10, by - 174, tx + 10, by - 158], fill=(110, 130, 130)); d.line([(tx, by - 176), (tx, by - 188)], fill=K, width=2); d.polygon([(tx, by - 190), (tx + 10, by - 186), (tx, by - 182)], fill=(190, 50, 50))
+    box(d, cx - 18, by - 40, cx + 18, by, (28, 22, 30)); d.polygon([(cx - 18, by - 40), (cx + 18, by - 40), (cx, by - 56)], fill=K)       # 门洞
+    for x in range(cx - 14, cx + 16, 6): d.line([(x, by - 38), (x, by - 2)], fill=(70, 70, 82))
+    return im, cx, by
+
+
+def st_pauls():
+    """圣保罗大教堂：大穹顶 + 双钟楼"""
+    w, h = 250, 230
+    im, d = canvas(w, h); cx = w // 2; by = h - 4
+    shadow(d, cx, by, 110, 8)
+    box(d, 24, by - 80, w - 24, by, SAND); d.rectangle([25, by - 80, w - 25, by - 74], fill=SAND_L)
+    for x in range(36, w - 30, 16): d.rectangle([x, by - 70, x + 6, by - 6], fill=SAND_L); d.rectangle([x + 4, by - 70, x + 6, by - 6], fill=SAND_D)
+    d.polygon([(34, by - 80), (w - 34, by - 80), (cx, by - 112)], fill=K); d.polygon([(40, by - 81), (w - 40, by - 81), (cx, by - 108)], fill=SAND)
+    box(d, cx - 36, by - 130, cx + 36, by - 80, SAND)
+    for x in range(cx - 30, cx + 32, 12): d.rectangle([x, by - 124, x + 5, by - 90], fill=(246, 204, 112)); d.arc([x, by - 130, x + 5, by - 122], 180, 360, fill=K)
+    d.ellipse([cx - 44, by - 190, cx + 44, by - 120], fill=K); d.ellipse([cx - 42, by - 188, cx + 42, by - 122], fill=(96, 112, 118))
+    for a in range(-80, 81, 20): d.line([(cx, by - 188), (cx + 42 * math.sin(math.radians(a)), by - 122 - (1 - math.cos(math.radians(a))) * 0)], fill=(70, 86, 94))
+    d.ellipse([cx - 22, by - 188, cx + 20, by - 170], fill=(120, 140, 146))
+    d.rectangle([cx - 9, by - 214, cx + 9, by - 188], fill=K); d.rectangle([cx - 8, by - 213, cx + 8, by - 189], fill=SAND); d.polygon([(cx - 10, by - 214), (cx + 10, by - 214), (cx, by - 226)], fill=K); d.line([(cx, by - 226), (cx, by - 232)], fill=(210, 176, 80), width=2)
+    for tx in (36, w - 36):
+        box(d, tx - 16, by - 130, tx + 16, by - 80, SAND); d.rectangle([tx - 12, by - 120, tx + 12, by - 100], fill=(246, 204, 112)); d.polygon([(tx - 18, by - 130), (tx + 18, by - 130), (tx, by - 160)], fill=K); d.polygon([(tx - 15, by - 131), (tx + 15, by - 131), (tx, by - 156)], fill=SLATE_L)
+    return im, cx, by
+
+
 def lab_tower():
     """科学怪人的实验室：哥特石塔 + 玻璃顶 + 避雷针，电光"""
     w, h = 190, 240
@@ -289,7 +380,7 @@ def factory():
 
 
 SPRITES = {
-    'ln_parl': parliament, 'ln_bridge': tower_bridge, 'ln_lab': lab_tower, 'ln_tesla': tesla, 'ln_maus': mausoleum, 'ln_angel0': lambda: angel_statue(0), 'ln_angel1': lambda: angel_statue(1),
+    'ln_abbey': abbey, 'ln_tudor0': lambda: tudor(0), 'ln_tudor1': lambda: tudor(1), 'ln_tower': tower_of_london, 'ln_paul': st_pauls, 'ln_lab': lab_tower, 'ln_tesla': tesla, 'ln_maus': mausoleum, 'ln_angel0': lambda: angel_statue(0), 'ln_angel1': lambda: angel_statue(1),
     'ln_cross0': lambda: cross_grave(0), 'ln_cross1': lambda: cross_grave(1), 'ln_alch': alchemist, 'ln_manor': manor, 'ln_cab': hansom, 'ln_post': postbox,
     'ln_dead0': lambda: dead_tree(0), 'ln_dead1': lambda: dead_tree(1), 'ln_yew': yew, 'ln_factory': factory,
     'ln_lamp': Ny.gaslamp, 'ln_crates': Ny.crates, 'ln_barrel': Ny.barrel, 'ln_godown': Ny.godown, 'jp_rock0': lambda: J.rock(0), 'jp_rock1': lambda: J.rock(1),
@@ -355,9 +446,10 @@ def build(seed=71):
     BX = CX
     # 塔桥桥面（石板路，横跨河）
     cy = river_y(BX)
-    d.rectangle([BX - 44, cy - RW // 2 - 24, BX + 44, cy + RW // 2 + 24], fill=(40, 46, 62)); d.rectangle([BX - 42, cy - RW // 2 - 24, BX + 42, cy + RW // 2 + 24], fill=(84, 90, 106))
+    d.rectangle([BX - 96, cy - RW // 2 - 24, BX + 96, cy + RW // 2 + 24], fill=(40, 46, 62)); d.rectangle([BX - 94, cy - RW // 2 - 24, BX + 94, cy + RW // 2 + 24], fill=(104, 100, 106))
+    d.rectangle([BX - 42, cy - RW // 2 - 24, BX + 42, cy + RW // 2 + 24], fill=(84, 90, 106))
+    for yy in range(int(cy - RW // 2 - 14), int(cy + RW // 2 + 24), 36): d.rectangle([BX - 104, yy, BX - 94, yy + 18], fill=(120, 116, 122)); d.rectangle([BX + 94, yy, BX + 104, yy + 18], fill=(120, 116, 122))
     for yy in range(int(cy - RW // 2 - 24), int(cy + RW // 2 + 24), 6): d.line([(BX - 42, yy), (BX + 42, yy)], fill=(72, 78, 94))
-    for sx in (BX - 44, BX + 44): d.line([(sx, cy - RW // 2 - 24), (sx, cy + RW // 2 + 24)], fill=(60, 110, 150), width=3)
     # 河南：街与贫民窟小巷
     street(120, 1400, 2080, 1470, 60); street(CX - 42, 1250, CX + 42, 1500)
     # 实验室庭院（西）：铁栅栏 + 石板地
@@ -375,7 +467,7 @@ def build(seed=71):
     d.line([(395, LY1), (395, 930)], fill=(80, 86, 100), width=28) if False else None
     street(CX - 400, RY - 12, 620, RY + 12, 24) if False else None
     # 黑魔法师宅邸前的血色法阵（东南）
-    MX, MY = 1720, 1010
+    MX, MY = 1830, 1000
     d.ellipse([MX - 90, MY - 56, MX + 90, MY + 56], outline=(180, 30, 40), width=2); d.ellipse([MX - 80, MY - 50, MX + 80, MY + 50], outline=(120, 20, 36), width=1)
     pts = [(MX + 78 * math.cos(math.radians(-90 + i * 72)), MY + 48 * math.sin(math.radians(-90 + i * 72))) for i in range(5)]
     for i in range(5): d.line([pts[i], pts[(i + 2) % 5]], fill=(220, 50, 60), width=2)
@@ -395,8 +487,9 @@ def build(seed=71):
         objs.append(dict(img=key, x=x, y=y))
         if solid: blocks.append((x + solid[0], y + solid[1], x + solid[2], y + solid[3]))
     # 国会与大本钟
-    put('ln_parl', CX, 400, (-160, -90, 190, 0))
+    put('ln_abbey', CX, 420, (-150, -100, 150, 0))
     for x in (CX - 200, CX + 200): put('ln_lamp', x, 440, (-3, -4, 3, 0))
+    put('ln_paul', 560, 480, (-100, -60, 100, 0))
     # 联排房屋
     def row(x_start, y, specs):
         x = x_start
@@ -420,7 +513,9 @@ def build(seed=71):
     put('ln_cab', CX + 200, RY + 60, (-24, -14, 24, 0)); put('ln_cab', 840, RY - 50, (-24, -14, 24, 0))
     # 泰晤士河与塔桥
     cyb = river_y(BX)
-    put('ln_bridge', BX, cyb + 90, None)
+    # 老伦敦桥：桥上两排半木屋，北头有门楼
+    for k_, yy in enumerate(range(int(cyb) - 40, int(cyb) + 60, 40)):
+        for sx in (-1, 1): put('ln_tudor%d' % ((k_ + (sx > 0)) % 2), BX + sx * 62, yy + 40, (-24, -40, 24, 0))
     blocks += [(BX - 190 - 38, cyb - 78, BX - 190 + 38, cyb + 94), (BX + 190 - 38, cyb - 78, BX + 190 + 38, cyb + 94)] if False else []
     # 实验室
     put('ln_lab', 395, 760, (-70, -70, 70, 0)); put('ln_tesla', 260, 840, (-8, -8, 8, 0)); put('ln_tesla', 530, 840, (-8, -8, 8, 0)); put('ln_tesla', 260, 620, (-8, -8, 8, 0)); put('ln_tesla', 530, 620, (-8, -8, 8, 0))
@@ -442,8 +537,8 @@ def build(seed=71):
             put('ln_cross%d' % random.randint(0, 1), x, y, (-8, -6, 8, 0)); graves.append([x, y])
             if random.random() < 0.12: put('ln_angel%d' % random.randint(0, 1), x + 18, y + 4, (-9, -6, 9, 0))
     # 东南：炼金术士 + 黑魔法师
-    put('ln_alch', 1380, 1000, (-52, -50, 52, 0)); put('ln_manor', 1960, 1100, (-86, -60, 86, 0))
-    for x, y in ((1540, 1120), (1820, 1180), (1560, 940), (1900, 940)): put('ln_dead%d' % (x % 2), x, y, (-5, -6, 5, 0))
+    put('ln_alch', 1250, 1000, (-52, -50, 52, 0)); put('ln_manor', 2010, 1090, (-86, -60, 86, 0)); put('ln_tower', 1600, 1010, (-150, -90, 150, 0))
+    for x, y in ((1440, 1130), (1820, 1180), (1380, 930), (1900, 920)): put('ln_dead%d' % (x % 2), x, y, (-5, -6, 5, 0))
     # 河南：工厂、仓库、贫民窟
     put('ln_factory', 420, 1380, (-56, -70, 56, 0)); put('ln_factory', 1720, 1380, (-56, -70, 56, 0)); put('ln_godown', 700, 1360, (-52, -46, 52, 0)); put('ln_godown', 1500, 1360, (-52, -46, 52, 0))
     for x, y in ((880, 1330), (960, 1340), (1260, 1330), (1330, 1340), (300, 1290), (2000, 1300)): put('ln_crates', x, y, (-18, -22, 18, 0))
@@ -464,7 +559,7 @@ def build(seed=71):
         x = c_ * CELL + 4; cy = river_y(x)
         for r_ in range(int((cy - RW // 2 - 6) // CELL), int((cy + RW // 2 + 6) // CELL) + 1):
             if r_ >= rows: continue
-            if abs(x - BX) < 46: continue
+            if abs(x - BX) < 96: continue
             grid[r_][c_] = 1
     # 塔桥塔楼底座
     cyb = river_y(BX)

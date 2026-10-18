@@ -261,6 +261,29 @@ def shaman_hut():
     return im, cx, by
 
 
+
+def sampan(var=0):
+    """舢板：窄木船，彩色船舷"""
+    cols = [(176, 60, 56), (60, 110, 170), (214, 176, 84), (70, 150, 120)]
+    im, d = canvas(60, 24); cx, by = 30, 20
+    c = cols[var % 4]
+    d.polygon([(cx - 28, by - 8), (cx + 28, by - 8), (cx + 20, by), (cx - 20, by)], fill=K); d.polygon([(cx - 26, by - 7), (cx + 26, by - 7), (cx + 19, by - 1), (cx - 19, by - 1)], fill=c)
+    d.line([(cx - 26, by - 7), (cx + 26, by - 7)], fill=(236, 226, 190)); d.rectangle([cx - 8, by - 14, cx + 8, by - 8], fill=K); d.rectangle([cx - 7, by - 13, cx + 7, by - 9], fill=(120, 84, 58))
+    d.line([(cx + 10, by - 12), (cx + 26, by - 2)], fill=WOOD_D, width=2)
+    return im, cx, by
+
+
+def pavilion():
+    """码头凉亭（槟城旧码头式）：木柱 + 双坡瓦顶 + 长椅"""
+    im, d = canvas(120, 80); cx, by = 60, 76
+    shadow(d, cx, by, 50, 4)
+    for x in (cx - 44, cx - 15, cx + 15, cx + 44): d.rectangle([x - 3, 28, x + 3, by - 4], fill=K); d.rectangle([x - 2, 29, x + 2, by - 5], fill=(110, 84, 62))
+    d.polygon([(cx - 56, 32), (cx + 56, 32), (cx + 40, 6), (cx - 40, 6)], fill=K); d.polygon([(cx - 54, 31), (cx + 54, 31), (cx + 39, 8), (cx - 39, 8)], fill=(150, 80, 62))
+    for x in range(cx - 52, cx + 54, 6): d.line([(x, 31), (x + (cx - x) // 4, 9)], fill=(112, 58, 48))
+    d.rectangle([cx - 40, by - 14, cx + 40, by - 10], fill=WOOD); d.line([(cx - 40, by - 10), (cx + 40, by - 10)], fill=K)
+    return im, cx, by
+
+
 def lantern_red():
     im, d = canvas(16, 30); cx = 8
     d.line([(cx, 0), (cx, 4)], fill=K); d.ellipse([cx - 7, 4, cx + 7, 24], fill=K); d.ellipse([cx - 6, 5, cx + 6, 23], fill=(226, 70, 56))
@@ -275,7 +298,7 @@ SPRITES.update({'ny_house%d' % i: (lambda i=i: shophouse(72 + (i % 3) * 12, i, 2
 SPRITES.update({'ny_house3f%d' % i: (lambda i=i: shophouse(84, i + 2, 3, i + 9)) for i in range(3)})
 SPRITES.update({'ny_palm0': lambda: palm(0), 'ny_palm1': lambda: palm(1), 'ny_palm2': lambda: palm(2), 'ny_banana': banana, 'ny_banyan': banyan,
                 'ny_stilt0': lambda: stilt_house(0), 'ny_temple': temple, 'ny_junk': junk, 'ny_steamer': steamer, 'ny_crates': crates, 'ny_barrel': barrel,
-                'ny_godown': godown, 'ny_lamp': gaslamp, 'ny_rickshaw': rickshaw, 'ny_tomb': chinese_tomb, 'ny_shaman': shaman_hut, 'ny_redlantern': lantern_red})
+                'ny_godown': godown, 'ny_lamp': gaslamp, 'ny_rickshaw': rickshaw, 'ny_tomb': chinese_tomb, 'ny_shaman': shaman_hut, 'ny_redlantern': lantern_red, 'ny_sampan0': lambda: sampan(0), 'ny_sampan1': lambda: sampan(1), 'ny_sampan2': lambda: sampan(2), 'ny_sampan3': lambda: sampan(3), 'ny_pavilion': pavilion})
 
 
 def build(seed=57):
@@ -318,7 +341,7 @@ def build(seed=57):
     for x in range(CX - 200, CX + 200, 20):
         for y in range(300, 430, 20): d.rectangle([x, y, x + 19, y + 19], outline=(92, 84, 80))
     # 栈桥（三条）
-    piers = [(420, 60), (1090, 70), (1760, 60)]
+    piers = [(420, 76), (1090, 80), (1760, 76)]
     for px, pw in piers:
         y0 = int(SEA_Y(px)) - 10
         d.rectangle([px - pw // 2 - 2, y0, px + pw // 2 + 2, y0 + 250], fill=K); d.rectangle([px - pw // 2, y0 + 2, px + pw // 2, y0 + 248], fill=(122, 90, 66))
@@ -384,6 +407,14 @@ def build(seed=57):
     for x, y in ((360, 1105), (500, 1110), (1020, 1110), (1180, 1105), (1690, 1110), (1830, 1110), (900, 1075), (1320, 1075)): put('ny_barrel', x, y, (-8, -10, 8, 0))
     for x in (260, 820, 1380, 1960): put('ny_lamp', x, 1075, (-3, -4, 3, 0))
     for x in (280, 760, 1280, 1900): put('hn_stall%d' % ((x // 10) % 2), x, 1060, (-32, -22, 32, 0))
+    # 姓氏桥式水上村：栈桥两侧是高脚屋，岸边停满舢板
+    for px, pw in piers:
+        y0 = int(SEA_Y(px)) - 10
+        for k_, yy in enumerate(range(y0 + 52, y0 + 250, 62)):
+            for sx in (-1, 1): put('ny_stilt0', px + sx * (pw // 2 + 40), yy, None)
+        for k_, yy in enumerate(range(y0 + 40, y0 + 240, 70)):
+            for sx in (-1, 1): put('ny_sampan%d' % ((k_ + (sx > 0)) % 4), px + sx * (pw // 2 + 98), yy + 22, None)
+    put('ny_pavilion', 1090, int(SEA_Y(1090)) + 20, None)
     # 海上：帆船、汽船（碰撞为水体已封死，不需要 solid）
     put('ny_junk', 700, 1420, None); put('ny_junk', 1330, 1500, None); put('ny_steamer', 1980, 1420, None); put('ny_junk', 150, 1480, None)
     # 西：甘榜
