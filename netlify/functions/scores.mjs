@@ -20,7 +20,8 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), {
 
 const KILL_CAP = { normal: 2300, hard: 2700 };   // 完美击杀模拟：普通约 2085、困难约 2470，留一点余量
 const LV_CAP = 90;
-const TOK_TTL = 30 * 60 * 1000;
+const TOK_TTL = 3 * 60 * 60 * 1000;   // 凭证有效期：手机切后台/暂停很久也不误判
+const FORGIVEN = new Set([1792320928972, 1792323595540]);   // 已核实的误判（6号 codemod、马克 notoken），读取时恢复为正常成绩
 
 export default async (req) => {
   const store = getStore({ name: 'leaderboard', consistency: 'strong' });
@@ -56,7 +57,7 @@ export default async (req) => {
     return all.filter((r) => !r.cheat || ++n <= CHEAT_CAP);
   };
   // 以前只因「等级超过 45」被误标作弊的成绩（why 只有 lv）：读取时恢复为正常成绩
-  const fix = (r) => (r.cheat && r.why === 'lv' ? { ...r, cheat: 0, why: undefined } : r);
+  const fix = (r) => (r.cheat && (r.why === 'lv' || FORGIVEN.has(r.at)) ? { ...r, cheat: 0, why: undefined } : r);
   const merged = async () => shape((await read()).list.map(fix).concat((await read(CHEAT_KEY)).list.map((r) => ({ ...r, cheat: 1 }))));
   if (req.method === 'GET') return json((await merged()).slice(0, SHOW));
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
