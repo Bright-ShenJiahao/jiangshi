@@ -56,6 +56,11 @@ for _k, _im in (('jian', g['jianke']().img()), ('jianF', g['jian_fly']().img()),
 sprites['jfly'] = g['jian_flysword']().img()
 exec(open('gods_sprites.py').read(), g)
 sprites.update({'zhongkui': g['zhongkui']().img(), 'yanluo': g['yanluo']().img(), 'erlang': g['erlang']().img(), 'dog': g['dog']().img(), 'rulai': g['rulai']().img(), 'baoda': g['baoda']().img()})
+exec(open('gan_sprites.py').read(), g)   # 湘西赶尸王：本人、钟馗附体（借用钟馗图）、尸傀、小鬼、驭灵五物、献祭三妖
+_im = g['ganshi']().img(); sprites.update({'gan': _im, 'ganR1': _redface(_im, 1), 'ganR2': _redface(_im, 2)})
+sprites.update({'ganZ': sprites['zhongkui'], 'ganZR1': sprites['zhongkui'], 'ganZR2': sprites['zhongkui']})
+sprites.update({'gCorpse': g['gan_corpse']().img(), 'gImp': g['gan_imp']().img(), 'gToad': g['gan_toad']().img(), 'gScorp': g['gan_scorp']().img(), 'gSnake': g['gan_snake']().img(),
+                'gChang': g['gan_chang']().img(), 'gTiger': g['gan_tiger']().img(), 'gShan': g['gan_shangui']().img(), 'gYecha': g['gan_yecha']().img(), 'gHanba': g['gan_hanba']().img(), 'gHou': g['gan_hou']().img()})
 exec(open('monsters2.py').read(), g)
 exec(open('church2_sprites.py').read(), g)
 def _red(im):
