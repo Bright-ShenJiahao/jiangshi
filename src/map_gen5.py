@@ -1,6 +1,7 @@
 """World for 暂时停止呼吸: flat background + standalone objects (trees, houses, church) + collision grid."""
 import random, math
 from PIL import Image, ImageDraw, ImageFont
+import wall_sprites as WS
 
 W, H = 1600, 1200
 CELL = 8
@@ -189,7 +190,7 @@ def plant_img(var=0):
     return im
 
 
-def church_img():
+def church_img(opened=False):
     im, d = canvas(132, 250); c, b = 66, 228          # b = door bottom
     d.rectangle([8, 124, 124, 172], fill=K); d.rectangle([9, 125, 123, 171], fill=(58, 60, 82))
     for x in range(10, 123, 5): d.line([(x, 126), (x, 170)], fill=(48, 50, 70))
@@ -206,14 +207,27 @@ def church_img():
         d.rectangle([wx, 172, wx + 9, 196], fill=K); d.pieslice([wx, 166, wx + 9, 178], 180, 360, fill=K)
         d.rectangle([wx + 1, 173, wx + 8, 195], fill=(70, 50, 70))
         for yy in (178, 188): d.line([(wx - 2, yy), (wx + 11, yy + 3)], fill=(120, 86, 56), width=2)
-    d.rectangle([c - 13, b - 38, c + 13, b], fill=K); d.pieslice([c - 13, b - 52, c + 13, b - 26], 180, 360, fill=K)
-    d.rectangle([c - 11, b - 37, c + 11, b - 1], fill=(80, 46, 30)); d.pieslice([c - 11, b - 50, c + 11, b - 28], 180, 360, fill=(80, 46, 30))
-    for yy, sl in ((b - 32, 4), (b - 20, -4), (b - 9, 3)):
-        d.line([(c - 17, yy), (c + 17, yy + sl)], fill=K, width=5); d.line([(c - 16, yy), (c + 16, yy + sl)], fill=(140, 100, 60), width=3)
-    d.line([(c - 11, b - 28), (c + 11, b - 14)], fill=(150, 150, 160), width=2); d.line([(c + 11, b - 28), (c - 11, b - 14)], fill=(150, 150, 160), width=2)
-    d.rectangle([c - 3, b - 24, c + 3, b - 18], fill=(110, 110, 120))
-    for x in (c - 17, c + 12):
-        d.rectangle([x, b - 30, x + 5, b - 20], fill=K); d.rectangle([x + 1, b - 29, x + 4, b - 21], fill=(240, 220, 110)); d.line([(x + 2, b - 28), (x + 2, b - 22)], fill=(200, 40, 30))
+    if opened:    # 大门敞开：门洞里黑洞洞、透出暗红烛光，两扇门板推向两侧，木板和铁链不见了
+        d.rectangle([c - 13, b - 38, c + 13, b], fill=K); d.pieslice([c - 13, b - 52, c + 13, b - 26], 180, 360, fill=K)
+        d.rectangle([c - 11, b - 37, c + 11, b - 1], fill=(26, 12, 22)); d.pieslice([c - 11, b - 50, c + 11, b - 28], 180, 360, fill=(26, 12, 22))
+        for k in range(10):
+            col = (90 - k * 6, 30 - k * 2, 40 - k * 3)
+            d.rectangle([c - 8 + k // 2, b - 1 - k * 2 - 2, c + 8 - k // 2, b - 1 - k * 2], fill=col)
+        d.rectangle([c - 3, b - 37, c + 3, b - 12], fill=(16, 8, 14))
+        for sx, x0 in ((-1, c - 14), (1, c + 11)):                    # 推开的门板
+            d.rectangle([x0, b - 34, x0 + 3, b], fill=K); d.rectangle([x0 + 1, b - 33, x0 + 2, b - 1], fill=(100, 62, 40))
+            for yy in (b - 26, b - 14): d.line([(x0 + 1, yy), (x0 + 2, yy)], fill=(150, 150, 160))
+        for x in (c - 17, c + 12):
+            d.rectangle([x, b - 30, x + 5, b - 20], fill=K); d.rectangle([x + 1, b - 29, x + 4, b - 21], fill=(240, 220, 110)); d.line([(x + 2, b - 28), (x + 2, b - 22)], fill=(200, 40, 30))
+    else:
+        d.rectangle([c - 13, b - 38, c + 13, b], fill=K); d.pieslice([c - 13, b - 52, c + 13, b - 26], 180, 360, fill=K)
+        d.rectangle([c - 11, b - 37, c + 11, b - 1], fill=(80, 46, 30)); d.pieslice([c - 11, b - 50, c + 11, b - 28], 180, 360, fill=(80, 46, 30))
+        for yy, sl in ((b - 32, 4), (b - 20, -4), (b - 9, 3)):
+            d.line([(c - 17, yy), (c + 17, yy + sl)], fill=K, width=5); d.line([(c - 16, yy), (c + 16, yy + sl)], fill=(140, 100, 60), width=3)
+        d.line([(c - 11, b - 28), (c + 11, b - 14)], fill=(150, 150, 160), width=2); d.line([(c + 11, b - 28), (c - 11, b - 14)], fill=(150, 150, 160), width=2)
+        d.rectangle([c - 3, b - 24, c + 3, b - 18], fill=(110, 110, 120))
+        for x in (c - 17, c + 12):
+            d.rectangle([x, b - 30, x + 5, b - 20], fill=K); d.rectangle([x + 1, b - 29, x + 4, b - 21], fill=(240, 220, 110)); d.line([(x + 2, b - 28), (x + 2, b - 22)], fill=(200, 40, 30))
     for x in range(2, 130, 8):
         d.rectangle([x, b + 6, x + 3, b + 19], fill=K); d.rectangle([x + 1, b + 7, x + 2, b + 18], fill=(90, 90, 104))
     d.line([(2, b + 10), (130, b + 10)], fill=(90, 90, 104))
@@ -240,6 +254,16 @@ def build(seed=11):
     im = Image.new('RGBA', (W, H), (58, 42, 80, 255)); d = ImageDraw.Draw(im)
     blocks = []
     def block(x0, y0, x1, y1): blocks.append((x0, y0, x1, y1))
+    walls = []         # 可被怪群推倒的围墙分段（碰撞矩形不进通行网格，运行时再加）
+    wgid = [0]
+    def wsec(kind, orient, a0, a1, c0, st):
+        """kind 's' 石墙 / 'i' 铁艺；orient 'h'：沿 x 从 a0 到 a1，矩形 y 为 c0..c0+厚；'v'：沿 y 从 a0 到 a1，矩形 x 为 c0..c0+6"""
+        n = max(1, round((a1 - a0) / 34)); gid = wgid[0]; wgid[0] += 1
+        for i in range(n):
+            p0, p1 = a0 + (a1 - a0) * i // n, a0 + (a1 - a0) * (i + 1) // n
+            if orient == 'h': thick = 8 if kind == 's' else 6; r = (p0, c0, p1, c0 + thick)
+            else: r = (c0, p0, c0 + 6, p1)
+            walls.append(dict(k=kind, o=orient, g=gid, i=i, n=n, r=list(r), st=st))
     objs = []          # {k, x, y(base), img, ax, ay, ...}
     sprites = {'tree': tree_img(), 'treeB': tree_img(True)}
 
@@ -304,23 +328,21 @@ def build(seed=11):
         for x in range(bx0 + 2, bx1, 12): d.rectangle([x, yy - 4, x + 3, yy + 2], fill=K); d.rectangle([x + 1, yy - 3, x + 2, yy + 1], fill=(170, 164, 186))
     block(bx0, by0 - 8, bx1, by0 - 2); block(bx0, by1 + 1, bx1, by1 + 8)
 
-    # plateau cliff + stairs
+    # 教堂高地：石崖换成砖柱 + 铁艺栏杆围墙，楼梯口改成敞开的铁门
     face = 30
-    d.rectangle([PLAT_X, PLAT_Y, W, PLAT_Y + face], fill=(46, 36, 52))
-    for x in range(PLAT_X, W, 7): d.line([(x, PLAT_Y + 2), (x + random.randint(-2, 2), PLAT_Y + face - 2)], fill=(36, 28, 42))
-    d.rectangle([PLAT_X, PLAT_Y - 2, W, PLAT_Y + 1], fill=(112, 112, 136))
-    d.rectangle([PLAT_X - 8, 0, PLAT_X, PLAT_Y + face], fill=(46, 36, 52)); d.rectangle([PLAT_X - 1, 0, PLAT_X + 1, PLAT_Y], fill=(112, 112, 136))
-    sh = Image.new('RGBA', (W, H), (0, 0, 0, 0)); ImageDraw.Draw(sh).rectangle([PLAT_X - 8, PLAT_Y + face, W, PLAT_Y + face + 12], fill=(10, 6, 20, 100))
-    im.alpha_composite(sh)
+    for x in range(PLAT_X, W, 7): random.randint(-2, 2)        # 保持随机序列不变，免得坟、树的位置变了
     sx0, sx1 = STAIRS
-    d.rectangle([sx0, PLAT_Y - 4, sx1, PLAT_Y + face + 2], fill=K)
-    for i, y in enumerate(range(PLAT_Y - 3, PLAT_Y + face + 1, 5)):
-        d.rectangle([sx0 + 1, y, sx1 - 1, y + 4], fill=(150 - i * 6, 144 - i * 6, 168 - i * 6)); d.line([(sx0 + 1, y + 4), (sx1 - 1, y + 4)], fill=(80, 74, 98))
-    block(PLAT_X - 8, 0, PLAT_X + 2, PLAT_Y + face)
-    block(PLAT_X, PLAT_Y - 2, sx0, PLAT_Y + face); block(sx1, PLAT_Y - 2, W, PLAT_Y + face)
+    GB = PLAT_Y + 10                                            # 南边围墙的底线
+    for (ax, bx) in ((PLAT_X - 3, sx0), (sx1, W)): d.rectangle([ax, PLAT_Y, bx, GB], fill=(46, 56, 72))
+    d.rectangle([PLAT_X - 3, 0, PLAT_X, GB], fill=(46, 56, 72))
+    for lx in (sx0 + 2, sx1 - 6):                               # 向里推开的铁门扇
+        d.rectangle([lx - 1, GB - 26, lx + 4, GB], fill=K); d.rectangle([lx, GB - 25, lx + 3, GB - 1], fill=(40, 36, 50))
+        for yy in range(GB - 24, GB - 1, 4): d.line([(lx, yy), (lx + 3, yy)], fill=(84, 78, 98))
+    wsec('i', 'h', PLAT_X - 3, sx0, GB - 6, 1); wsec('i', 'h', sx1, W, GB - 6, 1)
+    wsec('i', 'v', 5, GB, PLAT_X - 3, 1)
 
     # 城墙取消：原城墙处变成荒地，任家镇移到地图上方新加的一大块
-    cimg, cax, cay = church_img(); sprites['church'] = cimg
+    cimg, cax, cay = church_img(); sprites['church'] = cimg; sprites['churchO'] = church_img(True)[0]
     objs.append(dict(k='church', x=CHURCH[0], y=CHURCH[1], img='church', ax=cax, ay=cay, rect=[CHURCH[0] - 60, CHURCH[1] - 110, CHURCH[0] + 60, CHURCH[1] + 20], burn=False))
     block(CHURCH[0] - 58, CHURCH[1] - 104, CHURCH[0] + 58, CHURCH[1] + 20)
     bats = (CHURCH[0], CHURCH[1] - 205)
@@ -513,7 +535,7 @@ def build(seed=11):
         if y % 5 == 0: xx = cx + random.uniform(-RIVER_W / 2 + 4, RIVER_W / 2 - 8); d.line([(xx, y), (xx + random.randint(3, 7), y)], fill=(60, 92, 140))
         if y % 8 == 0: block(int(cx - RIVER_W / 2 - 2), y, int(cx + RIVER_W / 2 + 2), y + 8)
     # 高台上沿（教堂高台北边的石壁）
-    d.rectangle([PLAT_X - 8, DY - 8, W, DY + 2], fill=K); d.rectangle([PLAT_X - 7, DY - 7, W, DY], fill=(110, 104, 128)); block(PLAT_X - 8, DY - 10, W, DY + 2)
+    wsec('i', 'h', PLAT_X - 3, W, DY - 1, 2)
     # 街道：东西主街 + 南北中轴，接到原来往北的路
     road([(300, 262), (760, 258), (1180, 262), (1580, 258)], 30)
     road([(740, 40), (740, 262), (740, DY + 110)], 28)
@@ -528,8 +550,9 @@ def build(seed=11):
         img, ax, ay = house_img(w, h, plaque, lan, lc=lc); key = f'town{hn[0]}'; hn[0] += 1; sprites[key] = img
         objs.append(dict(k='house', x=x0 + w // 2, y=y0 + 18 + h, img=key, ax=ax + w // 2, ay=ay, rect=[x0, y0, x0 + w, y0 + 18 + h], burn=False))
         block(x0 - 2, y0 + 10, x0 + w + 2, y0 + 18 + h)
-    def wall(x0, y0, x1, y1, col=(120, 112, 120), top=(90, 84, 92)):
-        d.rectangle([x0 - 1, y0 - 4, x1 + 1, y1 + 1], fill=K); d.rectangle([x0, y0 - 3, x1, y1], fill=col); d.rectangle([x0, y0 - 3, x1, y0 - 1], fill=top); block(x0, y0 - 2, x1, y1)
+    def wall(x0, y0, x1, y1, col=None, top=None):       # 院墙：分段登记，运行时按段画、按段倒
+        if x1 - x0 <= y1 - y0: wsec('s', 'v', y0 - 2, y1, x0, 2)
+        else: wsec('s', 'h', x0, x1, y0 - 2, 2)
     def floor(x0, y0, x1, y1, c=(78, 66, 80), c2=(70, 58, 72)):
         d.rectangle([x0, y0, x1, y1], fill=c)
         for x in range(x0 + 4, x1, 9): d.line([(x, y0 + 2), (x, y1 - 1)], fill=c2)
@@ -686,6 +709,20 @@ def build(seed=11):
     for y in range(MT1 + 10, H2, 26): bgtree(10 + random.randint(-4, 4), y)
     for x in range(10, EXT, 26): bgtree(x + random.randint(-4, 4), H2 - 4 - random.randint(0, 10))
     block(0, 0, 22, H2); block(0, H2 - 22, EXT, H2)
+    # 围墙：坐标换算成最终地图坐标，生成分段精灵（碰撞矩形不写进网格，由游戏运行时加）
+    wdata = []
+    for w in walls:
+        x0, y0, x1, y1 = w['r']
+        if w['st'] == 1: y0 += DY; y1 += DY
+        x0 += EXT; x1 += EXT
+        k, o = w['k'], w['o']; first, last = w['i'] == 0, w['i'] == w['n'] - 1
+        L = (x1 - x0) if o == 'h' else (y1 - y0)
+        fn = {('s', 'h'): WS.stone_h, ('s', 'v'): WS.stone_v, ('i', 'h'): WS.iron_h, ('i', 'v'): WS.iron_v}[(k, o)]
+        img, dx, dy = fn(L, first, last) if k == 's' else fn(L, last)
+        key = f'w{k}{o}{L}{int(first)}{int(last)}'; rk = f'wr{k}{o}{L}'
+        sprites[key] = img
+        if rk not in sprites: sprites[rk] = WS.rubble(k, o, L, len(wdata) % 4)
+        wdata.append(dict(k=k, o=o, g=w['g'], i=w['i'], n=w['n'], r=[x0, y0, x1, y1], px=x0 - dx, py=y0 - dy, img=key, rub=rk))
     cols, rows = W2 // CELL, H2 // CELL
     grid = bytearray(cols * rows)
     for x0, y0, x1, y1 in blocks:
@@ -693,7 +730,7 @@ def build(seed=11):
             for cx in range(max(0, int(x0) // CELL), min(cols - 1, int(x1) // CELL) + 1):
                 grid[cy * cols + cx] = 1
     river = [round(river_x(y - DY) + EXT, 1) for y in range(0, H2, 8)]
-    data = dict(cols=cols, rows=rows, cell=CELL, grid=''.join('1' if v else '0' for v in grid), objs=objs,
+    data = dict(walls=wdata, cols=cols, rows=rows, cell=CELL, grid=''.join('1' if v else '0' for v in grid), objs=objs,
                 graves=graves, coffins=coffins, river=river, riverW=RIVER_W, pearl=[PEARL[0] + EXT, PEARL[1] + DY - 6], hb=[HB[0] + EXT, HB[1] + DY, HB[2] + EXT, HB[3] + DY], bridge=[BRIDGE[0] + DY, BRIDGE[1] + DY], bats=bats,
                 road=[(x + EXT, y + DY) for x, y in ROAD], roadN=[(x + EXT, y + DY) for x, y in ROAD_N], w=W2, h=H2, townH=DY, extX=EXT, plants=PL, seats=[(x + EXT, y) for x, y in seats], yzGate=[980 + EXT, 494], renDoor=[430 + EXT, 160], citang=[740 + EXT, 104], vhome=[CHURCH[0] + EXT, CHURCH[1] + 42 + DY], tombPlat=[PX0, PY0, PX1, PY1], plantZone=[30, PY1 + 64, int(rx(1000)) - 30, H2 - 30], tomb=list(TOMB), plantain=[200, DY + 900], stage=[stage[0] + EXT, stage[1]], loop=[LOOP[0] + DY, LOOP[1] + DY], yamen=[644 + EXT, 232], paifang=[740 + EXT, DY + 160],
                 yz=[[860 + EXT, 400, 0], [940 + EXT, 410, 1], [1020 + EXT, 404, 0], [1100 + EXT, 396, 1], [880 + EXT, 448, 0]], town=[30, 30, W2 - 10, DY])

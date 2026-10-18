@@ -40,7 +40,7 @@ def _redface(im, k):
     return out
 sprites['taoistR1'] = _redface(sprites['taoist'], 1); sprites['taoistR2'] = _redface(sprites['taoist'], 2)
 exec(open('new_chars.py').read(), g)
-sprites.update({'renZ': g['ren_zombie']().img(), 'simu': g['simu']().img(), 'corpse': g['corpse']().img(), 'believer': g['believer']().img(),
+sprites.update({'renZ': g['ren_zombie']().img(), 'simu': g['simu']().img(), 'corpse': g['corpse']().img(), 'believer': g['believer']().img(), 'believerS': g['believer'](False).img(),
                 'thrall': g['believer'](False, True).img(), 'bananaG': g['banana_ghost']().img(), 'bananaT': g['banana_ghost'](True).img(),
                 'bikeG': g['qiusheng_bike_bride']().img(), 'bike': g['qiusheng_bike'](False).img(), 'operaDan': g['opera_dan']().img(), 'operaJing': g['opera_jing']().img(), 'wuW': g['wuchang']().img(), 'wuB': g['wuchang'](False).img()})
 sprites['monk'] = g['monk']('pole').img(); sprites['monkR1'] = _redface(sprites['monk'], 1); sprites['monkR2'] = _redface(sprites['monk'], 2)

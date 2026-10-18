@@ -983,8 +983,10 @@ function prDrain(v, free) {   // 黑暗形态吸血：每秒最多 3 点（猩�
   }
 }
 const prInBlood = e => e.bloodT > S.t;
+const PR_BAL = 0.80;   // 平衡：神父法器总伤害系数（模拟测试里比一休、道长强太多，整体下调）
 function prHit(e, dmg, kb, fx, fy, src, tag) {   // 神父法器统一走这里：记下伤害来源，处理吸血和圣印
   if (e.dead) return 0;
+  dmg *= PR_BAL;
   const h0 = e.hp, R = S.pr; R.src = src; hurt(e, dmg, kb, fx, fy, tag); R.src = null;
   const dealt = Math.max(0, h0 - Math.max(0, e.hp));
   if (prDark() && dealt > 0 && PR_DRAIN[src]) {
@@ -1814,6 +1816,7 @@ function newGame(diff = 'normal') {
     objs: (MAP.objs || []).map(o => ({ ...o, burnt: false, state: 'ok', fireT: 0, smoke: 0, tk: 0 })), ult: null, ultCd: 0, sweeps: [], taijis: [], palms: [], afterimgs: [], ev: {}, allies: [], decor: [], batFx: [], rumorQ: [], guas: [], shield: 0, shieldT: null, chests: [], lvQueue: 0, eliteT: 60, eliteN: 0, vampOut: false, wgCd: 8, eshots: [], npcs: [], npcT: 15, loot: [], aw: null, awDone: false, yamT: 0, gongVo: 0, dawnT: null, yz: (MAP.yz || []).map(([x, y, o]) => ({ x, y, open: !!o, pre: !!o, t: 0 })), yzT: rnd(40, 60), fish: [], fishT: 2, cam: { x: 0, y: 0 },
     food: [], foodT: 18, parts: [], combo: 0, comboT: 0, stop: 0, flash: 0, en: [], shots: [], areas: [], orbs: [], fx: [], texts: [], spawnAcc: 0, nextId: 1, shake: 0,
   };
+  wallsInit();
   GUARD.reset(); if (HERO === 'monk') GUARD.pickW();
   if (HERO === 'priest') setTimeout(() => { if (S && S.hero === 'priest' && S.state === 'play') rumor(['Father 柴：Lord, give me strength!'], false); }, 2500);   // 一休开局自带袈裟，防作弊的法器计数要把它算进去
   for (const k of ['title', 'end', 'levelup', 'pause', 'revive', 'brag', 'tip', 'tipArrow', 'mmPanel', 'evArrow']) $(k).hidden = true;
@@ -2748,6 +2751,100 @@ function drawPearlSprites(list) {
   for (const w of S.skyW || []) list.push({ y: -99997, f: () => { const k = Math.min(1, w.t / 0.9); g.save(); g.globalAlpha = 0.18 + 0.3 * k; g.fillStyle = '#ff3a2a'; g.beginPath(); g.ellipse(w.x, w.y, 22 * (1.2 - 0.2 * k), 22 * 0.7 * (1.2 - 0.2 * k), 0, 0, 7); g.fill(); g.globalAlpha = 0.5 + 0.4 * Math.abs(Math.sin(w.t * 14)); g.strokeStyle = '#ffd0a0'; g.lineWidth = 1; g.stroke(); g.restore(); } });
 }
 
+// ---------- 围墙：被怪群推倒 ----------
+// 围墙是一段一段的（石墙约 34px、铁艺围墙同），碰撞在运行时才加进通行网格。
+// 怪群卡在某一段墙边一阵子（卡住的怪越多、推得越快），这一段连同两侧的邻段就会被推倒，向玩家这一侧倒下，留下残砖。
+const WCNT = new Uint8Array((MAP.cols || 1) * (MAP.rows || 1));
+const WALLPAR = { s: { thr: 8, need: 3.2, name: '院墙' }, i: { thr: 4.5, need: 1.4, name: '铁艺围墙' } };   // 铁艺围墙更容易被推倒
+function wallCells(w) {
+  const [x0, y0, x1, y1] = w.r, out = [], R = (WCNT.length / COLS) | 0;
+  for (let cy = Math.max(0, (y0 / CELLSZ) | 0); cy <= Math.min(R - 1, (y1 / CELLSZ) | 0); cy++)
+    for (let cx = Math.max(0, (x0 / CELLSZ) | 0); cx <= Math.min(COLS - 1, (x1 / CELLSZ) | 0); cx++) out.push(cy * COLS + cx);
+  return out;
+}
+function wallsInit() {
+  GRID = MAP.grid || ''; WCNT.fill(0);
+  const arr = GRID.split('');
+  for (const w of MAP.walls || []) { if (!w._c) w._c = wallCells(w); for (const j of w._c) { WCNT[j]++; arr[j] = '1'; } }
+  GRID = arr.join('');
+  S.wl = (MAP.walls || []).map(w => ({ w, pr: 0, st: 0, t: 0, d: 1 }));
+  S.wlIdx = {}; for (const q of S.wl) S.wlIdx[q.w.g + '_' + q.w.i] = q;
+  S.wlN = 0; FLOWNEED = true;
+}
+function wallFall(q, d) {
+  if (q.st !== 0) return;
+  q.st = 1; q.t = 0; q.d = d; q.pr = 0;
+  const arr = GRID.split('');
+  for (const j of q.w._c) if (--WCNT[j] <= 0 && (MAP.grid || '').charCodeAt(j) !== 49) arr[j] = '0';
+  GRID = arr.join('');
+  const [x0, y0, x1, y1] = q.w.r;
+  for (let i = 0; i < 12; i++) S.parts.push({ x: rnd(x0, x1), y: rnd(y0, y1), vx: rnd(-30, 30) + (q.w.o === 'v' ? d * 30 : 0), vy: rnd(-60, -15) + (q.w.o === 'h' ? d * 20 : 0), t: rnd(0.5, 0.9), c: i % 3 ? '#8a808c' : '#5a5260' });
+}
+function updateWalls() {
+  if (!S.wl || S.state !== 'play') return;
+  const P = S.p; let fell = null;
+  for (const q of S.wl) {
+    if (q.st === 1) { q.t += DT; if (q.t >= 0.6) q.st = 2; continue; }
+    if (q.st !== 0) continue;
+    const w = q.w, [x0, y0, x1, y1] = w.r, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, par = WALLPAR[w.k];
+    if (Math.abs(cx - P.x) > 360 || Math.abs(cy - P.y) > 280) { q.pr = 0; continue; }
+    let cnt = 0, side = 0;
+    const poff = w.o === 'h' ? P.y - cy : P.x - cx;      // 玩家在墙的哪一侧
+    if (Math.abs(poff) < 6) { q.pr = Math.max(0, q.pr - DT); continue; }
+    for (const e of S.en) {
+      if (e.dead || e.type === 'ghost' || e.rise > 0 || e.vault > 0 || (e.pathT || 0) > 0) continue;   // 已经改道绕路的怪不算在推墙
+      const along = w.o === 'h' ? e.x : e.y, a0 = w.o === 'h' ? x0 : y0, a1 = w.o === 'h' ? x1 : y1, off = w.o === 'h' ? e.y - cy : e.x - cx;
+      if (along < a0 - 18 || along > a1 + 18 || Math.abs(off) > 38 || off * poff >= 0) continue;          // 只算贴在墙边（含后面几排挤着的）、玩家在墙另一侧的怪
+      if ((e.x - P.x) ** 2 + (e.y - P.y) ** 2 > 240 * 240) continue;
+      const wt = (mBig(e) ? 4 : 1) * (Math.abs(off) <= 18 ? 1 : 0.6); cnt += wt; side += Math.sign(off) * wt;
+    }
+    if (cnt >= par.thr) q.pr += DT * Math.min(2, cnt / par.thr); else q.pr = Math.max(0, q.pr - DT * 0.7);
+    if (q.pr >= par.need) { fell = [q, side > 0 ? -1 : side < 0 ? 1 : (w.o === 'h' ? (P.y > cy ? 1 : -1) : (P.x > cx ? 1 : -1))]; break; }
+  }
+  if (!fell) return;
+  const [q, d] = fell, w = q.w;
+  for (const k of [-1, 0, 1]) { const t = S.wlIdx[w.g + '_' + (w.i + k)]; if (t) wallFall(t, d); }
+  S.wlN = (S.wlN || 0) + 1; FLOWNEED = true; sfx('thud'); sfx('thud'); S.shake = Math.max(S.shake, 0.3);
+  const [x0, y0, x1, y1] = w.r;
+  S.texts.push({ x: (x0 + x1) / 2, y: y0 - 30, v: WALLPAR[w.k].name + '被推倒了！', t: 1.8, c: '#ffd8a0', big: true });
+  if (S.wlN === 1) rumor(['怪群……把墙推倒了！'], false);
+}
+function drawWallSec(q) {
+  const w = q.w, im = IMG[w.img]; if (!im || !im.width) return;
+  const [x0, y0, x1, y1] = w.r;
+  if (q.st === 0) {
+    g.drawImage(im, w.px, w.py);
+    const nb = k => { const t = S.wlIdx[w.g + '_' + (w.i + k)]; return t && t.st !== 0; };
+    g.fillStyle = '#18101e';                                     // 邻段塌了，这一端露出断口
+    if (w.o === 'h') { if (nb(-1)) g.fillRect(x0, w.py + (w.k === 's' ? 1 : 26), 1, w.k === 's' ? 9 : 7); if (nb(1)) g.fillRect(x1, w.py + (w.k === 's' ? 1 : 26), 1, w.k === 's' ? 9 : 7); }
+    else { if (nb(-1)) g.fillRect(x0, y0, 7, 1); if (nb(1)) g.fillRect(x0, y1, 7, 1); }
+    return;
+  }
+  const p = Math.min(1, q.t / 0.6), th = p * p * 1.5708, cs = Math.max(0.05, Math.cos(th)), sn = Math.sin(th);
+  const H = im.height, Wd = im.width, iron = w.k === 'i', c1 = iron ? '#2a2630' : '#7a727c', c2 = iron ? '#54506a' : '#a098a2';
+  const slab = (ax, ay, aw, ah) => { g.fillStyle = c1; g.fillRect(ax, ay, aw, ah); g.fillStyle = c2; if (w.o === 'h') g.fillRect(ax, q.d > 0 ? ay : ay + ah - 1, aw, 1); else g.fillRect(q.d > 0 ? ax : ax + aw - 1, ay, 1, ah); if (iron) { g.fillStyle = '#18101e'; if (w.o === 'h') for (let x = ax + 2; x < ax + aw; x += 4) g.fillRect(x, ay, 1, ah); else for (let y = ay + 2; y < ay + ah; y += 4) g.fillRect(ax, y, aw, 1); } };
+  if (w.o === 'h') {
+    const by = w.py + H, cx = w.px + Wd / 2, ah = Math.max(1, Math.round((iron ? 20 : 11) * sn));
+    if (q.d < 0) slab(x0, by - 4 - ah, x1 - x0, ah);
+    g.save(); g.translate(cx, by); g.scale(1, cs); g.drawImage(im, -Wd / 2, -H); g.restore();
+    if (q.d > 0) slab(x0, by - 4, x1 - x0, ah);
+  } else {
+    const by = w.py + H, cx = w.px + Wd / 2, aw = Math.max(1, Math.round((iron ? 20 : 11) * sn));
+    if (q.d < 0) slab(cx - aw, y0, aw, y1 - y0);
+    g.save(); g.translate(cx, by); g.scale(cs, 1); g.drawImage(im, -Wd / 2, -H); g.restore();
+    if (q.d > 0) slab(cx, y0, aw, y1 - y0);
+  }
+}
+function drawWalls(list) {
+  if (!S.wl) return; const C = S.cam;
+  for (const q of S.wl) {
+    const [x0, y0, x1, y1] = q.w.r;
+    if (x1 < C.x - 50 || x0 > C.x + VW + 50 || y1 + 6 < C.y - 30 || y0 - 40 > C.y + VH + 50) continue;
+    if (q.st === 2) { list.push({ y: -99990, f: () => { const im = IMG[q.w.rub]; if (im && im.width) g.drawImage(im, Math.round((x0 + x1) / 2 - im.width / 2 + (q.w.o === 'v' ? q.d * 3 : 0)), Math.round((y0 + y1) / 2 - im.height / 2 + (q.w.o === 'h' ? q.d * 3 : 0))); } }); continue; }
+    list.push({ y: y1 + 0.5, f: () => drawWallSec(q) });
+  }
+}
+
 // ---------- 水鬼的故事：河边的白衣女子 ----------
 function updateWG() {
   const P = S.p, E = S.ev; let w = E.wg;
@@ -2985,6 +3082,7 @@ function updateEvents() {
     }
   }
   updateChurch2();
+  updateWalls();
   for (const b of S.batFx) { b.t -= DT; b.x += b.vx * DT; b.y += b.vy * DT; b.ph += DT * 18; }
   S.batFx = S.batFx.filter(b => b.t > 0);
   // --- 任老爷尸变：2:20
@@ -3089,13 +3187,13 @@ function drawEventSprites(list) {
     if (e.fade > 0) { const P = S.p; g.save(); g.globalAlpha = 0.5 * Math.abs(Math.sin(S.t * 12)); g.strokeStyle = '#ff4a3a'; g.lineWidth = 1; g.setLineDash([4, 4]); g.beginPath(); g.moveTo(P.x, P.y - 6); g.lineTo(e.x, e.y - 6); g.stroke(); g.restore(); } } });
   for (const f of S.gfx || []) list.push({ y: f.k === 'dog' || f.art === 'palm' ? 99999 : -99999, f: () => drawGodFx(f) });
   for (const e of S.en) if (e.elite && e.affix && e.lblT > 0 && !e.dead) list.push({ y: e.y + 0.6, f: () => { const im0 = IMG[e.skin], a = Math.min(1, e.lblT / 0.8), x = Math.round(e.x), y = Math.round(e.y) - (im0 ? im0.height * 1.35 + 6 : 56); g.save(); g.globalAlpha = a; g.font = 'bold 9px monospace'; g.textAlign = 'center'; g.fillStyle = '#000'; g.fillText('〔' + AFFIX[e.affix].n + '〕', x + 1, y + 1); g.fillStyle = AFFIX[e.affix].c; g.fillText('〔' + AFFIX[e.affix].n + '〕', x, y); g.restore(); } });
-  drawPearlSprites(list); drawWG(list); drawChurch2(list); drawPriestList(list);
+  drawPearlSprites(list); drawWG(list); drawChurch2(list); drawPriestList(list); drawWalls(list);
   const E = S.ev;
   if (MAP.stage) { const [sx, sy] = MAP.stage, sing = E.opera === 1, b = sing ? Math.round(Math.abs(Math.sin(S.t * 3)) * 2) : 0;
     list.push({ y: sy - 1, f: () => { const a = IMG.operaDan, j = IMG.operaJing; if (a && a.complete) g.drawImage(a, Math.round(sx - 26 - a.width / 2), Math.round(sy - a.height + 2 - b)); if (j && j.complete) g.drawImage(j, Math.round(sx + 22 - j.width / 2), Math.round(sy - j.height + 2 - (sing ? Math.round(Math.abs(Math.cos(S.t * 3)) * 2) : 0))); } }); }
   if (E.simu && E.simu.st !== 'gone') { const M = E.simu; list.push({ y: M.y, f: () => { g.globalAlpha = M.alpha ?? 1; const im = IMG.simu; g.drawImage(im, Math.round(M.x - im.width / 2), Math.round(M.y - im.height + 2)); if (M.st === 'wait') for (const c of M.corpses) { const ci = IMG.corpse; g.drawImage(ci, Math.round(c.x - ci.width / 2), Math.round(c.y - ci.height + 2 - Math.abs(Math.sin(S.t * 5 + c.ph)) * 3)); } g.globalAlpha = 1; } }); }
   for (const a of S.allies) list.push({ y: a.y, f: () => { const im = a.face < 0 ? flipped('corpse') : IMG.corpse; g.globalAlpha = Math.min(1, a.life); g.drawImage(im, Math.round(a.x - im.width / 2), Math.round(a.y - im.height + 2 - Math.max(0, Math.sin(a.ph)) * 3)); g.globalAlpha = 1; } });
-  if (E.church && E.church.st !== 'gone') for (const b of E.church.b) list.push({ y: b.y, f: () => { const im = IMG.believer; g.drawImage(im, Math.round(b.x - im.width / 2), Math.round(b.y - im.height + 2)); } });
+  if (E.church && E.church.st !== 'gone') for (const b of E.church.b) list.push({ y: b.y, f: () => { const run = E.church.st === 'flee', im = run ? (b.vx < 0 ? flipped('believerS') : IMG.believerS) : IMG.believer, bob = run ? Math.abs(Math.sin(S.t * 14 + b.x)) * 3 : 0; g.drawImage(im, Math.round(b.x - im.width / 2), Math.round(b.y - im.height + 2 - bob)); } });
   if (E.bike && E.bike.st !== 'gone') { const B = E.bike; list.push({ y: B.y, f: () => { const im = IMG[B.ghost ? 'bikeG' : 'bike']; g.drawImage(im, Math.round(B.x - im.width / 2), Math.round(B.y - im.height + 4 + (Math.floor(S.t * 8) % 2))); } }); }
   for (const d of S.decor) list.push({ y: d.y, f: () => { const im = IMG[d.k]; if (!im) return; g.globalAlpha = Math.max(0, Math.min(1, (d.life - d.t) * 2)); g.drawImage(im, Math.round(d.x - im.width / 2), Math.round(d.y - im.height + 2 - (d.hop ? Math.abs(Math.sin(d.t * 6)) * 8 : 0))); g.globalAlpha = 1; } });
 }
@@ -4101,7 +4199,8 @@ function handAI(e) {
 // ---------- 吸血鬼 ----------
 const VHOME = MAP.vhome || [1395, 446 + (MAP.townH || 0)];
 function spawnVampire() {
-  S.vampOut = true; banner('教堂的门开了……吸血伯爵现身！', 2.4); sfx('bell'); setTimeout(() => sfx('bell'), 450);
+  S.vampOut = true; for (const o of S.objs) if (o.img === 'church') o.img = 'churchO';   // 大门敞开
+  banner('教堂的门开了……吸血伯爵现身！', 2.4); sfx('bell'); setTimeout(() => sfx('bell'), 450);
   const e = spawn('vampire', VHOME[0], VHOME[1]); e.biteCd = 0; e.batCd = rnd(3, 4.5); e.batT = 0; e.home = true; e.waveCd = 3;
 }
 function vampireEscape(e) {
