@@ -113,6 +113,12 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 .shareRow .rankBtn { margin: 0; }
 .shareTag { position: absolute; top: 8px; right: 8px; background: transparent; border: 2px solid var(--line); color: var(--muted); font: inherit; font-size: 13px; padding: 2px 8px; cursor: pointer; letter-spacing: .1em; }
 .shareTag:active { background: var(--line); }
+.shareTag { display: inline-flex; align-items: center; gap: 4px; }
+.shareIco { width: 13px; height: 13px; flex: none; }
+.pvBox { display: grid; justify-items: center; gap: 4px; margin: 8px 0 2px; }
+#pv { position: static; inset: auto; height: auto; touch-action: auto; width: min(100%, 300px); aspect-ratio: 150 / 66; image-rendering: pixelated; border: 2px solid var(--line); background: #140c1e; }
+#pvCap { font-size: 13px; color: var(--muted); min-height: 1.4em; text-align: center; }
+#pvCap b { color: var(--talisman); font-weight: 400; margin-right: 6px; }
 #shareToast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: rgba(12,6,22,.92); color: var(--text); border: 2px solid var(--talisman); padding: 8px 16px; font-size: 16px; z-index: 60; pointer-events: none; }
 .storyChk input { width: 20px; height: 20px; accent-color: #f0c020; margin: 0; }
 .btn.ghost { background: transparent; color: var(--muted); border-color: var(--line); box-shadow: none; font-size: 16px; padding: 4px 14px; margin-top: 10px; }
@@ -223,8 +229,9 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
   <div id="evArrow" hidden><span id="evA">➤</span><b id="evL"></b></div>
 
   <div class="modal" id="title">
-    <div class="card" style="position:relative"><button class="shareTag" id="shareBtn" type="button">分享</button>
+    <div class="card" style="position:relative"><button class="shareTag" id="shareBtn" type="button"><svg class="shareIco" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M1 4h6v2H3v7h9V10h2v5H1z"/><path fill="currentColor" d="M10 1l5 4.2L10 9.4V7.2C7 7.2 5.3 8.2 4 10.4 4.4 6.6 6.6 4.4 10 4.2z"/></svg>分享</button>
       <h1>暂时停止呼吸</h1>
+      <div class="pvBox"><canvas id="pv" width="150" height="66" aria-label="角色预览"></canvas><div id="pvCap"></div></div>
       <div class="nameRow"><input id="startName" maxlength="10" placeholder="道长尊姓大名？" autocomplete="off" aria-label="道号"><span id="nameTip"></span></div>
       <div class="heroes"><button type="button" class="hero on" id="heroTao"><b><i class="hicon">☯︎</i>一眉道人</b><small>林九</small></button><button type="button" class="hero" id="heroMonk"><b><i class="hicon">卍︎</i>伏魔禅师</b><small id="monkSub">一休</small></button><button type="button" class="hero" id="heroPriest"><b><i class="hicon">✝︎</i>天主圣徒</b><small id="priestSub">Father 柴</small></button><button type="button" class="hero" id="heroJian"><b><i class="hicon"><svg viewBox="0 0 9 20" shape-rendering="crispEdges" aria-hidden="true"><rect x="4" y="0" width="1" height="1" fill="currentColor"/><rect x="3" y="1" width="3" height="11" fill="currentColor"/><rect x="0" y="12" width="9" height="2" fill="currentColor"/><rect x="3" y="14" width="3" height="4" fill="currentColor"/><rect x="2" y="18" width="5" height="2" fill="currentColor"/><rect x="7" y="16" width="1" height="4" fill="#d22c28"/><rect x="8" y="18" width="1" height="2" fill="#d22c28"/></svg></i>青城剑仙</b><small id="jianSub">温</small></button></div>
       <div class="chaps" id="chapRow" aria-label="选择章节"></div>
@@ -450,7 +457,7 @@ const LZ = '唵嘛呢叭咪吽';
 const JIAN_SVG = '<svg viewBox="0 0 9 20" shape-rendering="crispEdges" aria-hidden="true"><rect x="4" y="0" width="1" height="1" fill="currentColor"/><rect x="3" y="1" width="3" height="11" fill="currentColor"/><rect x="0" y="12" width="9" height="2" fill="currentColor"/><rect x="3" y="14" width="3" height="4" fill="currentColor"/><rect x="2" y="18" width="5" height="2" fill="currentColor"/><rect x="7" y="16" width="1" height="4" fill="#d22c28"/><rect x="8" y="18" width="1" height="2" fill="#d22c28"/></svg>';
 function heroIcon(h) { const i = document.createElement('i'); i.className = 'hicon'; if (h === 'jian') i.innerHTML = JIAN_SVG; else i.textContent = h === 'monk' ? '卍︎' : h === 'priest' ? '✝︎' : '☯︎'; return i; }
 let HERO = 'tao';
-try { const h0 = localStorage.getItem('ztzh_hero'); HERO = h0 === 'monk' || h0 === 'priest' || h0 === 'jian' ? h0 : 'tao'; } catch (e) {}
+HERO = 'tao';   // 进首页默认先选道士
 function monkUnlocked() {
   try { if (/[?&]unlock\b/.test(location.search)) localStorage.setItem('ztzh_monk', '1'); return localStorage.getItem('ztzh_monk') === '1'; } catch (e) { return /[?&]unlock\b/.test(location.search); }
 }
@@ -5004,6 +5011,75 @@ function renderChapters() {
   }
   const on = box.querySelector('.on'); if (on && on.scrollIntoView) { try { box.scrollLeft = Math.max(0, on.offsetLeft - (box.clientWidth - on.offsetWidth) / 2); } catch (e) {} }
 }
+// ---------- 首页角色预览：选中谁，舞台上就是谁在走动、放招 ----------
+const PV_INFO = {
+  tao: ['一眉道人 · 林九', '桃木剑护身，镇尸符定尸'],
+  monk: ['伏魔禅师 · 一休', '禅杖绕身，木鱼一敲震四方'],
+  priest: ['天主圣徒 · Father 柴', '十字驱魔，光明黑暗二选一'],
+  jian: ['青城剑仙 · 温', '御剑乘风，气宗剑宗任你修'],
+};
+const PV = { t: 0, x: 75, dir: 1, fx: [], cast: 1.2, last: 0, hero: '' };
+function pvDraw(now) {
+  requestAnimationFrame(pvDraw);
+  const cv2 = $('pv'); if (!cv2 || $('title').hidden) { PV.last = now; return; }
+  const c = cv2.getContext('2d'); c.imageSmoothingEnabled = false;
+  const dt = Math.min(0.05, (now - (PV.last || now)) / 1000); PV.last = now; PV.t += dt;
+  if (PV.hero !== HERO) { PV.hero = HERO; PV.fx = []; PV.cast = 1; PV.x = 75; const I = PV_INFO[HERO] || PV_INFO.tao; $('pvCap').innerHTML = '<b></b>'; $('pvCap').firstChild.textContent = I[0]; $('pvCap').appendChild(document.createTextNode(I[1])); }
+  const W = 150, H = 66, gy = 52;
+  // 背景：夜空、月亮、坟头、地面
+  c.fillStyle = '#140c1e'; c.fillRect(0, 0, W, H);
+  c.fillStyle = '#efe6c0'; c.beginPath(); c.arc(124, 14, 7, 0, 7); c.fill(); c.fillStyle = '#140c1e'; c.beginPath(); c.arc(121, 12, 6, 0, 7); c.fill();
+  c.fillStyle = '#2a1e36'; c.fillRect(0, gy, W, H - gy);
+  for (const [x, h] of [[14, 8], [30, 6], [128, 7]]) { c.fillStyle = '#3a2e48'; c.fillRect(x - 3, gy - h, 7, h); c.fillRect(x - 4, gy - h + 1, 9, 1); }
+  c.fillStyle = '#1e1428'; for (let i = 0; i < 6; i++) c.fillRect((i * 29 + 7) % W, gy + 4 + (i % 3) * 3, 3, 1);
+  // 走动：在舞台中间来回踱步，放招时站住
+  const casting = PV.cast < 0.6 && PV.cast > 0;
+  if (!casting) { PV.x += PV.dir * 14 * dt; if (PV.x > 100) PV.dir = -1; if (PV.x < 50) PV.dir = 1; }
+  PV.cast -= dt;
+  const h = HERO, cx = Math.round(PV.x), ang = PV.t * 4.2;
+  // 招牌技能
+  if (PV.cast <= 0) {
+    PV.cast = 2.6;
+    if (h === 'tao') for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283; PV.fx.push({ k: 'fu', x: cx, y: gy - 14, vx: Math.cos(a) * 55, vy: Math.sin(a) * 30, t: 0, a }); }
+    else if (h === 'monk') PV.fx.push({ k: 'ring', x: cx, y: gy - 6, t: 0, c: '#ffe070' });
+    else if (h === 'priest') for (let i = 0; i < 4; i++) { PV.fx.push({ k: 'page', x: cx + 6 * PV.dir, y: gy - 20, vx: PV.dir * (40 + i * 12), vy: -34 + i * 14, t: 0 }); }
+    else PV.fx.push({ k: 'thrust', x: cx, y: gy - 12, d: PV.dir, t: 0 });
+  }
+  // 环绕法器（后半圈先画，在人物身后）
+  const orb = (front) => {
+    const n = 2, R = 15;
+    for (let i = 0; i < n; i++) {
+      const a = ang + i * Math.PI, x = cx + Math.cos(a) * R, y = gy - 12 + Math.sin(a) * R * 0.5;
+      if ((Math.sin(a) > 0) !== front) continue;
+      if (h === 'tao') { c.save(); c.translate(x, y); c.rotate(a + Math.PI / 2); c.fillStyle = '#1a0e1e'; c.fillRect(-1, -6, 3, 12); c.fillStyle = '#c88a4a'; c.fillRect(0, -5, 1, 10); c.fillStyle = '#d22c28'; c.fillRect(0, 4, 1, 2); c.restore(); }
+      else if (h === 'monk') { c.save(); c.translate(x, y); c.rotate(a); c.fillStyle = '#1a0e1e'; c.fillRect(-7, -1, 14, 3); c.fillStyle = '#b07838'; c.fillRect(-6, 0, 12, 1); c.fillStyle = '#ffe070'; c.fillRect(5, -1, 2, 3); c.restore(); }
+      else if (h === 'priest') { c.fillStyle = '#1a0e1e'; c.fillRect(x - 2, y - 4, 5, 9); c.fillRect(x - 3, y - 2, 7, 4); c.fillStyle = '#ffffff'; c.fillRect(x - 1, y - 3, 3, 7); c.fillRect(x - 2, y - 1, 5, 2); }
+      else { const im = IMG.jfly; if (im && im.width) { c.save(); c.translate(Math.round(x), Math.round(y)); c.rotate(a + Math.PI / 2); c.drawImage(im, -7, -2); c.restore(); } }
+    }
+  };
+  orb(false);
+  // 人物
+  const key = h === 'monk' ? 'monk' : h === 'priest' ? 'priest' : h === 'jian' ? (PV.fx.some(f => f.k === 'thrust' && f.t < 0.3) ? 'jianT' : 'jian') : 'taoist';
+  const im = PV.dir < 0 ? flipped(key) : IMG[key];
+  if (im && im.width) {
+    const bob = casting ? 0 : Math.round(Math.abs(Math.sin(PV.t * 9)) * -1.5);
+    c.fillStyle = 'rgba(0,0,0,.4)'; c.beginPath(); c.ellipse(cx, gy + 1, 8, 2, 0, 0, 7); c.fill();
+    const wide = key === 'jianT', x0 = wide ? (PV.dir > 0 ? cx - 13 : cx - im.width + 13) : cx - im.width / 2;
+    c.drawImage(im, Math.round(x0), gy - im.height + 2 + bob);
+  }
+  orb(true);
+  // 技能特效
+  for (const f of PV.fx) {
+    f.t += dt;
+    if (f.k === 'fu') { f.x += f.vx * dt; f.y += f.vy * dt; c.globalAlpha = Math.max(0, 1 - f.t / 0.9); c.fillStyle = '#1a0e1e'; c.fillRect(f.x - 2, f.y - 3, 5, 7); c.fillStyle = '#f0c020'; c.fillRect(f.x - 1, f.y - 2, 3, 5); c.fillStyle = '#d22c28'; c.fillRect(f.x, f.y - 1, 1, 3); }
+    else if (f.k === 'ring') { const r = 4 + f.t * 60; c.globalAlpha = Math.max(0, 1 - f.t / 0.7); c.strokeStyle = f.c; c.lineWidth = 2; c.beginPath(); c.ellipse(f.x, f.y, r, r * 0.45, 0, 0, 7); c.stroke(); c.beginPath(); c.ellipse(f.x, f.y, r * 0.6, r * 0.27, 0, 0, 7); c.stroke(); }
+    else if (f.k === 'page') { f.x += f.vx * dt; f.y += f.vy * dt; f.vy += 30 * dt; c.globalAlpha = Math.max(0, 1 - f.t / 1); c.fillStyle = '#1a0e1e'; c.fillRect(f.x - 3, f.y - 3, 7, 6); c.fillStyle = '#fff6d8'; c.fillRect(f.x - 2, f.y - 2, 5, 4); c.fillStyle = '#c8b890'; c.fillRect(f.x, f.y - 2, 1, 4); }
+    else if (f.k === 'thrust') { const L = 10 + Math.min(1, f.t * 6) * 28; c.globalAlpha = Math.max(0, 1 - f.t / 0.45); c.strokeStyle = '#e8fbff'; c.lineWidth = 2; c.beginPath(); c.moveTo(f.x + f.d * 8, f.y); c.lineTo(f.x + f.d * L, f.y); c.stroke(); c.strokeStyle = '#7fe0f0'; c.lineWidth = 1; c.beginPath(); c.moveTo(f.x + f.d * 12, f.y - 3); c.lineTo(f.x + f.d * (L - 4), f.y - 3); c.moveTo(f.x + f.d * 12, f.y + 3); c.lineTo(f.x + f.d * (L - 4), f.y + 3); c.stroke(); }
+    c.globalAlpha = 1;
+  }
+  PV.fx = PV.fx.filter(f => f.t < 1.1);
+}
+requestAnimationFrame(pvDraw);
 function renderHeroes() {
   const un = monkUnlocked(); if (!un && HERO !== 'tao') HERO = 'tao';
   $('heroTao').className = 'hero' + (HERO === 'tao' ? ' on' : '');
