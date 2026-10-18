@@ -231,7 +231,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
       <span class="lbl" id="lvl">修为 一重</span><div class="bar" id="xpb"><i></i></div>
     </div>
     <div id="clock"><b id="shichen">子时</b><span class="lbl" id="till">距鸡鸣 5:00</span><span id="combo"></span></div>
-    <div id="stats">伏尸 <span id="kills">0</span><br><button id="mute" style="pointer-events:auto;margin-top:6px;font:14px var(--display);background:var(--ink);color:var(--text);border:2px solid var(--line);padding:2px 8px;cursor:pointer">声音 开</button></div>
+    <div id="stats">伏尸 <span id="kills">0</span><br><button id="mute" style="pointer-events:auto;margin-top:6px;font:14px var(--display);background:var(--ink);color:var(--text);border:2px solid var(--line);padding:2px 8px;cursor:pointer">声音 开</button><button id="pauseBtn" type="button" style="pointer-events:auto;margin-top:6px;margin-left:6px;font:14px var(--display);background:var(--ink);color:var(--text);border:2px solid var(--line);padding:2px 8px;cursor:pointer">暂停</button></div>
   </div>
   <button id="breath" hidden>屏息<small>空格</small></button><button id="sprint" hidden>神行<small>E</small></button>
   <button id="ult" hidden>雷<small>Q</small></button>
@@ -346,6 +346,34 @@ const riverAt = y => (MAP.river || [0])[Math.max(0, Math.min((MAP.river || [0]).
 const $ = id => document.getElementById(id);
 const cv = $('cv'), ctx = cv.getContext('2d');
 const low = document.createElement('canvas'), g = low.getContext('2d');
+
+// ---------- 清晰文字层：低分辨率画布上的字改画到一层按屏幕实际像素的画布上，放大后不糊 ----------
+function makeCrisp(src, disp) {
+  const ov = document.createElement('canvas'); ov.className = 'crispT'; ov.setAttribute('aria-hidden', 'true');
+  ov.style.cssText = 'position:absolute;pointer-events:none;image-rendering:auto;touch-action:none;inset:auto;';
+  disp.parentNode.insertBefore(ov, disp.nextSibling);
+  const oc = ov.getContext('2d'), q = [];
+  src.fillText = function (t, x, y) { q.push([String(t), x, y, src.font, src.fillStyle, src.textAlign, src.textBaseline, src.globalAlpha, src.getTransform()]); };
+  return {
+    flush() {
+      const W = disp.offsetWidth, H = disp.offsetHeight, dpr = Math.min(3, window.devicePixelRatio || 1);
+      if (!W || !H) { q.length = 0; return; }
+      const pw = Math.round(W * dpr), ph = Math.round(H * dpr);
+      if (ov.width !== pw || ov.height !== ph) { ov.width = pw; ov.height = ph; }
+      ov.style.left = disp.offsetLeft + disp.clientLeft + 'px'; ov.style.top = disp.offsetTop + disp.clientTop + 'px';
+      ov.style.width = disp.clientWidth + 'px'; ov.style.height = disp.clientHeight + 'px';
+      const kx = disp.clientWidth * dpr / src.canvas.width, ky = disp.clientHeight * dpr / src.canvas.height;
+      if (ov.width !== Math.round(disp.clientWidth * dpr)) { ov.width = Math.round(disp.clientWidth * dpr); ov.height = Math.round(disp.clientHeight * dpr); }
+      oc.setTransform(1, 0, 0, 1, 0, 0); oc.clearRect(0, 0, ov.width, ov.height);
+      for (const [t, x, y, font, fs, al, bl, ga, m] of q) {
+        oc.setTransform(kx * m.a, ky * m.b, kx * m.c, ky * m.d, kx * m.e, ky * m.f);
+        oc.font = font; oc.fillStyle = fs; oc.textAlign = al; oc.textBaseline = bl; oc.globalAlpha = ga; oc.fillText(t, x, y);
+      }
+      oc.globalAlpha = 1; q.length = 0;
+    },
+  };
+}
+const CRISP = makeCrisp(g, cv);
 let VW = 384, VH = 216, SCALE = 3;
 
 const IMG = {};
@@ -1626,7 +1654,7 @@ function drawPriestHud() {
 // 三条路：气宗（以气驭剑）联动 飞剑 / 玄门六脉剑 / 九宫八卦剑阵；请神（法天象地）联动 如有神助 / 三清纯阳功；
 // 剑宗（天遁剑法）联动 刺剑式 / 劈剑式 / 天罗步。剑宗三件「走着出剑快、站着出剑慢」。
 const WEAPONS_J = {
-  fei: { name: '飞剑', seal: '剑', w: 1, desc: ['两把飞剑绕身旋转；每转满一圈，一把飞出去刺最近的怪再飞回', '伤害提升', '三把', '绕得更远，飞出去的剑飞得更远', '四把，伤害大增；每圈飞出两把；斩杀回阳（每秒最多 2 点）'] },
+  fei: { name: '飞剑', seal: '剑', w: 1, desc: ['两把飞剑绕身旋转，碰到就斩', '伤害提升', '三把', '绕得更远', '四把，伤害大增；斩杀回阳（每秒最多 2 点）'] },
   liumai: { name: '玄门六脉剑', seal: '脉', w: 1, desc: ['每 1.5 秒指尖射出剑气追最近的怪。开二脉：少商（重剑、击退）、商阳（快剑）', '开三脉：中冲（剑气更宽，穿透三只）', '开四脉：关冲（打中定身 0.5 秒）', '开五脉：少冲（一次三连发）', '六脉全开：少泽（穿透，命中后折向下一只）；间隔缩短到 1.25 秒，六脉齐发'] },
   zhen: { name: '九宫八卦剑阵', seal: '阵', w: 1, desc: ['每 12 秒在脚下召唤剑阵，留在原地 6 秒：八个方位各插一剑，怪踏进哪一格，那一剑就刺出去；中宫剑每 1.5 秒震开四周', '剑阵更大', '剑阵持续 8 秒', '每 9 秒召唤一次', '收阵时八剑齐飞，射向八方'] },
   shen: { name: '如有神助', seal: '神', w: 1, desc: ['每 20 秒随机一位神明附身 5 秒：二郎神（伤害 +25%，哮天犬助战）、雷公（命中引小雷）、张天师（受伤 -30%，出手快 25%，清除减速）、李冰（移速 +20%，命中减速，身边涌浪推开怪）', '每 18 秒一次，附身 6 秒', '每 16 秒一次', '每 14 秒一次，附身 7 秒', '每 12 秒一次，附身 8 秒；两位神明同时附身'] },
@@ -1637,14 +1665,14 @@ const WEAPONS_J = {
 };
 const TAGS_J = { fei: ['伤害', '近身'], liumai: ['伤害', '穿透'], zhen: ['控制', '范围'], shen: ['被动'], chun: ['防御', '持续'], ci: ['伤害', '近身'], pi: ['伤害', '范围'], tianluo: ['被动'] };
 const ULTS_J = {
-  qi: { name: '以气驭剑', qn: '御剑飞虹', seal: '驭', desc: ['<b>气宗</b>。Q：<b>御剑飞虹</b>——6 把飞剑脱手，各自锁怪穿刺 8 秒，剑过留下青虹残影<br><span class="syn">加持：飞剑、玄门六脉剑、九宫八卦剑阵伤害 +30%；飞剑绕得更远，每圈多飞出一把</span>', '7 把飞剑，伤害提升', '8 把飞剑；收剑时八剑回身，震开四周'] },
+  qi: { name: '以气驭剑', qn: '御剑飞虹', seal: '驭', desc: ['<b>气宗</b>。Q：<b>御剑飞虹</b>——6 把飞剑脱手，各自锁怪穿刺 8 秒，剑过留下青虹残影<br><span class="syn">加持：飞剑、玄门六脉剑、九宫八卦剑阵伤害 +30%；飞剑绕得更远</span>', '7 把飞剑，伤害提升', '8 把飞剑；收剑时八剑回身，震开四周'] },
   fa: { name: '法天象地', qn: '法天象地', seal: '象', desc: ['<b>请神</b>。Q：身后升起神明法相 6 秒，每 1.5 秒一掌拍向怪最密处；脚下八卦阵：受到伤害 -50%，每秒回 1 点阳气<br><span class="syn">加持：如有神助、三清纯阳功效果 +40%；如有神助间隔 -20%</span>', '法相持续 7 秒，掌印更大', '法相持续 8 秒；最后一掌震地，全屏受伤'] },
   dun: { name: '天遁剑法', qn: '天遁连斩', seal: '遁', desc: ['<b>剑宗</b>。Q：<b>天遁连斩</b>——无敌，在附近 8 只怪之间瞬移连斩（先斩精英和尸王），最后回到原位<br><span class="syn">加持：刺剑式、劈剑式、天罗步伤害 +30%；天罗步残影更频繁，移速上限 +10%</span>', '连斩 9 只，伤害提升', '连斩 10 只；回到原位时一道剑气横扫四周'] },
 };
 const ULTSYN_J = {}, ULTSYN2_J = {};
 const J_LINK = { qi: ['fei', 'liumai', 'zhen'], fa: ['shen', 'chun'], dun: ['ci', 'pi', 'tianluo'] };
 const J_SRC = { fei: 'fei', throw: 'fei', liumai: 'liumai', zhen: 'zhen', zhenC: 'zhen', zhenF: 'zhen', chun: 'chun', ci: 'ci', pi: 'pi', piMark: 'pi', ghost: 'tianluo', dog: 'shen', bolt: 'shen', wave: 'shen' };
-const J_BAL = 0.92;   // 平衡：剑仙法器总伤害系数（自动玩家测试：三条路整体略强于一休，整体下调 8%）
+const J_BAL = 1.0;   // 平衡：剑仙法器总伤害系数（飞剑去掉每圈飞出后恢复为 1.0）
 const J_GODS = { er: { n: '二郎神', c: '#ffd860', g: '二' }, lei: { n: '雷公', c: '#c890ff', g: '雷' }, tian: { n: '张天师', c: '#7fe0d0', g: '天' }, li: { n: '李冰', c: '#7ac8ff', g: '冰' } };
 const jOn = () => S && S.hero === 'jian' && S.jx;
 const jUlt = k => S.ult && S.ult.k === k;
@@ -1778,12 +1806,6 @@ function updateJian() {
         if (e.dead || (e.hitCd['j' + i] || 0) > S.t) continue;
         if ((e.x - cx) ** 2 + (e.y - 10 - cy) ** 2 < (e.r + 7) ** 2) { e.hitCd['j' + i] = S.t + 0.45; jHit(e, dmg, 45, P.x, P.y, 'fei'); }
       }
-    }
-    if (R.revAcc >= 6.283) {
-      R.revAcc -= 6.283;
-      const k = (lv >= 5 ? 2 : 1) + (jUlt('qi') ? 1 : 0), tg = nearest(k, lv >= 4 ? 180 : 140);
-      for (let i = 0; i < tg.length; i++) { const a = S.swordAng + i * Math.PI; R.throws.push({ x: P.x + Math.cos(a) * Rr, y: P.y - 10 + Math.sin(a) * Rr * 0.75, tgt: tg[i], back: false, dmg: dmg * 1.15, hit: new Set(), life: 2.5, ang: 0 }); }
-      if (tg.length) sfx('throw');
     }
   }
   for (const t of R.throws) {
@@ -2351,7 +2373,7 @@ function newGame(diff = 'normal') {
   };
   wallsInit();
   GUARD.reset(); if (HERO === 'monk') GUARD.pickW();
-  if (HERO === 'jian') { S.p.hp = S.p.max = 90; setTimeout(() => { if (S && S.hero === 'jian' && S.state === 'play') { window.sayKey && window.sayKey('j_open'); S.texts.push({ x: S.p.x, y: S.p.y - 46, v: '御剑乘风来，唯我青城剑仙！', t: 3.2, c: '#bff6ff', big: true }); } }, 1500); }
+  if (HERO === 'jian') { S.p.hp = S.p.max = 90; setTimeout(() => { if (S && S.hero === 'jian' && S.state === 'play') { window.sayKey && window.sayKey('j_open'); rumor(['温：御剑乘风来，唯我青城剑仙！'], false); } }, 1500); }
   if (HERO === 'priest') setTimeout(() => { if (S && S.hero === 'priest' && S.state === 'play') rumor(['Father 柴：Lord, give me strength!'], false); }, 2500);   // 一休开局自带袈裟，防作弊的法器计数要把它算进去
   for (const k of ['title', 'end', 'levelup', 'pause', 'revive', 'brag', 'tip', 'tipArrow', 'mmPanel', 'evArrow']) $(k).hidden = true;
   $('mm').hidden = false; $('mmBtn').classList.remove('alert');
@@ -3049,11 +3071,12 @@ function togglePause() {
   else if (S.state === 'pause') { S.state = 'play'; $('pause').hidden = true; last = performance.now(); }
 }
 $('resumeBtn').onclick = togglePause;
+$('pauseBtn').onclick = () => { if (S && S.state === 'play') togglePause(); };
 addEventListener('blur', () => { if (S && S.state === 'play') togglePause(); });
 
 // ---------- 分享 / 复活 ----------
 const SITE = 'https://jiangshidaozhang.netlify.app/';
-const BUILD = '2610182333';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
+const BUILD = '2610182344';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
 const shareUrl = () => ((typeof WEB !== 'undefined' && WEB) ? location.origin + location.pathname : SITE) + '?v=' + BUILD;
 function shichenNow() { let n = '子时'; for (const [a, t] of SHI) if (S.t >= t) n = a; return n; }
 async function copyText(s) {
@@ -4575,7 +4598,7 @@ function draw() {
   if (S.dark > 0) { g.fillStyle = `rgba(0,0,0,${Math.min(0.55, S.dark * 0.4)})`; g.fillRect(0, 0, VW, VH); }
   if (S.flash > 0) { g.fillStyle = `rgba(230,245,255,${Math.min(0.15, S.flash * 3)})`; g.fillRect(0, 0, VW, VH); }
 
-  ctx.drawImage(low, 0, 0, cv.width, cv.height);
+  ctx.drawImage(low, 0, 0, cv.width, cv.height); CRISP.flush();
   if (joy.on) {
     ctx.globalAlpha = 0.35; ctx.strokeStyle = '#ece4ff'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(joy.ox * devicePixelRatio / devicePixelRatio, joy.oy, 40, 0, 7); ctx.stroke();
@@ -4858,8 +4881,9 @@ function updateMap() {
   el.hidden = false;
 }
 function drawMap(act) {
-  const cv2 = $('mmCv'), c = cv2.getContext('2d'), W = cv2.width, H = cv2.height, sx = W / WORLD.w, sy = H / WORLD.h;
-  c.imageSmoothingEnabled = false; c.clearRect(0, 0, W, H);
+  const cv2 = $('mmCv'), c = cv2.getContext('2d'), W = 132, H = 118, sx = W / WORLD.w, sy = H / WORLD.h, k = Math.min(3, Math.ceil(window.devicePixelRatio || 1));
+  if (cv2.width !== W * k) { cv2.width = W * k; cv2.height = H * k; }
+  c.setTransform(k, 0, 0, k, 0, 0); c.imageSmoothingEnabled = false; c.clearRect(0, 0, W, H);
   if (IMG[BGK] && IMG[BGK].complete) { c.globalAlpha = 0.5; c.drawImage(IMG[BGK], 0, 0, WORLD.w, WORLD.h, 0, 0, W, H); c.globalAlpha = 1; }
   c.fillStyle = 'rgba(12,6,22,.12)'; c.fillRect(0, 0, W, H);
   const C = S.cam; c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1; c.strokeRect(Math.round(C.x * sx) + .5, Math.round(C.y * sy) + .5, Math.round(VW * sx), Math.round(VH * sy));
@@ -4897,7 +4921,7 @@ function drawIdle(t) {
   g.fillStyle = '#140c22'; g.fillRect(0, 0, VW, VH);
   if (IMG.bg.complete) g.drawImage(IMG.bg, -Math.round(260 + Math.sin(t / 4000) * 60), -200);
   g.fillStyle = 'rgba(8,4,16,.45)'; g.fillRect(0, 0, VW, VH);
-  ctx.drawImage(low, 0, 0, VW * SCALE, VH * SCALE);
+  ctx.drawImage(low, 0, 0, VW * SCALE, VH * SCALE); CRISP.flush();
 }
 
 function frame(now) {
@@ -5123,7 +5147,7 @@ renderHeroes();
 // ---------- 序章 ----------
 let ST = null;
 const playStory = (() => {
-const SC = $('sc'), sx = SC.getContext('2d'); sx.imageSmoothingEnabled = false;
+const SC = $('sc'), sx = SC.getContext('2d'); sx.imageSmoothingEnabled = false; const SCRISP = makeCrisp(sx, SC);
 const SW = 240, SH = 150;
 const SL = (who, text, vo) => ({ who, text, vo });
 const rnd = (a) => { const v = Math.sin(a * 127.1) * 43758.5453; return v - Math.floor(v); };
@@ -5630,6 +5654,7 @@ function storyFrame(now) {
   sx.setTransform(1, 0, 0, 1, 0, 0);
   SCENES[ST.i].draw(ST.l, ST.lt);
   if (ST.fade > 0) { sx.fillStyle = `rgba(0,0,0,${ST.fade})`; sx.fillRect(0, 0, SW, SH); ST.fade -= dt * 2.5; }
+  SCRISP.flush();
   requestAnimationFrame(storyFrame);
 }
 function storyNext() {
