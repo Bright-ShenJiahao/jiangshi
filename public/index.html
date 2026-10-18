@@ -1659,9 +1659,9 @@ const WEAPONS_J = {
   zhen: { name: '九宫八卦剑阵', seal: '阵', w: 1, desc: ['每 12 秒在脚下召唤剑阵，留在原地 6 秒：八个方位各插一剑，怪踏进哪一格，那一剑就刺出去；中宫剑每 1.5 秒震开四周', '剑阵更大', '剑阵持续 8 秒', '每 9 秒召唤一次', '收阵时八剑齐飞，射向八方'] },
   shen: { name: '如有神助', seal: '神', w: 1, desc: ['每 20 秒随机一位神明附身 5 秒：二郎神（伤害 +25%，哮天犬助战）、雷公（命中引小雷）、张天师（受伤 -30%，出手快 25%，清除减速）、李冰（移速 +20%，命中减速，身边涌浪推开怪）', '每 18 秒一次，附身 6 秒', '每 16 秒一次', '每 14 秒一次，附身 7 秒', '每 12 秒一次，附身 8 秒；两位神明同时附身'] },
   chun: { name: '三清纯阳功', seal: '阳', w: 1, desc: ['身周一圈纯阳光环：灼烧贴身的怪（鬼魂双倍），每秒回 0.3 点阳气', '光环更大，每秒回 0.4 点', '灼烧伤害提升，每秒回 0.5 点', '光环更大，每秒回 0.6 点', '每秒回 0.8 点；光环里烧死的怪再回 1 点（每秒最多 2 点）'] },
-  ci: { name: '刺剑式', seal: '刺', w: 1, desc: ['朝移动方向刺出巨剑，近距离穿刺。走着出剑快，站着出剑慢（朝最近的怪）', '伤害提升', '一次连刺两剑', '剑更长，剑尖带出剑气', '三连刺，最后一刺伤害翻倍'] },
-  pi: { name: '劈剑式', seal: '劈', w: 1, desc: ['朝移动方向的两侧各劈一剑，击退。走着出剑快，站着出剑慢', '劈得更宽', '伤害提升', '劈完留下剑痕，片刻后再打一次', '前后左右四面齐劈'] },
-  tianluo: { name: '天罗步', seal: '步', w: 1, desc: ['一直走且不受伤，每秒移速 +2%（最多 +8%），受伤清零；走动时身后留下刺或劈的剑招残影，片刻后自己出剑', '移速最多 +12%', '残影更频繁', '移速最多 +16%，残影伤害提升', '一步杀十人：移速最多 +20%，残影出剑两次'] },
+  ci: { name: '刺剑式', seal: '刺', w: 1, desc: ['朝移动方向刺出巨剑，近距离穿刺。走着出剑快，站着出剑慢（朝最近的怪）。刺、劈命中少量吸血，偶尔打断怪的进攻', '伤害提升', '一次连刺两剑', '剑更长，剑尖带出剑气', '三连刺，最后一刺伤害翻倍'] },
+  pi: { name: '劈剑式', seal: '劈', w: 1, desc: ['朝移动方向的两侧各劈一剑，把怪远远击退。走着出剑快，站着出剑慢；命中少量吸血，偶尔打断怪的进攻', '劈得更宽', '伤害提升', '劈完留下剑痕，片刻后再打一次', '前后左右四面齐劈'] },
+  tianluo: { name: '天罗步', seal: '步', w: 1, desc: ['一直走且不受伤，每秒移速 +2%（最多 +8%），叠满时 6% 闪避；受伤清零。走动时身后留下剑招残影，片刻后连出两剑', '移速最多 +12%，闪避最多 8%', '残影更频繁，连出三剑；闪避最多 10%', '移速最多 +16%，残影伤害提升；闪避最多 12%', '一步杀十人：移速最多 +20%，残影连出四剑；闪避最多 15%；背上的剑落到脚下，御剑飞行'] },
 };
 const TAGS_J = { fei: ['伤害', '近身'], liumai: ['伤害', '穿透'], zhen: ['控制', '范围'], shen: ['被动'], chun: ['防御', '持续'], ci: ['伤害', '近身'], pi: ['伤害', '范围'], tianluo: ['被动'] };
 const ULTS_J = {
@@ -1672,6 +1672,7 @@ const ULTS_J = {
 const ULTSYN_J = {}, ULTSYN2_J = {};
 const J_LINK = { qi: ['fei', 'liumai', 'zhen'], fa: ['shen', 'chun'], dun: ['ci', 'pi', 'tianluo'] };
 const J_SRC = { fei: 'fei', throw: 'fei', liumai: 'liumai', zhen: 'zhen', zhenC: 'zhen', zhenF: 'zhen', chun: 'chun', ci: 'ci', pi: 'pi', piMark: 'pi', ghost: 'tianluo', dog: 'shen', bolt: 'shen', wave: 'shen' };
+const J_MELEE = { ci: 1, pi: 1, piMark: 1, ghost: 1 };
 const J_BAL = 1.0;   // 平衡：剑仙法器总伤害系数（飞剑去掉每圈飞出后恢复为 1.0）
 const J_GODS = { er: { n: '二郎神', c: '#ffd860', g: '二' }, lei: { n: '雷公', c: '#c890ff', g: '雷' }, tian: { n: '张天师', c: '#7fe0d0', g: '天' }, li: { n: '李冰', c: '#7ac8ff', g: '冰' } };
 const jOn = () => S && S.hero === 'jian' && S.jx;
@@ -1707,6 +1708,14 @@ function jHit(e, dmg, kb, fx, fy, src, tag) {   // 剑仙法器统一走这里�
   if (S.ult && J_LINK[S.ult.k] && J_LINK[S.ult.k].includes(w)) dmg *= S.ult.k === 'fa' ? 1.4 : 1.3;
   if (jGod('er')) dmg *= 1 + 0.25 * jFa();
   const R = S.jx, h0 = e.hp; R.src = src; hurt(e, dmg, kb, fx, fy, tag); R.src = null;
+  if (J_MELEE[src]) {   // 剑宗近身：3% 伤害转成阳气（每秒最多 1 点）；10% 几率打断（定身 0.4 秒，大怪只减速）
+    const dealt = Math.max(0, h0 - Math.max(0, e.hp));
+    if (S.t - (R.lsT || -9) >= 1) { R.lsT = S.t; R.lsN = 0; }
+    R.lsAcc = (R.lsAcc || 0) + dealt * 0.03;
+    if (R.lsAcc >= 1 && R.lsN < 1 && S.p.hp < S.p.max) { R.lsAcc -= 1; R.lsN++; S.p.hp = Math.min(S.p.max, S.p.hp + 1); if (Math.random() < 0.3) S.texts.push({ x: S.p.x + rnd(-6, 6), y: S.p.y - 30, v: '+1', t: 0.5, c: '#7ef0a0' }); }
+    R.lsAcc = Math.min(R.lsAcc, 1.5);
+    if (!e.dead && Math.random() < 0.1 && mStun(e, 0.4, true)) S.texts.push({ x: e.x, y: e.y - 26, v: '断', t: 0.5, c: '#bff6ff' });
+  }
   if (e.dead) return h0;
   if (jGod('li') && !mBig(e)) e.slow = Math.max(e.slow || 0, S.t + 0.8);
   if (jGod('lei') && src !== 'bolt' && S.t > (R.boltT || 0) && Math.random() < 0.2) {
@@ -1719,7 +1728,13 @@ function jianKill(e) {
   if (W.fei >= 5 && (src === 'fei' || src === 'throw')) jHealCap(1);
   if (W.chun >= 5 && src === 'chun') jHealCap(1);
 }
-function jianHurt() { S.jx.stack = 0; }   // 受伤：天罗步移速清零
+function jianHurt() { S.jx.stack = 0; }
+function jDodge() {   // 天罗步闪避：叠满时 6/8/10/12/15%，层数越少越低；闪开不清移速
+  const lv = S.w.tianluo || 0, cap = jStackCap(); if (!lv || !cap) return false;
+  if (Math.random() >= [0, 0.06, 0.08, 0.10, 0.12, 0.15][lv] * S.jx.stack / cap) return false;
+  const P = S.p; P.inv = Math.max(P.inv, 0.3); S.texts.push({ x: P.x, y: P.y - 34, v: '闪', t: 0.6, c: '#bff6ff', big: true });
+  S.afterimgs.push({ x: P.x - P.face * 6, y: P.y, face: P.face, t: 0 }); return true;
+}   // 受伤：天罗步移速清零
 function jPose(k, dir) { const R = S.jx; R.pose = { k, t: k === 'T' ? 0.16 : 0.2, face: Math.cos(dir) >= 0 ? 1 : -1 }; }
 const JIAN_AX = 13;   // 出招图里身体中心所在列
 const jFly = () => (S.w.tianluo || 0) >= 5;   // 天罗步五重：背上的剑落到脚下，御剑飞行
@@ -1775,7 +1790,7 @@ function jStrike(kind, x, y, dir, mul, src) {   // 一次刺 / 劈（本体和�
   } else {
     const lv = W.pi || 1, Rr = lv >= 2 ? (lv >= 5 ? 58 : 54) : 46, dmg = [0, 30, 30, 38, 38, 42][lv] * mul;
     const dirs = lv >= 5 ? [dir + Math.PI / 2, dir - Math.PI / 2, dir, dir + Math.PI] : [dir + Math.PI / 2, dir - Math.PI / 2];
-    for (const a of dirs) { jArc(x, y, a, Rr, 1.05, dmg, 55, src); R.fx.push({ k: 'cleave', x, y: y - 8, dir: a, Rr, t: 0, ghost: src === 'ghost' }); }
+    for (const a of dirs) { jArc(x, y, a, Rr, 1.05, dmg, 90, src); R.fx.push({ k: 'cleave', x, y: y - 8, dir: a, Rr, t: 0, ghost: src === 'ghost' }); }
     if (lv >= 4 && src !== 'ghost') R.marks.push({ x, y, dirs, Rr, dmg: dmg * 0.5, t: 0 });
   }
 }
@@ -1925,14 +1940,15 @@ function updateJian() {
     if (R.ghostT <= 0) {
       R.ghostT = [0, 1, 1, 0.7, 0.7, 0.5][lv] * (jUlt('dun') ? 0.7 : 1);
       R.hk++; const kind = W.ci && W.pi ? (R.hk % 2 ? 'T' : 'C') : W.pi ? 'C' : 'T';
-      R.ghosts.push({ x: P.x, y: P.y, dir: P.dir ?? 0, kind, t: 0, n: lv >= 5 ? 2 : 1, face: P.face, mul: 0.75 * (lv >= 4 ? 1.3 : 1) * ((kind === 'T' ? W.ci : W.pi) ? 1 : 0.75) });
+      const n = [0, 2, 2, 3, 3, 4][lv]; R.ghosts.push({ x: P.x, y: P.y, dir: P.dir ?? 0, kind, t: 0, n, life: 0.5 + n * 0.35 + 0.45, face: P.face, mul: 0.5 * (lv >= 4 ? 1.3 : 1) * ((kind === 'T' ? W.ci : W.pi) ? 1 : 0.75) });
+      if (R.ghosts.length > 3) R.ghosts.shift();
     }
   }
   for (const gh of R.ghosts) {
     gh.t += DT;
-    if (gh.t >= 0.5 && gh.n > 0 && gh.t >= 0.5 + (gh.done || 0) * 0.3) { gh.done = (gh.done || 0) + 1; gh.n--; const t = S.en.filter(e => !e.dead && (e.x - gh.x) ** 2 + (e.y - gh.y) ** 2 < 70 * 70).sort((a, b) => dist2(a, gh) - dist2(b, gh))[0]; if (t) gh.dir = Math.atan2(t.y - gh.y, t.x - gh.x); gh.face = Math.cos(gh.dir) >= 0 ? 1 : -1; jStrike(gh.kind, gh.x, gh.y, gh.dir, gh.mul, 'ghost'); }
+    if (gh.t >= 0.5 && gh.n > 0 && gh.t >= 0.5 + (gh.done || 0) * 0.35) { gh.done = (gh.done || 0) + 1; gh.n--; const t = S.en.filter(e => !e.dead && (e.x - gh.x) ** 2 + (e.y - gh.y) ** 2 < 70 * 70).sort((a, b) => dist2(a, gh) - dist2(b, gh))[0]; if (t) gh.dir = Math.atan2(t.y - gh.y, t.x - gh.x); gh.face = Math.cos(gh.dir) >= 0 ? 1 : -1; jStrike(gh.kind, gh.x, gh.y, gh.dir, gh.mul, 'ghost'); }
   }
-  R.ghosts = R.ghosts.filter(gh => gh.t < 1.4);
+  R.ghosts = R.ghosts.filter(gh => gh.t < gh.life);
   // ---------- 大招里的飞剑（御剑飞虹 + 剑阵收阵飞剑） ----------
   for (const f of R.fly) {
     f.life -= DT;
@@ -2057,7 +2073,7 @@ function drawJianList(list) {
   for (const gh of R.ghosts) list.push({ y: gh.y - 1, f: () => {   // 剑招残影
     const key = gh.done ? 'jian' + gh.kind : (jFly() ? 'jianF' : 'jian'), im = gh.face < 0 ? flipped(key) : IMG[key]; if (!im || !im.width) return;
     const x = gh.face > 0 ? gh.x - JIAN_AX : gh.x - im.width + JIAN_AX;
-    g.globalAlpha = 0.45 * Math.min(1, (1.4 - gh.t) / 0.5); g.drawImage(im, Math.round(x), Math.round(gh.y - im.height + 3)); g.globalAlpha = 1;
+    g.globalAlpha = 0.45 * Math.max(0, Math.min(1, (gh.life - gh.t) / 0.45)); g.drawImage(im, Math.round(x), Math.round(gh.y - im.height + 3)); g.globalAlpha = 1;
   } });
   const X = R.xiang;
   if (X) list.push({ y: P.y - 2, f: () => {   // 法相：剑仙身后一尊三倍大的虚影
@@ -2373,7 +2389,7 @@ function newGame(diff = 'normal') {
   };
   wallsInit();
   GUARD.reset(); if (HERO === 'monk') GUARD.pickW();
-  if (HERO === 'jian') { S.p.hp = S.p.max = 90; setTimeout(() => { if (S && S.hero === 'jian' && S.state === 'play') { window.sayKey && window.sayKey('j_open'); rumor(['温：御剑乘风来，唯我青城剑仙！'], false); } }, 1500); }
+  if (HERO === 'jian') { setTimeout(() => { if (S && S.hero === 'jian' && S.state === 'play') { window.sayKey && window.sayKey('j_open'); rumor(['温：御剑乘风来，唯我青城剑仙！'], false); } }, 1500); }
   if (HERO === 'priest') setTimeout(() => { if (S && S.hero === 'priest' && S.state === 'play') rumor(['Father 柴：Lord, give me strength!'], false); }, 2500);   // 一休开局自带袈裟，防作弊的法器计数要把它算进去
   for (const k of ['title', 'end', 'levelup', 'pause', 'revive', 'brag', 'tip', 'tipArrow', 'mmPanel', 'evArrow']) $(k).hidden = true;
   $('mm').hidden = false; $('mmBtn').classList.remove('alert');
@@ -2460,6 +2476,7 @@ function shieldBurst() {
 const shieldCap = () => { const lv = S.w.mirror || 1; return lv >= 5 ? 55 : lv >= 2 ? 40 : 30; };
 function hurtPlayer(dmg) {
   if (tryDodge()) return false;
+  if (S.jx && jDodge()) return false;
   if (S.hero === 'priest' && S.pr) { if (S.w.aegis && prBlock(dmg)) return false; if (S.pr.guardT > S.t) dmg = Math.max(1, Math.round(dmg * 0.5)); }
   if (S.shield > 0) { const cap = shieldCap(); shieldBurst(); dmg -= cap; if (dmg <= 0) return false; }
   if (S.hero === 'monk' && S.w.jia) dmg = Math.max(1, Math.round(dmg * (1 - [0, 0.15, 0.2, 0.2, 0.25, 0.25][S.w.jia])));
@@ -3076,7 +3093,7 @@ addEventListener('blur', () => { if (S && S.state === 'play') togglePause(); });
 
 // ---------- 分享 / 复活 ----------
 const SITE = 'https://jiangshidaozhang.netlify.app/';
-const BUILD = '2610182344';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
+const BUILD = '2610190008';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
 const shareUrl = () => ((typeof WEB !== 'undefined' && WEB) ? location.origin + location.pathname : SITE) + '?v=' + BUILD;
 function shichenNow() { let n = '子时'; for (const [a, t] of SHI) if (S.t >= t) n = a; return n; }
 async function copyText(s) {
