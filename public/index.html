@@ -71,8 +71,12 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 .hero { background: transparent; border: 2px solid var(--line); color: var(--text); font: 16px var(--display); padding: 6px 10px; cursor: pointer; display: grid; gap: 2px; min-width: 0; flex: 1 1 0; max-width: 132px; white-space: nowrap; }
 @media (max-width: 420px) { .heroes { gap: 6px; } .hero { font-size: 14px; padding: 5px 4px; } .hero small { font-size: 10px; } }
 .hero small { font-size: 11px; color: var(--muted); }
-.hicon { display: inline-block; width: 1.25em; text-align: center; font-style: normal; }
-.hicon svg { width: 0.65em; height: 1.3em; vertical-align: -0.24em; }
+.hicon { display: inline-block; width: 1.25em; height: 1em; line-height: 1em; text-align: center; font-style: normal; vertical-align: -0.12em; overflow: visible; }
+.hicon svg { width: 0.65em; height: 1.3em; vertical-align: top; margin-top: -0.15em; }
+.hero b { display: flex; align-items: center; justify-content: center; height: 1.4em; line-height: 1.4em; overflow: visible; }
+.hero b .hicon { flex: none; display: inline-flex; align-items: center; justify-content: center; height: 1.4em; vertical-align: 0; }
+.hero b .hicon svg { margin-top: 0; }
+.hero small { display: block; height: 1.4em; line-height: 1.4em; }
 .hero.on { border-color: var(--talisman); color: var(--talisman); background: rgba(240,192,32,.08); }
 .hero.lock { opacity: .5; }
 .chaps { min-width: 0; max-width: 100%; display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 6px; margin: 4px 0 2px; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
@@ -3043,7 +3047,7 @@ addEventListener('blur', () => { if (S && S.state === 'play') togglePause(); });
 
 // ---------- 分享 / 复活 ----------
 const SITE = 'https://jiangshidaozhang.netlify.app/';
-const BUILD = '2610182310';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
+const BUILD = '2610182314';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
 const shareUrl = () => ((typeof WEB !== 'undefined' && WEB) ? location.origin + location.pathname : SITE) + '?v=' + BUILD;
 function shichenNow() { let n = '子时'; for (const [a, t] of SHI) if (S.t >= t) n = a; return n; }
 async function copyText(s) {
