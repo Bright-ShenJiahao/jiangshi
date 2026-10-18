@@ -30,6 +30,11 @@ for k, f in (('wangpo', lambda: G['wangpo']()), ('wangpoG', lambda: G['wangpo_gh
              ('feiZ', lambda: G['fei_zombie']()), ('youZ', lambda: G['you_zombie']()), ('fuZ', lambda: G['fu_zombie']()), ('bugu', lambda: G['bugu']()),
              ('xuankui', lambda: G['xuankui']()), ('yangfy', lambda: G['yangfy']()), ('xieshen', lambda: G['xieshen']())):
     sprites[k] = f().img()
+for k, f in (('wencai', 'wencai'), ('xiaofeng', 'xiaofeng'), ('royalZ', 'royal_zombie'), ('ronin', 'ronin'), ('jtZ', 'jiangtou_corpse'), ('tulong', 'tulong'),
+             ('oldPriestV', 'old_priest_vampire'), ('wuPriest', 'wu_priest'), ('waxZ', 'wax_corpse'), ('qiannian', 'qiannian'), ('shisj', 'shi_shaojian'), ('yaoshi', 'yaoshi'), ('shijian', 'shijian')):
+    sprites[k] = G[f]().img()
+sprites['tongZ'] = G['recolor'](sprites['xiaozun'], lambda r, g, b: (int(r * 0.6 + 40), int(g * 0.8 + 30), int(b * 0.6 + 50)))   # 僵尸童：小尊的样子，脸发青
+sprites['madDog'] = G['recolor'](sprites['dog'], lambda r, g, b: (min(255, int(r * 1.1 + 20)), int(g * 0.6), int(b * 0.6)))   # 疯狗：泛红
 sprites['capP'] = G['possessed'](sprites['cap']); sprites['soldP'] = G['possessed'](sprites['sold'])
 bg, objsprites, data = map_defense.build()
 sprites.update(objsprites)
@@ -70,7 +75,7 @@ rep('<div id="banner" hidden></div>',
 rep('  <div class="modal" id="pause" hidden>', '  <div class="modal" id="shop" hidden><div class="card"><h2>杂货铺</h2><p style="margin:0">掌柜：「道长要什么，任老爷说了……钱还是得给。」<br>身上铜钱 <b id="shopGold" style="color:var(--talisman);font-weight:400">0</b> 文</p>'
     '<div class="opts" id="shopItems"></div><button class="btn" id="shopClose" type="button">走了（B）</button></div></div>\n  <div class="modal" id="pause" hidden>')
 rep('<h1>暂时停止呼吸</h1>\n      <p>荒坟夜里尸变了。撑到鸡鸣天亮，便算你赢。</p>',
-    '<h1 class="lmT">守卫任家镇的<br>中心的龙脉</h1>\n      <p>鬼门关开，三路阴兵直扑任家镇。<br>守住镇中心的龙脉，撑过三十波。</p>')
+    '<h1 class="lmT">守卫任家镇的<br>中心的龙脉</h1>\n      <p>鬼门关开，三路阴兵直扑任家镇。<br>守住镇中心的龙脉，撑过二十波。</p>')
 rep('''        <span>屏息</span><span>空格：僵尸闻不到人气，会乱跳</span>''',
     '''        <span>守城</span><span>怪沿三条路去龙脉，靠近你才会扑你</span>
         <span>商铺</span><span>回到镇里（牌坊以内）点「铺」或按 B</span>
@@ -108,7 +113,9 @@ h1.lmT { font-size: clamp(30px, 8.6vw, 54px); line-height: 1.15; letter-spacing:
 
 # ---------------- 逻辑补丁（原游戏的函数里插几处钩子） ----------------
 rep('  if (S.en.length < 200) {', '  if (false) {   // 防守模式：不在玩家身边刷怪，改由 updateEvents 按波次从鬼门关刷')
-rep('  if (e.jsT > S.t) dmg *= 1.3;', '  if (e.jsT > S.t) dmg *= 1.3;\n  if (e.dr != null || e.ice) dmg *= dDR(e, tag);')
+rep('const k = f.t / 0.45, r = f.R * (f.dark ? 1 - 0.75 * k : 0.25 + 0.75 * k);', 'const k = f.t / 0.45, r = Math.max(0, f.R * (f.dark ? 1 - 0.75 * k : 0.25 + 0.75 * k));')
+rep('const k = f.t / 0.35, r = f.r + (f.R - f.r) * k;', 'const k = f.t / 0.35, r = Math.max(0, f.r + (f.R - f.r) * k);')
+rep('  if (e.jsT > S.t) dmg *= 1.3;', '  if (e.jsT > S.t) dmg *= 1.3;\n  dmg *= dDR(e, tag);')
 rep("if (kb) { const dx = e.x - fromX, dy = e.y - fromY, l = Math.hypot(dx, dy) || 1, k = e.type === 'king'", "if (kb) { const dx = e.x - fromX, dy = e.y - fromY, l = Math.hypot(dx, dy) || 1, k = e.kbk != null ? e.kbk : e.type === 'king'")
 rep('  const ml = Math.hypot(mx, my);', '  if (dCharm()) { mx = -mx; my = -my; }\n  const ml = Math.hypot(mx, my);')
 rep('    if (lost) { tx = e.wx; ty = e.wy; }', '    if (lost) { tx = e.wx; ty = e.wy; }\n    { const dT = dTarget(e); if (dT) { tx = dT[0]; ty = dT[1]; } if (e.gone) continue; }')
@@ -122,7 +129,7 @@ rep('function drawEventSprites(list) {', 'function drawEventSprites0(list) {')
 rep("location.origin + location.pathname : SITE) + '?v=' + BUILD;", "location.origin + location.pathname : SITE + 'longmai.html') + '?v=' + BUILD;")
 html = html.replace("'暂时停止呼吸.png'", "'守卫龙脉.png'").replace("title: '暂时停止呼吸'", "title: '守卫龙脉'").replace('download="暂时停止呼吸.png"', 'download="守卫龙脉.png"')
 # 防守模式的脚本接在最后
-rep('\n</script>', '\n' + open('defense.js', encoding='utf-8').read() + '\n</script>')
+rep('\n</script>', '\n' + open('defense_data.js', encoding='utf-8').read() + '\n' + open('defense.js', encoding='utf-8').read() + '\n</script>')
 
 html = html.replace('/*ASSETS*/{}', json.dumps(assets)).replace('/*MAP*/{}', json.dumps(data, separators=(',', ':'))).replace('/*VO*/{}', json.dumps(vo)).replace('/*BUILD*/', time.strftime('%y%m%d%H%M'))
 open('longmai.html', 'w', encoding='utf-8').write(html)
@@ -144,7 +151,7 @@ if os.path.isdir(pub):
         d.text((300 + dx, 70 + dx), '守卫龙脉', font=f, fill=col, anchor='mm')
     cov.convert('RGB').save(os.path.join(pub, 'longmai.png'), optimize=True)
     he = html.index('</style>') + len('</style>')
-    meta = ('<meta name="description" content="鬼门关开，三路阴兵直扑任家镇。守住镇中心的龙脉，撑过三十波。像素风僵尸防守小游戏。">\n'
+    meta = ('<meta name="description" content="鬼门关开，三路阴兵直扑任家镇。守住镇中心的龙脉，撑过二十波。像素风僵尸防守小游戏。">\n'
             f'<meta property="og:type" content="website">\n<meta property="og:title" content="{TITLE}">\n'
             '<meta property="og:description" content="鬼门关开，三路阴兵直扑任家镇，你能守几波？">\n'
             f'<meta property="og:url" content="{URL}">\n<meta property="og:image" content="{SITE}longmai.png">\n'

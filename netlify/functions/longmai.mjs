@@ -4,7 +4,7 @@ import { getStore } from '@netlify/blobs';
 const KEY = 'longmai';
 const KEEP = 100;
 const CHEAT_CAP = 20;
-const WAVES = 30;
+const WAVES = 20;
 
 const clean = (v) => String(v ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 10);
 const int = (v, lo, hi) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo; };

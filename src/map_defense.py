@@ -353,7 +353,7 @@ def build(seed=7):
     house(36, 1396, 120, 44, '杂货铺', True, (240, 200, 90))
     house(186, 1430, 92, 38, '祠堂', True, (220, 60, 50))
     house(690, 1430, 90, 38, '米铺')
-    house(806, 1396, 110, 44)
+    house(806, 1396, 110, 44, '腊味坊', True, (200, 70, 50))   # 第11波：血蜡尸从这里冲出来
     d.ellipse([40, 1250, 64, 1264], fill=K); d.ellipse([42, 1251, 62, 1262], fill=(110, 108, 124)); d.ellipse([46, 1253, 58, 1260], fill=(20, 30, 50)); block(40, 1252, 64, 1264)   # 水井
     for (x, y) in ((440, 1262), (520, 1262), (420, 1440), (540, 1440)):
         d.line([(x, y), (x, y - 22)], fill=K, width=2); d.rectangle([x - 4, y - 30, x + 4, y - 20], fill=K); d.rectangle([x - 3, y - 29, x + 3, y - 21], fill=(220, 60, 50)); block(x - 2, y - 3, x + 2, y + 1)
@@ -400,7 +400,7 @@ def build(seed=7):
                 lanes=LANES, portals=PORTALS, core=list(CORE), gate=[480, WALL[1]], wall=list(WALL), riverY=RIVER_Y,
                 fields={k: dict(name=v['name'], c=list(v['c']), home=list(v['home'])) for k, v in FIELDS.items()},
                 townY=WALL[1] + 4, shop=[96, 1466], guards=[[452, 1226], [512, 1226], [184, 1226], [776, 1226]], guardsX=[[110, 1300], [850, 1300], [430, 1420], [530, 1420]],
-                simu=[480, 1408], watch=[540, 1240], gates=[(a + b) // 2 for a, b in GATES])
+                simu=[480, 1408], lafang=[861, 1468], watch=[540, 1240], gates=[(a + b) // 2 for a, b in GATES])
     return im, sprites, data
 
 

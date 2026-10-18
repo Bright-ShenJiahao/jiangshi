@@ -24,7 +24,10 @@ python3 gen_assets.py
 | 文件 | 作用 |
 |---|---|
 | `map_defense.py` | 防守地图：鬼门关三路 → 河与三座桥 → 四个野外点 → 任家镇三道城门 → 龙脉 |
-| `defense.js` | 防守玩法：30 波、龙脉、守卫、杂货铺、野外 BOSS、重伤回镇、龙脉功德簿 |
+| `defense_data.js` | **数据表**：每种小怪、精英、BOSS、每一波（剧情台词、出什么怪、什么事件）、野外 BOSS、杂货铺、数值。改怪和剧情只改这个 |
+| `defense.js` | 防守玩法（怎么用数据表）：20 波、龙脉、守卫、杂货铺、剧情事件、BOSS 招式、重伤回镇、龙脉功德簿 |
+| `defense_sprites.py` | 防守版新增的像素图（王婆、九菊女教主、血蜡尸、千年僵尸王、石坚……） |
+| `DEFENSE.md` | **修改指南**：每个怪、每个 BOSS、每段剧情在哪一行、各字段什么意思 |
 | `gen_defense.py` | 用 `game_template.html` + 上面两个文件打包成 `src/longmai.html` 和 `public/longmai.html` |
 
 ```bash
