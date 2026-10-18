@@ -44,7 +44,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-renderin
 #pearlBox .btn { margin: 4px; }
 #breath small { display: block; font-size: 11px; }
 .modal { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(12, 6, 22, .72); padding: 16px max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px)); }
-.card { background: var(--panel); border: 3px solid var(--ink); box-shadow: 0 0 0 2px var(--line), 6px 6px 0 var(--ink); padding: 22px 22px 20px; max-width: 560px; width: 100%; text-align: center; }
+.card { background: var(--panel); border: 3px solid var(--ink); box-shadow: 0 0 0 2px var(--line), 6px 6px 0 var(--ink); padding: 22px 22px 20px; max-width: 560px; width: 100%; min-width: 0; box-sizing: border-box; text-align: center; }
 h1 { font-size: clamp(34px, 9.5vw, 64px); font-weight: 400; color: var(--paper); letter-spacing: .14em; margin: 0; text-shadow: 4px 4px 0 var(--seal), 7px 7px 0 var(--ink); }
 h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; letter-spacing: .1em; text-shadow: 3px 3px 0 var(--ink); }
 .card p { color: var(--muted); font-size: 16px; line-height: 1.6; margin: 10px 0; }
@@ -60,13 +60,15 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 .hero small { font-size: 11px; color: var(--muted); }
 .hero.on { border-color: var(--talisman); color: var(--talisman); background: rgba(240,192,32,.08); }
 .hero.lock { opacity: .5; }
-.chaps { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 6px; margin: 4px 0 2px; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
+.chaps { min-width: 0; max-width: 100%; display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 6px; margin: 4px 0 2px; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
 .chap { flex: 0 0 112px; scroll-snap-align: center; background: transparent; border: 2px solid var(--line); color: var(--text); font: 14px var(--display); padding: 0; cursor: pointer; display: grid; text-align: center; position: relative; white-space: nowrap; }
 .chap img { width: 100%; height: 66px; object-fit: cover; image-rendering: pixelated; display: block; border-bottom: 2px solid var(--line); }
 .chap b { padding: 3px 2px 0; }
 .chap small { font-size: 10px; color: var(--muted); padding: 0 2px 4px; }
 .chap.on { border-color: var(--talisman); color: var(--talisman); background: rgba(240,192,32,.08); }
-.chap.lock { filter: grayscale(.9) brightness(.65); }
+.chap.lock { filter: grayscale(.55) brightness(.8); }
+#ciImg { width: 100%; max-height: 230px; object-fit: cover; image-rendering: pixelated; border: 2px solid var(--line); margin-bottom: 8px; }
+#chapInfo p { margin: 6px 0; line-height: 1.55; }
 .chap .ok { position: absolute; top: 2px; right: 5px; color: #7ee08a; font-size: 14px; text-shadow: 0 1px 0 #000; }
 .rankTabs { display: flex; justify-content: center; gap: 8px; margin: -4px 0 10px; }
 .rankTabs button { background: transparent; border: 2px solid var(--line); color: var(--text); font: 15px var(--display); padding: 4px 14px; cursor: pointer; }
@@ -286,6 +288,10 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
       <button class="btn" id="rankBack" type="button">返回</button></div>
   </div>
 
+  <div class="modal" id="chapInfo" hidden>
+    <div class="card"><img id="ciImg" alt=""><h2 id="ciT"></h2><p class="hint" id="ciS"></p><p id="ciP"></p><p class="hint" id="ciState"></p>
+      <div class="diffs"><button class="btn" id="ciGo" type="button" hidden>选择此章</button><button class="btn ghost" id="ciClose" type="button">关闭</button></div></div>
+  </div>
   <div class="modal" id="pause" hidden>
     <div class="card"><h2>暂停</h2><p>按 P 或点按钮继续</p><button class="btn" id="resumeBtn">继续</button></div>
   </div>
@@ -4419,15 +4425,16 @@ $('startBtn').onclick = () => begin('normal');
 $('hardBtn').onclick = () => begin('hard');
 // ---------- 章节：通关任家镇后四章开放；每章的地图和贴图单独打包，选中时才下载 ----------
 const CHAPS = [
-  { id: 'ren', n: '任家镇', sub: '第一章 · 荒坟夜', short: '' },
-  { id: 'heian', n: '决战平安京', sub: '第二章 · 日本', short: '日' },
-  { id: 'london', n: '雾都伦敦', sub: '第三章 · 欧洲', short: '欧' },
-  { id: 'nanyang', n: '下南洋', sub: '第四章 · 南洋', short: '南' },
-  { id: 'qin', n: '地底天宫', sub: '第五章 · 秦陵', short: '秦' },
+  { id: 'ren', n: '任家镇', sub: '第一章 · 荒坟夜', short: '', intro: '民国荒镇，义庄、教堂、戏台、衙门。荒坟夜里尸变了，撑到鸡鸣天亮，便算你赢。' },
+  { id: 'heian', n: '决战平安京', sub: '第二章 · 日本', short: '日', intro: '千年古都京都。朱雀大路直通大内里，阴阳寮的结界松动，艺妓巷、鸭川、稻荷鸟居之间，百鬼夜行，式神与尸鬼同出。' },
+  { id: 'london', n: '雾都伦敦', sub: '第三章 · 欧洲', short: '欧', intro: '1820 年代的哥特伦敦，雾锁泰晤士河。吸血鬼、狼人、丧尸与科学怪人，在炼金术士和黑魔法师的阴影里游荡。' },
+  { id: 'nanyang', n: '下南洋', sub: '第四章 · 南洋', short: '南', intro: '华人漂洋过海的港口城。小娘惹的彩色店屋、码头栈桥、黄包车行，降头师的邪术正唤醒不该醒来的东西。' },
+  { id: 'qin', n: '地底天宫', sub: '第五章 · 秦陵', short: '秦', intro: '秦始皇陵地底，水银为江海，星象为穹顶。宫殿与石阶悬浮在虚空，兵马俑和机关守着最后的秘密。' },
 ];
+const CH_LIVE = /[?&]chapters\b/.test(location.search);   // 章节未对外开放：加 ?chapters 才能进入，平时只能查看介绍
 let CH = 'ren', BGK = 'bg';
-try { const c0 = localStorage.getItem('ztzh_chap'); if (CHAPS.some(c => c.id === c0)) CH = c0; } catch (e) {}
-const chapUnlocked = id => id === 'ren' || monkUnlocked();
+if (CH_LIVE) try { const c0 = localStorage.getItem('ztzh_chap'); if (CHAPS.some(c => c.id === c0)) CH = c0; } catch (e) {}
+const chapUnlocked = id => id === 'ren' || (CH_LIVE && monkUnlocked());
 const chapCleared = id => { try { return localStorage.getItem('ztzh_chc_' + id) === '1'; } catch (e) { return false; } };
 const CHLOAD = {};
 function loadChapter(id, ok, fail) {
@@ -4462,6 +4469,17 @@ function applyMap(id) {
   WCNT = new Uint8Array((MAP.cols || 1) * (MAP.rows || 1));
   FLOW = null; FLOWNEED = false;
 }
+function showChapInfo(c) {
+  const un = chapUnlocked(c.id);
+  $('ciImg').src = A['pv_' + c.id] || ''; $('ciT').textContent = c.n; $('ciS').textContent = c.sub; $('ciP').textContent = c.intro;
+  $('ciState').textContent = !CH_LIVE ? '🔒 即将开放，敬请期待' : un ? (chapCleared(c.id) ? '✔ 已通关' : '') : '🔒 先在任家镇撑到鸡鸣，这一章就开放了';
+  $('ciGo').hidden = !un; $('ciGo').textContent = CH === c.id ? '已选择此章' : '选择此章'; $('ciGo').onclick = () => {
+    CH = c.id; try { localStorage.setItem('ztzh_chap', CH); } catch (e) {} $('nameTip').textContent = ''; $('chapInfo').hidden = true; renderChapters(); sfx('pick');
+    loadChapter(CH, () => {}, () => {});   // 预先下载，开坛时就不用等
+  };
+  $('chapInfo').hidden = false;
+}
+$('ciClose').onclick = () => { $('chapInfo').hidden = true; };
 function renderChapters() {
   const box = $('chapRow'); if (!box) return; box.textContent = '';
   for (const c of CHAPS) {
@@ -4469,13 +4487,12 @@ function renderChapters() {
     b.className = 'chap' + (CH === c.id ? ' on' : '') + (un ? '' : ' lock');
     const im = new Image(); im.src = A['th_' + c.id] || ''; im.alt = ''; b.appendChild(im);
     const t = document.createElement('b'); t.textContent = c.n; b.appendChild(t);
-    const sm = document.createElement('small'); sm.textContent = un ? c.sub : '🔒 通关任家镇解锁'; b.appendChild(sm);
+    const sm = document.createElement('small'); sm.textContent = un ? c.sub : CH_LIVE ? '🔒 通关任家镇解锁' : '🔒 即将开放'; b.appendChild(sm);
     if (un && chapCleared(c.id)) { const k = document.createElement('span'); k.className = 'ok'; k.textContent = '✔'; b.appendChild(k); }
     b.onclick = () => {
-      if (!chapUnlocked(c.id)) { $('nameTip').textContent = '先用任何角色在任家镇撑到鸡鸣，其余四章就开放了'; sfx('hurt'); return; }
-      CH = c.id; try { localStorage.setItem('ztzh_chap', CH); } catch (e) {} $('nameTip').textContent = '';
-      renderChapters(); sfx('pick');
-      if (CH !== 'ren') loadChapter(CH, () => {}, () => {});   // 预先下载，开坛时就不用等
+      sfx('pick');
+      if (c.id === 'ren') { CH = 'ren'; try { localStorage.setItem('ztzh_chap', CH); } catch (e) {} $('nameTip').textContent = ''; renderChapters(); return; }
+      showChapInfo(c);
     };
     box.appendChild(b);
   }

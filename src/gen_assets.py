@@ -85,13 +85,16 @@ def _qpng(im, colors=112):
     return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
 def _thumb(im):
     t = im.convert('RGB'); sc = 132 / t.width; return t.resize((132, max(1, round(t.height * sc))), Image.BOX)
-sprites['th_ren'] = _thumb(bg)
+def _pv(im):
+    t = im.convert('RGB'); sc = 360 / t.width; return t.resize((360, max(1, round(t.height * sc))), Image.BOX)
+sprites['th_ren'] = _thumb(bg); PV = {'ren': _pv(bg)}
 for _cid, _mod in (('heian', map_heian), ('london', map_london), ('nanyang', map_nanyang), ('qin', map_qin)):
     _bg, _sp, _data, _ = _mod.build()
     _as = {k: b64(v) for k, v in _sp.items()}; _as['bg_' + _cid] = _qpng(_bg)
-    CHAPTERS[_cid] = (_data, _as); sprites['th_' + _cid] = _thumb(_bg)
+    CHAPTERS[_cid] = (_data, _as); sprites['th_' + _cid] = _thumb(_bg); PV[_cid] = _pv(_bg)
 assets = {k: b64(v) for k, v in sprites.items()}
 assets['bg'] = b64(bg.convert('RGB'))
+for _k, _v in PV.items(): assets['pv_' + _k] = _qpng(_v, 64)
 import glob, os
 vo = {os.path.splitext(os.path.basename(f))[0]: 'data:audio/mpeg;base64,' + base64.b64encode(open(f, 'rb').read()).decode() for f in sorted(glob.glob('tts/vo/*.mp3'))}
 html = open('game_template.html').read().replace('/*ASSETS*/{}', json.dumps(assets)).replace('/*MAP*/{}', json.dumps(data, separators=(',', ':'))).replace('/*VO*/{}', json.dumps(vo)).replace('/*BUILD*/', __import__('time').strftime('%y%m%d%H%M'))
@@ -127,10 +130,13 @@ if os.path.isdir(pub):
             '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">\n'
             + meta + html[:he] + '\n</head>\n<body><div style="display:none"><img src="share.png" alt="暂时停止呼吸"></div>' + html[he:] + '\n</body>\n</html>\n')
     open(os.path.join(pub, 'index.html'), 'w', encoding='utf-8').write(page)
-    chd = os.path.join(pub, 'ch'); os.makedirs(chd, exist_ok=True)
+    # 章节文件默认不进 public（章节尚未对外开放）；CHAPTERS_LIVE=1 才写进 public/ch；CHAPTERS_TEST_DIR=目录 可另存一份做测试
+    _dirs = ([os.path.join(pub, 'ch')] if os.environ.get('CHAPTERS_LIVE') == '1' else []) + ([os.environ['CHAPTERS_TEST_DIR']] if os.environ.get('CHAPTERS_TEST_DIR') else [])
+    for chd in _dirs: os.makedirs(chd, exist_ok=True)
     for _cid, (_data, _as) in CHAPTERS.items():
         _js = "(window.__CH=window.__CH||{})[%s]={map:%s,assets:%s};" % (json.dumps(_cid), json.dumps(_data, separators=(',', ':')), json.dumps(_as, separators=(',', ':')))
-        open(os.path.join(chd, _cid + '.js'), 'w', encoding='utf-8').write(_js); print('chapter', _cid, len(_js) // 1024, 'KB')
+        for chd in _dirs: open(os.path.join(chd, _cid + '.js'), 'w', encoding='utf-8').write(_js)
+        print('chapter', _cid, len(_js) // 1024, 'KB', '(written)' if _dirs else '(not written)')
     print('wrote', os.path.normpath(os.path.join(pub, 'index.html')))
 
 
