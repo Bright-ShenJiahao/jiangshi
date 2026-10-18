@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw
 import map_jp as J
 from map_jp import K, canvas, box, shadow, STONE, STONE_D, STONE_L, WOOD, WOOD_D, RED, RED_D, RED_L, GLOW
 
-W, H = 2400, 2100
+W, H = 2400, 2200
 CELL = 8
 FLOOR = [(34, 42, 46), (30, 38, 44), (38, 46, 50)]
 WALL_T, WALL_F, WALL_D = (92, 96, 106), (58, 62, 74), (40, 44, 56)
@@ -308,18 +308,21 @@ def build(seed=88):
         return lambda dd, f: dd.polygon(pts, fill=f)
 
     # ---------- 各座浮空石台 ----------
-    ENT = (CX - 120, 1800, CX + 120, 1960)
-    PIT = (820, 1290, 1580, 1640)                    # 兵马俑坑（缩小）
+    ENT = (CX - 120, 1840, CX + 120, 2000)
+    PLZ = (700, 1290, 1700, 1720)                    # 中央大广场（主战场）
     HALL = (700, 620, 1700, 1200)                    # 正殿台
     WS = (140, 700, 640, 1140); ES = (1760, 700, 2260, 1140)       # 东西偏殿台
     WT = (140, 1300, 640, 1760); ET = (1760, 1300, 2260, 1760)     # 西：机关迷宫  东：陷阱房
-    BUR_C, BUR_R = (CX, 240), (380, 170)
+    BUR_C, BUR_R = (CX, 230), (270, 120)             # 云顶天宫（缩小）
+    NW = (420, 130, 800, 470); NE = (1600, 130, 1980, 470)         # 北侧两座开阔战台
+    SW = (380, 1880, 900, 2130); SE = (1500, 1880, 2020, 2130)     # 南侧两座开阔战台
     island(rect_shape(*ENT, 6, 1))
-    island(rect_shape(*PIT, 12, 2), (58, 52, 56), (50, 44, 50))
+    island(rect_shape(*PLZ, 12, 2), (58, 54, 58), (50, 46, 52))
     island(rect_shape(*HALL, 10, 3), (56, 58, 72), (48, 50, 64))
     island(rect_shape(*WS, 8, 4)); island(rect_shape(*ES, 8, 5))
     island(rect_shape(*WT, 8, 6), (50, 54, 62), (42, 46, 56)); island(rect_shape(*ET, 8, 7), (58, 48, 52), (48, 40, 44))
-    island(rough_ellipse(*BUR_C, *BUR_R, 10, 4), (50, 56, 76), (42, 48, 68))
+    island(rough_ellipse(*BUR_C, *BUR_R, 8, 4), (50, 56, 76), (42, 48, 68))
+    for i_, rc_ in enumerate((NW, NE, SW, SE)): island(rect_shape(*rc_, 10, 20 + i_), (54, 58, 70), (46, 50, 62))
 
     # ---------- 悬浮台阶 / 吊桥 ----------
     def floating_stairs(xc, y_from, y_to, wdt=96, step=16):
@@ -346,10 +349,24 @@ def build(seed=88):
         for x in range(x0, x1, 40):
             for yy in (yc - wdt // 2 - 3, yc + wdt // 2 + 3): d.rectangle([x, yy - 10, x + 3, yy], fill=GOLD_D)
         wd.rectangle([x0 - 2, yc - wdt // 2 - 4, x1 + 2, yc + wdt // 2 + 4], fill=255)
-    STAIRS = ((CX, 1640, 1800, 100), (CX, 1200, 1290, 100), (CX, 410, 620, 90))
+    def plank_bridge_v(xc, y0, y1, wdt=56):
+        for y in range(y0, y1, 12):
+            sx = int(3 * math.sin(y * 0.2))
+            d.rectangle([xc - wdt // 2 + sx + 4, y + 8, xc + wdt // 2 + sx + 4, y + 20], fill=(4, 6, 14, 255))
+            d.rectangle([xc - wdt // 2 + sx, y, xc + wdt // 2 + sx, y + 10], fill=K); d.rectangle([xc - wdt // 2 + sx + 1, y + 1, xc + wdt // 2 + sx - 1, y + 9], fill=(120, 90, 64) if (y // 12) % 2 else (140, 104, 72))
+        for xx in (xc - wdt // 2 - 3, xc + wdt // 2 + 3): d.line([(xx, y0), (xx, y1)], fill=(180, 140, 80), width=2)
+        for y in range(y0, y1, 40):
+            for xx in (xc - wdt // 2 - 3, xc + wdt // 2 + 3): d.rectangle([xx - 1, y - 10, xx + 2, y], fill=GOLD_D)
+        wd.rectangle([xc - wdt // 2 - 4, y0 - 2, xc + wdt // 2 + 4, y1 + 2], fill=255)
+    STAIRS = ((CX, 1720, 1840, 100), (CX, 1200, 1290, 100), (CX, 350, 620, 90))
     for (xc, ya, yb, ww) in STAIRS: floating_stairs(xc, ya, yb, ww, 14)
     plank_bridge(630, 710, 930); plank_bridge(1690, 1770, 930)          # 正殿 ↔ 偏殿
-    plank_bridge(630, 830, 1530); plank_bridge(1570, 1770, 1530)        # 兵马俑坑 ↔ 机关迷宫 / 陷阱房
+    plank_bridge(630, 710, 1530); plank_bridge(1690, 1770, 1530)        # 中央广场 ↔ 机关迷宫 / 陷阱房
+    plank_bridge(790, 945, 262); plank_bridge(1455, 1610, 262)          # 云顶天宫 ↔ 北侧战台
+    plank_bridge_v(500, 460, 710); plank_bridge_v(1850, 460, 710)       # 北侧战台 ↔ 偏殿台
+    plank_bridge_v(380, 1130, 1310)                                    # 西偏殿台 ↔ 机关迷宫
+    plank_bridge_v(380, 1750, 1890)                                    # 机关迷宫 ↔ 西南战台
+    plank_bridge(890, 1090, 1930); plank_bridge(1310, 1510, 1930)       # 入口 ↔ 南侧战台
 
     def wall_rect(x0, y0, x1, y1, face=10, solid=True):
         d.rectangle([x0 - 1, y0 - 1, x1 + 1, y1 + face + 1], fill=K)
@@ -427,6 +444,7 @@ def build(seed=88):
         return hw, vw
     MX0, MY0, MC, MR, MCELL = 170, 1320, 5, 5, 84
     hw, vw = maze_gen(MX0, MY0, MC, MR, MCELL, 11); T = 14
+    hw[0][2] = False; hw[MR][2] = False
     for r_ in range(MR + 1):
         for c_ in range(MC):
             if hw[r_][c_]: wall_rect(MX0 + c_ * MCELL - T // 2, MY0 + r_ * MCELL - T // 2, MX0 + (c_ + 1) * MCELL + T // 2, MY0 + r_ * MCELL + T // 2, 8)
@@ -468,34 +486,49 @@ def build(seed=88):
                 traps.append(dict(t='spike', x=x + 2, y=y + 2, w=TS - 4, h=TS - 4))
     # ---------- 宫殿台、主墓室 ----------
     RC = BUR_C
-    d.ellipse([RC[0] - 330, RC[1] - 110, RC[0] + 330, RC[1] + 110], fill=K); d.ellipse([RC[0] - 324, RC[1] - 104, RC[0] + 324, RC[1] + 104], fill=MERC_D)
-    for _ in range(9000):
-        a, rr = random.random() * 6.283, random.random() ** 0.5; im.putpixel((int(RC[0] + 320 * rr * math.cos(a)), int(RC[1] + 100 * rr * math.sin(a))), random.choice([MERC, MERC_L, MERC_D]))
-    islands = ((CX - 230, 220, 36), (CX + 230, 230, 40), (CX - 150, 290, 24), (CX + 160, 170, 28))
+    d.ellipse([RC[0] - 220, RC[1] - 76, RC[0] + 220, RC[1] + 76], fill=K); d.ellipse([RC[0] - 214, RC[1] - 72, RC[0] + 214, RC[1] + 72], fill=MERC_D)
+    for _ in range(4200):
+        a, rr = random.random() * 6.283, random.random() ** 0.5; im.putpixel((int(RC[0] + 210 * rr * math.cos(a)), int(RC[1] + 70 * rr * math.sin(a))), random.choice([MERC, MERC_L, MERC_D]))
+    islands = ((CX - 150, 236, 24), (CX + 150, 236, 26))
     for (ex, ey, er) in islands:
         d.ellipse([ex - er, ey - er * 0.6, ex + er, ey + er * 0.6], fill=K); d.ellipse([ex - er + 2, ey - er * 0.6 + 2, ex + er - 2, ey + er * 0.6 - 2], fill=(60, 78, 66))
-    d.ellipse([CX - 110, 190, CX + 110, 262], fill=K); d.ellipse([CX - 106, 194, CX + 106, 258], fill=(80, 84, 94))
+    d.ellipse([CX - 84, 198, CX + 84, 266], fill=K); d.ellipse([CX - 80, 202, CX + 80, 262], fill=(80, 84, 94))
     # 水银海上的石径：南岸直通中央石台（路面稍窄，两侧是水银）
-    d.rectangle([CX - 38, 250, CX + 38, 362], fill=K); d.rectangle([CX - 34, 250, CX + 34, 362], fill=(84, 88, 100))
-    for y in range(256, 360, 14): d.line([(CX - 34, y), (CX + 34, y)], fill=(70, 74, 88))
-    wd.rectangle([CX - 36, 248, CX + 36, 364], fill=255)
+    d.rectangle([CX - 38, 250, CX + 38, 336], fill=K); d.rectangle([CX - 34, 250, CX + 34, 336], fill=(84, 88, 100))
+    for y in range(256, 334, 14): d.line([(CX - 34, y), (CX + 34, y)], fill=(70, 74, 88))
+    wd.rectangle([CX - 36, 248, CX + 36, 338], fill=255)
 
+    # 符文圈（装饰）
+    def rune(cx_, cy_, r_):
+        for k_, rr_ in enumerate((r_, r_ - 8, r_ - 40)): d.ellipse([cx_ - rr_, cy_ - rr_ * 0.62, cx_ + rr_, cy_ + rr_ * 0.62], outline=GOLD_D if k_ != 1 else (90, 70, 60), width=2)
+        for a_ in range(0, 360, 30):
+            x_ = cx_ + (r_ - 24) * math.cos(math.radians(a_)); y_ = cy_ + (r_ - 24) * 0.62 * math.sin(math.radians(a_)); d.rectangle([x_ - 3, y_ - 2, x_ + 3, y_ + 2], fill=GOLD_D)
+        d.polygon([(cx_, cy_ - r_ * 0.4), (cx_ + r_ * 0.5, cy_ + r_ * 0.3), (cx_ - r_ * 0.5, cy_ + r_ * 0.3)], outline=(120, 92, 60))
+    rune(CX, 1500, 190)
+    for (ax0, ay0, ax1, ay1) in (NW, NE, SW, SE): rune((ax0 + ax1) // 2, (ay0 + ay1) // 2, 110)
     # ---------- 物件 ----------
     SP = {k: f() for k, f in SPRITES.items()}
     objs = []; warriors = []
     def put(key, x, y, solid=None):
         objs.append(dict(img=key, x=x, y=y))
         if solid: blocks.append((x + solid[0], y + solid[1], x + solid[2], y + solid[3]))
-    put('qn_gateS', CX, 1930, None); blocks += [(CX - 120, 1910, CX - 60, 1950), (CX + 60, 1910, CX + 120, 1950)]
-    for y in (1850, 1900): put('qn_lamp', CX - 80, y, (-5, -6, 5, 0)); put('qn_lamp', CX + 80, y, (-5, -6, 5, 0))
-    # 兵马俑坑：只有 3 排，中间留宽通道；记录位置，之后可作为怪物出现
+    put('qn_gateS', CX, 1970, None); blocks += [(CX - 120, 1950, CX - 60, 1990), (CX + 60, 1950, CX + 120, 1990)]
+    for y in (1890, 1940): put('qn_lamp', CX - 80, y, (-5, -6, 5, 0)); put('qn_lamp', CX + 80, y, (-5, -6, 5, 0))
+    # 中央大广场：兵马俑只在两个角落各一小方阵（3×4），中间全空；记录位置，之后可作为怪物出现
     for rr in range(3):
-        for cc in range(5):
+        for cc in range(4):
             for side in (-1, 1):
-                x = CX + side * (90 + cc * 56); y = 1370 + rr * 50
+                x = CX + side * (390 - cc * 50); y = 1360 + rr * 46
                 put('qn_warrior%d' % ((cc + rr) % 3), x, y, (-6, -8, 6, 0)); warriors.append(dict(x=x, y=y, k=(cc + rr) % 3))
-    for x in (900, 1500): put('qn_chariot', x, 1600, (-30, -14, 30, 0))
-    for sx in (-1, 1): put('qn_beast', CX + sx * 90, 1600, (-12, -8, 12, 0)); put('qn_lamp', CX + sx * 150, 1330, (-5, -6, 5, 0))
+    for x in (790, 1610): put('qn_chariot', x, 1680, (-30, -14, 30, 0))
+    for sx in (-1, 1): put('qn_beast', CX + sx * 90, 1690, (-12, -8, 12, 0)); put('qn_lamp', CX + sx * 150, 1330, (-5, -6, 5, 0)); put('qn_lamp', CX + sx * 300, 1690, (-5, -6, 5, 0)); put('qn_lamp', CX + sx * 440, 1530, (-5, -6, 5, 0))
+    # 北、南四座战台：符文圈、石柱、宝箱、灯、兵马俑（怪物点）
+    for (ax0, ay0, ax1, ay1) in (NW, NE, SW, SE):
+        mx, my = (ax0 + ax1) // 2, (ay0 + ay1) // 2
+        for (ox, oy) in ((-110, -60), (110, -60), (-110, 70), (110, 70)): put('qn_pillar', mx + ox, my + oy, (-9, -12, 9, 0))
+        put('qn_lamp', ax0 + 30, ay0 + 40, (-5, -6, 5, 0)); put('qn_lamp', ax1 - 30, ay0 + 40, (-5, -6, 5, 0)); put('qn_chest', ax0 + 36, ay1 - 22, (-12, -8, 12, 0)); put('qn_beast', ax1 - 36, ay1 - 20, (-12, -8, 12, 0))
+    for (x, y, k) in ((520, 300, 0), (700, 300, 1), (1700, 300, 2), (1880, 300, 0), (500, 2020, 1), (780, 2020, 2), (1600, 2020, 0), (1900, 2020, 1)):
+        put('qn_warrior%d' % k, x, y, (-6, -8, 6, 0)); warriors.append(dict(x=x, y=y, k=k))
     # 正殿：18 根大柱（两侧各 3 列 × 3 排）
     for rr, y in enumerate((780, 920, 1060)):
         for cx_ in (-340, -240, -140, 140, 240, 340):
@@ -524,8 +557,8 @@ def build(seed=88):
     put('qn_chest', 2195, 1530, (-12, -8, 12, 0)); put('qn_lamp', 2195, 1450, (-5, -6, 5, 0)); put('qn_lamp', 2195, 1620, (-5, -6, 5, 0))
     put('qn_bow', 1900, 1368, (-8, -8, 8, 0)); put('qn_bow', 2100, 1368, (-8, -8, 8, 0)); put('qn_bones', 1990, 1700, None)
     # 主墓室
-    put('qn_coffin', CX, 250, (-70, -70, 70, 0))
-    for sx in (-1, 1): put('qn_lamp', CX + sx * 150, 300, (-5, -6, 5, 0)); put('qn_beast', CX + sx * 100, 346, (-12, -8, 12, 0))
+    put('qn_coffin', CX, 252, (-48, -56, 48, 0))
+    for sx in (-1, 1): put('qn_lamp', CX + sx * 90, 330, (-5, -6, 5, 0)); put('qn_beast', CX + sx * 150, 336, (-12, -8, 12, 0))
 
     # ---------- 通行网格 ----------
     cols, rows = W // CELL, H // CELL
@@ -536,10 +569,10 @@ def build(seed=88):
     for r_ in range(rows):
         for c_ in range(cols):
             x, y = c_ * CELL + 4, r_ * CELL + 4
-            if ((x - RC[0]) / 324) ** 2 + ((y - RC[1]) / 104) ** 2 < 1.0:
-                on_platform = ((x - CX) / 106) ** 2 + ((y - 226) / 32) ** 2 < 1.0
+            if ((x - RC[0]) / 214) ** 2 + ((y - RC[1]) / 72) ** 2 < 1.0:
+                on_platform = ((x - CX) / 80) ** 2 + ((y - 232) / 30) ** 2 < 1.0
                 on_island = any(((x - ex) / er) ** 2 + ((y - ey) / (er * 0.6)) ** 2 < 1.0 for ex, ey, er in islands)
-                on_path = abs(x - CX) < 34 and 250 <= y <= 362
+                on_path = abs(x - CX) < 34 and 250 <= y <= 338
                 if not on_platform and not on_island and not on_path: grid[r_, c_] = 1
     for (xc, ya, yb, ww) in STAIRS:
         grid[ya // CELL: yb // CELL + 1, (xc - ww // 2) // CELL: (xc + ww // 2) // CELL + 1] = 0
@@ -547,7 +580,7 @@ def build(seed=88):
     anchors = {k: [v[1], v[2]] for k, v in SP.items()}
     for o in objs: o['ax'], o['ay'] = anchors[o['img']]
     data = dict(cols=cols, rows=rows, cell=CELL, grid=''.join('1' if v else '0' for v in grid.flatten()), objs=objs, w=W, h=H,
-                start=[CX, 1890], boss=[CX, 226], graves=[], traps=traps, warriors=warriors)
+                start=[CX, 1930], boss=[CX, 240], graves=[], traps=traps, warriors=warriors)
     return im, sprites, data, SP
 
 
