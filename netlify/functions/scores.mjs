@@ -10,6 +10,7 @@ const CLEARED_KEY = 'cleared';   // 通关过的名字（不受排行榜 100 名
 const KEEP = 100;          // stored entries
 const EPOCH = '2026-10-17-reset1';   // 改这个值 = 下次有人访问时清空功德簿的排名（top / cheat）；通关名单 cleared 保留，已解锁一休的人不受影响
 const PURGE = { id: '2026-10-17-purge1', hit: (n) => /^test果/i.test(String(n).replace(/\s/g, '')) };   // 改 id = 下次访问时按 hit 规则从功德簿删除成绩（一次性）；这次删掉「Test果汁」
+const NOCHEAT = '2026-10-18-nocheat1';   // 改这个值 = 下次访问时把功德簿里所有成绩的作弊标记清掉（成绩保留），旧作弊榜并回功德簿（一次性）
 const SHOW = 100;          // entries returned to the game (排行榜分普通/困难两列显示)
 
 const clean = (v) => String(v ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 10);
@@ -38,6 +39,22 @@ export default async (req) => {
     await store.set('purge', PURGE.id);
   }
 
+  // 同一个名字不分角色：同难度、同章节只留最高分那一条（记着那局用的角色）；作弊和不作弊仍各占一行
+  const keyOf = (r) => r.name + '|' + r.diff + '|' + (r.cheat ? 1 : 0) + (r.ch && r.ch !== 'ren' ? '|' + r.ch : '');   // 章节不同各占一行；任家镇沿用旧键
+  const shape = (list) => {
+    const best = new Map();
+    for (const r of list) { const k = keyOf(r); const o = best.get(k); if (!o || o.score < r.score) best.set(k, r); }
+    const all = [...best.values()].sort((a, b) => b.score - a.score);
+    let n = 0;
+    return all.filter((r) => !r.cheat || ++n <= CHEAT_CAP);
+  };
+
+  if ((await store.get('nocheat')) !== NOCHEAT) {   // 一次性清掉作弊标记，成绩保留
+    const unflag = (r) => { const o = { ...r, cheat: 0 }; delete o.why; return o; };
+    const all = (await read()).list.concat((await read(CHEAT_KEY)).list).map(unflag);
+    await store.setJSON(KEY, shape(all).slice(0, KEEP)); await store.setJSON(CHEAT_KEY, []); await store.set('nocheat', NOCHEAT);
+  }
+
   const q = new URL(req.url).searchParams;
   if (req.method === 'GET' && q.has('cleared')) {   // 这个名字通关过吗？（排行榜里有通关记录也算）
     const nm = clean(q.get('cleared'));
@@ -46,15 +63,7 @@ export default async (req) => {
     const onBoard = (await read()).list.some((r) => r.name === nm && r.win === true && !r.cheat);
     return json({ cleared: names.includes(nm) || onBoard });
   }
-  // 功德簿 = 新记录 + 旧作弊榜（标注作弊）；同名同难度同角色，作弊和不作弊各占一行；作弊成绩最多 CHEAT_CAP 条
-  const keyOf = (r) => r.name + '|' + r.diff + '|' + (r.hero || 'tao') + '|' + (r.cheat ? 1 : 0) + (r.ch && r.ch !== 'ren' ? '|' + r.ch : '');   // 章节不同各占一行；任家镇沿用旧键
-  const shape = (list) => {
-    const best = new Map();
-    for (const r of list) { const k = keyOf(r); const o = best.get(k); if (!o || o.score < r.score) best.set(k, r); }
-    const all = [...best.values()].sort((a, b) => b.score - a.score);
-    let n = 0;
-    return all.filter((r) => !r.cheat || ++n <= CHEAT_CAP);
-  };
+  // 功德簿 = 新记录 + 旧作弊榜（标注作弊）；作弊成绩最多 CHEAT_CAP 条
   // 以前只因「等级超过 45」被误标作弊的成绩（why 只有 lv）：读取时恢复为正常成绩
   const fix = (r) => (r.cheat && r.why === 'lv' ? { ...r, cheat: 0, why: undefined } : r);
   const merged = async () => shape((await read()).list.map(fix).concat((await read(CHEAT_KEY)).list.map((r) => ({ ...r, cheat: 1 }))));

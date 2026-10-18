@@ -59,6 +59,8 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
 .hero { background: transparent; border: 2px solid var(--line); color: var(--text); font: 16px var(--display); padding: 6px 10px; cursor: pointer; display: grid; gap: 2px; min-width: 0; flex: 1 1 0; max-width: 132px; white-space: nowrap; }
 @media (max-width: 420px) { .heroes { gap: 6px; } .hero { font-size: 14px; padding: 5px 4px; } .hero small { font-size: 10px; } }
 .hero small { font-size: 11px; color: var(--muted); }
+.hicon { display: inline-block; width: 1.25em; text-align: center; font-style: normal; }
+.hicon svg { width: 0.65em; height: 1.3em; vertical-align: -0.24em; }
 .hero.on { border-color: var(--talisman); color: var(--talisman); background: rgba(240,192,32,.08); }
 .hero.lock { opacity: .5; }
 .chaps { min-width: 0; max-width: 100%; display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 6px; margin: 4px 0 2px; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
@@ -228,7 +230,7 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
         <span>暂停</span><span>P 键</span>
       </div>
       <div class="nameRow"><input id="startName" maxlength="10" placeholder="道长尊姓大名？" autocomplete="off" aria-label="道号"><span id="nameTip"></span></div>
-      <div class="heroes"><button type="button" class="hero on" id="heroTao"><b>☯︎ 一眉道人</b><small>林九</small></button><button type="button" class="hero" id="heroMonk"><b>卍︎ 伏魔禅师</b><small id="monkSub">一休</small></button><button type="button" class="hero" id="heroPriest"><b>✝︎ 天主圣徒</b><small id="priestSub">Father 柴</small></button><button type="button" class="hero" id="heroJian"><b>⚔︎ 青城剑仙</b><small id="jianSub">温</small></button></div>
+      <div class="heroes"><button type="button" class="hero on" id="heroTao"><b><i class="hicon">☯︎</i>一眉道人</b><small>林九</small></button><button type="button" class="hero" id="heroMonk"><b><i class="hicon">卍︎</i>伏魔禅师</b><small id="monkSub">一休</small></button><button type="button" class="hero" id="heroPriest"><b><i class="hicon">✝︎</i>天主圣徒</b><small id="priestSub">Father 柴</small></button><button type="button" class="hero" id="heroJian"><b><i class="hicon"><svg viewBox="0 0 9 20" shape-rendering="crispEdges" aria-hidden="true"><rect x="4" y="0" width="1" height="1" fill="currentColor"/><rect x="3" y="1" width="3" height="11" fill="currentColor"/><rect x="0" y="12" width="9" height="2" fill="currentColor"/><rect x="3" y="14" width="3" height="4" fill="currentColor"/><rect x="2" y="18" width="5" height="2" fill="currentColor"/><rect x="7" y="16" width="1" height="4" fill="#d22c28"/><rect x="8" y="18" width="1" height="2" fill="#d22c28"/></svg></i>青城剑仙</b><small id="jianSub">温</small></button></div>
       <div class="chaps" id="chapRow" aria-label="选择章节"></div>
       <div class="diffs"><button class="btn" id="startBtn">开坛 · 普通</button><button class="btn hard" id="hardBtn">开坛 · 困难</button></div>
       <p class="hint">困难：怪更硬更疼、出招更勤，积分 ×1.5</p>
@@ -442,6 +444,8 @@ const ULTSYN2_M = {
 };
 const PASS_CD = { jian: '六脉剑、剑阵、刺剑、劈剑、纯阳功的间隔 -8%（不影响大招）', tao: '符、铜钱剑、墨斗、铃、八卦掌、金光咒的间隔 -8%（不影响大招）', monk: '棍、佛珠、木鱼、经文、降魔杵、钵、袈裟的间隔 -8%（不影响大招）', priest: '圣经、圣水、木桩、手枪、法阵、法咒的间隔 -8%（不影响大招）' };
 const LZ = '唵嘛呢叭咪吽';
+const JIAN_SVG = '<svg viewBox="0 0 9 20" shape-rendering="crispEdges" aria-hidden="true"><rect x="4" y="0" width="1" height="1" fill="currentColor"/><rect x="3" y="1" width="3" height="11" fill="currentColor"/><rect x="0" y="12" width="9" height="2" fill="currentColor"/><rect x="3" y="14" width="3" height="4" fill="currentColor"/><rect x="2" y="18" width="5" height="2" fill="currentColor"/><rect x="7" y="16" width="1" height="4" fill="#d22c28"/><rect x="8" y="18" width="1" height="2" fill="#d22c28"/></svg>';
+function heroIcon(h) { const i = document.createElement('i'); i.className = 'hicon'; if (h === 'jian') i.innerHTML = JIAN_SVG; else i.textContent = h === 'monk' ? '卍︎' : h === 'priest' ? '✝︎' : '☯︎'; return i; }
 let HERO = 'tao';
 try { const h0 = localStorage.getItem('ztzh_hero'); HERO = h0 === 'monk' || h0 === 'priest' || h0 === 'jian' ? h0 : 'tao'; } catch (e) {}
 function monkUnlocked() {
@@ -5614,7 +5618,7 @@ async function showRank(board) {
     const t = document.createElement('table');
     list.slice(0, 20).forEach((r, i) => {
       const tr = document.createElement('tr'); tr.className = (me && r.name === me ? 'me ' : '') + (r.cheat ? 'ch' : '');
-      for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : r.hero === 'priest' ? '✝︎ ' : r.hero === 'jian' ? '⚔︎ ' : '☯︎ ') + String(r.name || '无名道士').slice(0, 10) + chTag(r) + (r.win ? ' ☀' : '') + (r.cheat ? ' 【作弊】' : ''), Number(r.score) || 0]) { const td = document.createElement('td'); if (typeof v === 'string') { const sp = document.createElement('span'); sp.className = 'nm'; sp.textContent = v; td.appendChild(sp); } else td.textContent = v; tr.appendChild(td); }
+      for (const v of [i + 1, String(r.name || '无名道士').slice(0, 10) + chTag(r) + (r.win ? ' ☀' : '') + (r.cheat ? ' 【作弊】' : ''), Number(r.score) || 0]) { const td = document.createElement('td'); if (typeof v === 'string') { const sp = document.createElement('span'); sp.className = 'nm'; sp.appendChild(heroIcon(r.hero)); sp.appendChild(document.createTextNode(v)); td.appendChild(sp); } else td.textContent = v; tr.appendChild(td); }
       t.appendChild(tr);
     });
     el.appendChild(t);
@@ -5645,7 +5649,7 @@ async function renderBoard() {
     const tr = document.createElement('tr');
     if (myEntry && r.at === myEntry.at && r.name === myEntry.name) tr.className = 'me';
     if (r.cheat) tr.className += ' ch';
-    for (const v of [i + 1, (r.hero === 'monk' ? '卍 ' : r.hero === 'priest' ? '✝︎ ' : r.hero === 'jian' ? '⚔︎ ' : '☯︎ ') + String(r.name || '无名道士').slice(0, 10) + chTag(r), Number(r.score) || 0, r.diff === 'hard' ? '困难' : '普通', (r.win ? '天亮' : '倒下') + (r.cheat ? ' · 作弊' : '')]) { const td = document.createElement('td'); td.textContent = v; tr.appendChild(td); }
+    [i + 1, String(r.name || '无名道士').slice(0, 10) + chTag(r), Number(r.score) || 0, r.diff === 'hard' ? '困难' : '普通', (r.win ? '天亮' : '倒下') + (r.cheat ? ' · 作弊' : '')].forEach((v, j) => { const td = document.createElement('td'); if (j === 1) td.appendChild(heroIcon(r.hero)); td.appendChild(document.createTextNode(v)); tr.appendChild(td); });
     t.appendChild(tr);
   });
   box.appendChild(t);
