@@ -1110,7 +1110,16 @@ function prUlt(k, lv) {
     for (const e of S.en) { e.wx = rnd(-1, 1); e.wy = rnd(-1, 1); e.drained = 0; }
     S.texts.push({ x: P.x, y: P.y - 40, v: '血雾潜行', t: 1.2, c: '#ff5a6a', big: true });
   } else {   // 天使之怒
-    const t = mDense(220); const x = t ? t.x : P.x, y = t ? t.y : P.y;
+    // 砸向「血量最多」的那一片：以每只怪为圆心，算范围内的总血量，取最高的一处
+    const Rr0 = lv >= 2 ? 120 : 90;
+    let best = null, bestV = -1;
+    for (const e of S.en) {
+      if (e.dead || e.audience) continue;
+      let v = 0;
+      for (const o of S.en) if (!o.dead && !o.audience && inEll(o, e.x, e.y, Rr0)) v += Math.max(1, o.hp || o.max || 1);
+      if (v > bestV) { bestV = v; best = e; }
+    }
+    const x = best ? best.x : P.x, y = best ? best.y : P.y;
     R.angel = { t: 0, lv, x, y, struck: false, sx: x, sy: y, swingT: 0, end: false };
     sfx('bell');
   }
@@ -2547,7 +2556,7 @@ addEventListener('blur', () => { if (S && S.state === 'play') togglePause(); });
 
 // ---------- 分享 / 复活 ----------
 const SITE = 'https://jiangshidaozhang.netlify.app/';
-const BUILD = '2610181931';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
+const BUILD = '2610182058';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
 const shareUrl = () => ((typeof WEB !== 'undefined' && WEB) ? location.origin + location.pathname : SITE) + '?v=' + BUILD;
 function shichenNow() { let n = '子时'; for (const [a, t] of SHI) if (S.t >= t) n = a; return n; }
 async function copyText(s) {
@@ -3587,6 +3596,7 @@ function update() {
     }
   }
   for (const f of S.food) {
+    if (P.hp >= P.max) continue;   // 满血：不吸、不捡、不消耗，道具留在原地
     const fd = Math.hypot(f.x - P.x, f.y - P.y);
     if (fd < 60 && fd > 1) { const sp = 34 * DT, k = Math.min(1, sp / fd); f.x += (P.x - f.x) * k; f.y += (P.y - f.y) * k; }   // 靠近了会缓缓飘向玩家
     if ((f.x - P.x) ** 2 + (f.y - P.y) ** 2 < 22 * 22) {
