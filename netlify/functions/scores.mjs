@@ -11,6 +11,7 @@ const KEEP = 100;          // stored entries
 const EPOCH = '2026-10-17-reset1';   // 改这个值 = 下次有人访问时清空功德簿的排名（top / cheat）；通关名单 cleared 保留，已解锁一休的人不受影响
 const PURGE = { id: '2026-10-17-purge1', hit: (n) => /^test果/i.test(String(n).replace(/\s/g, '')) };   // 改 id = 下次访问时按 hit 规则从功德簿删除成绩（一次性）；这次删掉「Test果汁」
 const NOCHEAT = '2026-10-18-nocheat1';   // 改这个值 = 下次访问时把功德簿里所有成绩的作弊标记清掉（成绩保留），旧作弊榜并回功德簿（一次性）
+const PAUSEFIX = '2026-10-18-pause1';   // 一次性：只因暂停太久凭证过期（notoken / nocp）被判作弊的成绩，恢复为正常
 const SHOW = 100;          // entries returned to the game (排行榜分普通/困难两列显示)
 
 const clean = (v) => String(v ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 10);
@@ -21,7 +22,7 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), {
 
 const KILL_CAP = { normal: 2300, hard: 2700 };   // 完美击杀模拟：普通约 2085、困难约 2470，留一点余量
 const LV_CAP = 90;
-const TOK_TTL = 30 * 60 * 1000;
+const TOK_TTL = 24 * 60 * 60 * 1000;   // 凭证有效期 24 小时：暂停很久、切后台很久都不算作弊
 
 export default async (req) => {
   const store = getStore({ name: 'leaderboard', consistency: 'strong' });
@@ -53,6 +54,12 @@ export default async (req) => {
     const unflag = (r) => { const o = { ...r, cheat: 0 }; delete o.why; return o; };
     const all = (await read()).list.concat((await read(CHEAT_KEY)).list).map(unflag);
     await store.setJSON(KEY, shape(all).slice(0, KEEP)); await store.setJSON(CHEAT_KEY, []); await store.set('nocheat', NOCHEAT);
+  }
+
+  if ((await store.get('pausefix')) !== PAUSEFIX) {
+    const only = (r) => r.cheat && r.why && String(r.why).split(',').every((w) => w === 'notoken' || w === 'nocp');
+    const list = (await read()).list.map((r) => { if (!only(r)) return r; const o = { ...r, cheat: 0 }; delete o.why; return o; });
+    await store.setJSON(KEY, shape(list).slice(0, KEEP)); await store.set('pausefix', PAUSEFIX);
   }
 
   const q = new URL(req.url).searchParams;

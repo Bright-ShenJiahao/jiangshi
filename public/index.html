@@ -239,14 +239,6 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
   <div class="modal" id="title">
     <div class="card" style="position:relative"><button class="shareTag" id="shareBtn" type="button">分享</button>
       <h1>暂时停止呼吸</h1>
-      <p>荒坟夜里尸变了。撑到鸡鸣天亮，便算你赢。</p>
-      <div class="keys">
-        <span>移动</span><span>WASD / 方向键，手机按住屏幕拖动</span>
-        <span>出招</span><span>法器自动出手，升级时三选一</span>
-        <span>屏息</span><span>空格：僵尸闻不到人气，会乱跳</span>
-        <span>大招</span><span>Q 键或右下角按钮（升级时获得）</span>
-        <span>暂停</span><span>P 键</span>
-      </div>
       <div class="nameRow"><input id="startName" maxlength="10" placeholder="道长尊姓大名？" autocomplete="off" aria-label="道号"><span id="nameTip"></span></div>
       <div class="heroes"><button type="button" class="hero on" id="heroTao"><b><i class="hicon">☯︎</i>一眉道人</b><small>林九</small></button><button type="button" class="hero" id="heroMonk"><b><i class="hicon">卍︎</i>伏魔禅师</b><small id="monkSub">一休</small></button><button type="button" class="hero" id="heroPriest"><b><i class="hicon">✝︎</i>天主圣徒</b><small id="priestSub">Father 柴</small></button><button type="button" class="hero" id="heroJian"><b><i class="hicon"><svg viewBox="0 0 9 20" shape-rendering="crispEdges" aria-hidden="true"><rect x="4" y="0" width="1" height="1" fill="currentColor"/><rect x="3" y="1" width="3" height="11" fill="currentColor"/><rect x="0" y="12" width="9" height="2" fill="currentColor"/><rect x="3" y="14" width="3" height="4" fill="currentColor"/><rect x="2" y="18" width="5" height="2" fill="currentColor"/><rect x="7" y="16" width="1" height="4" fill="#d22c28"/><rect x="8" y="18" width="1" height="2" fill="#d22c28"/></svg></i>青城剑仙</b><small id="jianSub">温</small></button></div>
       <div class="chaps" id="chapRow" aria-label="选择章节"></div>
@@ -254,6 +246,13 @@ h2 { font-size: 34px; font-weight: 400; color: var(--paper); margin: 0 0 6px; le
       <p class="hint">困难：怪更硬更疼、出招更勤，积分 ×1.5</p>
       <div class="shareRow"><button class="btn ghost rankBtn" id="rankBtn" type="button">功德簿 · 排名</button></div>
       <div class="chks"><label class="storyChk"><input type="checkbox" id="storyChk"> 播放开场剧情</label><label class="storyChk"><input type="checkbox" id="tipChk"> 新手提示</label></div>
+      <div class="keys" id="keys" hidden>
+        <span>移动</span><span>WASD / 方向键，手机按住屏幕拖动</span>
+        <span>出招</span><span>法器自动出手，升级时三选一</span>
+        <span>屏息</span><span>空格：僵尸闻不到人气，会乱跳</span>
+        <span>大招</span><span>Q 键或右下角按钮（升级时获得）</span>
+        <span>暂停</span><span>P 键；手机切到别的应用会自动暂停</span>
+      </div>
     </div>
   </div>
 
@@ -3047,7 +3046,7 @@ addEventListener('blur', () => { if (S && S.state === 'play') togglePause(); });
 
 // ---------- 分享 / 复活 ----------
 const SITE = 'https://jiangshidaozhang.netlify.app/';
-const BUILD = '2610182314';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
+const BUILD = '2610182322';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
 const shareUrl = () => ((typeof WEB !== 'undefined' && WEB) ? location.origin + location.pathname : SITE) + '?v=' + BUILD;
 function shichenNow() { let n = '子时'; for (const [a, t] of SHI) if (S.t >= t) n = a; return n; }
 async function copyText(s) {
@@ -3188,7 +3187,7 @@ function endGame(win) {
     if (S.tips) {
       const done = win || S.t >= 150;
       ec.className = 'ok';
-      if (done) { try { localStorage.setItem('ztzh_tut2', '1'); } catch (e) {} $('tipChk').checked = false; ec.textContent = '新手教学局，不计入排行。来一次真正的对局吧！记得不要再勾选「新手提示」。'; }
+      if (done) { try { localStorage.setItem('ztzh_tut2', '1'); } catch (e) {} $('tipChk').checked = false; syncKeys(); ec.textContent = '新手教学局，不计入排行。来一次真正的对局吧！记得不要再勾选「新手提示」。'; }
       else ec.textContent = '新手教学局，不计入排行。再来一次，把义庄、教堂、任府这几件事走完吧。';
     } }
   renderBoard();
@@ -4582,6 +4581,7 @@ function draw() {
 const TOUCH = matchMedia('(pointer: coarse)').matches;
 let tipT = 0;
 try { let d = localStorage.getItem('ztzh_tut2'); if (d == null && (+localStorage.getItem('ztzh_plays') || 0) >= 3) { d = '1'; localStorage.setItem('ztzh_tut2', '1'); } $('tipChk').checked = d !== '1'; } catch (e) { $('tipChk').checked = true; }
+const syncKeys = () => { $('keys').hidden = !$('tipChk').checked; }; syncKeys(); $('tipChk').addEventListener('change', syncKeys);   // 操作简介只在勾选「新手提示」时显示
 const TIPS = [
   [1, TOUCH ? '手指按住屏幕拖动 = 走路' : 'WASD / 方向键 = 走路'],
   [5, '法器会自动攻击，你只管走位躲怪'],
