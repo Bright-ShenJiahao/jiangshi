@@ -999,7 +999,7 @@ function drawMonkHud() {
 // 光明 / 黑暗两种形态：选大招时二选一，选定后永久变身；法器 key 不变，名字和效果随形态变化
 const WEAPONS_P = {
   cross: { name: '十字驱魔', seal: '十', w: 1, desc: ['两枚白十字架绕身旋转，碰到就打、击退', '伤害提升', '三枚', '绕得更远', '四枚，伤害大增；斩杀回阳（每秒最多 2 点）'] },
-  bible: { name: '圣经', seal: '经', w: 1, desc: ['每 1.6 秒翻开圣经，3 张书页飞出去追着最近的怪打', '5 张书页', '伤害提升', '书页命中后再追下一只', '圣典：10 张书页先绕身一圈，再散射全屏'] },
+  bible: { name: '圣经', seal: '经', w: 1, desc: ['每 1.6 秒翻开圣经，3 张书页飞出去追着最近的怪打', '5 张书页', '伤害提升', '书页命中后再追下一只', '圣典：9 张书页先绕身一圈，再散射全屏'] },
   water: { name: '圣水', seal: '水', w: 1, desc: ['每 3 秒朝怪最密处抛圣水瓶，留下一摊圣水：持续掉血、减速；鬼魂伤害加倍', '范围更大', '一次扔两瓶', '腐蚀：泡过圣水的怪受到伤害 +20%（离开后再持续 2 秒），铁甲失效', '圣水留得更久；站在圣水里每秒回 1 点阳气（和斩杀回阳共用每秒 2 点上限）'] },
   aegis: { name: '天使之护', seal: '护', w: 1, desc: ['银盾挡在你移动方向的正前方：正面来的撞击和飞弹 30% 几率被格挡，不掉血', '格挡几率 40%', '格挡成功时盾面闪光，震退正前方的怪', '盾面变大，侧前方也能挡；格挡几率 45%', '完美格挡：格挡几率 50%，格挡后 0.6 秒内必挡，并朝前方反射圣光（伤害为挡下伤害的 3 倍）'] },
   stake: { name: '银木桩', seal: '桩', w: 1, desc: ['每 3 秒朝附近血最多的怪钉一根银木桩：重击并钉住片刻', '伤害提升', '一次钉两只', '对吸血鬼一族（伯爵、新娘、血仆、狼人）伤害翻倍', '被钉住的怪死时，木桩炸开波及周围'] },
@@ -1008,7 +1008,7 @@ const WEAPONS_P = {
   cage: { name: '禁锢法咒', seal: '锢', w: 1, desc: ['每 6 秒把 2 只小怪封进透明法咒，困 3 秒并持续灼烧；被困的怪挡住后面的怪', '一次困 3 只', '灼烧伤害提升', '精英也能被困 1.5 秒', '被困的怪烧死时，法咒跳到旁边的怪身上继续困住'] },
 };
 const LIGHT_ADD = {
-  cross: '命中叠 1 层圣印', bible: '命中叠圣印；带圣印死去的小怪有几率化作小天使助战（被净化死的几率更高；Lv3 起存在 12 秒，最多 2/3/5 只）', water: '泡在圣水里的怪每秒叠 1 层圣印',
+  cross: '命中叠 1 层圣印', bible: '命中叠圣印；带圣印死去的小怪有几率化作小天使助战（被净化死的几率更高；Lv3 起存在 12 秒，最多 2/3/4 只）', water: '泡在圣水里的怪每秒叠 1 层圣印',
   aegis: '格挡时给正前方的怪叠圣印，完美格挡的反射直接叠满', stake: '每层圣印让伤害 +30%，满 3 层直接净化、伤害翻倍',
   pistol: '爆炸炸到带圣印的怪时，圣光再弹向附近另一只带圣印的怪；它打死的带印怪阴德 ×1.5', pulse: '每次弹开给周围的怪叠 1 层圣印', cage: '困住期间每秒叠 1 层圣印，放出来时直接净化',
 };
@@ -1016,7 +1016,7 @@ const WEAPONS_PL = {};
 for (const k in WEAPONS_P) WEAPONS_PL[k] = { ...WEAPONS_P[k], desc: WEAPONS_P[k].desc.map(d => d + '<br><span class="syn">光明：' + LIGHT_ADD[k] + '</span>') };
 const WEAPONS_PD = {
   cross: { name: '血十字', seal: '血', w: 1, desc: ['两枚倒血十字绕身旋转，命中吸血；打血泊里的怪吸血翻倍', '伤害提升', '三枚', '绕得更远', '四枚，伤害大增'] },
-  bible: { name: '黑暗圣经', seal: '暗', w: 1, desc: ['3 只蝙蝠追咬最近的怪，被咬的怪受诅咒 4 秒；诅咒中死去的小怪 15% 几率化为血仆，为你作战 8 秒（最多 2 只）', '5 只蝙蝠', '伤害提升；转化几率 25%，血仆存在 12 秒（最多 3 只）', '蝙蝠咬中后再追下一只；被诅咒的怪吸血效果翻倍', '禁典：10 只蝙蝠绕身一圈再散射；最多 5 只血仆，倒下时炸开'] },
+  bible: { name: '黑暗圣经', seal: '暗', w: 1, desc: ['3 只蝙蝠追咬最近的怪，被咬的怪受诅咒 4 秒；诅咒中死去的小怪 15% 几率化为血仆，为你作战 8 秒（最多 2 只）', '5 只蝙蝠', '伤害提升；转化几率 25%，血仆存在 12 秒（最多 3 只）', '蝙蝠咬中后再追下一只；被诅咒的怪吸血效果翻倍', '禁典：9 只蝙蝠绕身一圈再散射；最多 4 只血仆，倒下时炸开'] },
   water: { name: '血色圣水', seal: '池', w: 1, desc: ['每 3 秒朝怪最密处抛出血瓶，留下一摊血泊：持续掉血、减速，并吸取伤害', '范围更大', '一次扔两瓶', '腐蚀：泡过血泊的怪受到伤害 +20%（离开后再持续 2 秒），铁甲失效', '血泊留得更久；你站在血泊里时，池中的怪被额外抽血'] },
   aegis: { name: '骷髅盾牌', seal: '骷', w: 1, desc: ['骷髅盾挡在正前方：正面来的撞击和飞弹 30% 几率被格挡；格挡时骷髅尖叫，正前方的小怪恐惧逃散 1 秒', '格挡几率 40%', '格挡时震退正前方的怪', '盾面变大，侧前方也能挡；格挡几率 45%', '格挡几率 50%；格挡后 0.6 秒内必挡，并朝前方喷出一道血光'] },
   stake: { name: '人骨钉', seal: '骨', w: 1, desc: ['每 3 秒朝附近血最多的怪钉一根人骨钉：重击、钉住，并持续抽血 3 秒', '伤害提升', '一次钉两只', '对吸血鬼一族伤害翻倍', '被钉住的怪死时炸开，留下一摊血泊'] },
@@ -1058,7 +1058,7 @@ function prDrain(v, free) {   // 黑暗形态吸血：每秒最多 3 点（猩�
   }
 }
 const prInBlood = e => e.bloodT > S.t;
-const PR_BAL = 0.80;   // 平衡：神父法器总伤害系数（模拟测试里比一休、道长强太多，整体下调）
+const PR_BAL = 0.736;   // 2026-10-19 再削 8%（原 0.80）   // 平衡：神父法器总伤害系数（模拟测试里比一休、道长强太多，整体下调）
 function prHit(e, dmg, kb, fx, fy, src, tag) {   // 神父法器统一走这里：记下伤害来源，处理吸血和圣印
   if (e.dead) return 0;
   dmg *= PR_BAL;
@@ -1090,7 +1090,7 @@ function prPurify(e, mul) {   // 净化：圣印满 3 层，在怪身上炸开�
   prHealCap(1);
 }
 function prSpawnAlly(k, e) {
-  const R = S.pr, lv = S.w.bible || 1, cap = [0, 2, 2, 3, 3, 5][lv], n = R.allies.filter(a => a.k === k).length;
+  const R = S.pr, lv = S.w.bible || 1, cap = [0, 2, 2, 3, 3, 4][lv], n = R.allies.filter(a => a.k === k).length;
   if (n >= cap) return;
   const life = lv >= 3 ? 12 : 8;
   if (k === 'thrall') {
@@ -1195,12 +1195,12 @@ function prBlock(dmg) {   // 天使之护 / 骷髅盾牌：挡正前方来的伤
   return true;
 }
 function prShoot(lv, power) {   // 银手枪 / 猎魂手枪：射出推进弹
-  const P = S.p, R = S.pr, tg = nearest(1, 200)[0];
+  const P = S.p, R = S.pr, tg = nearest(1, 184)[0];
   const a0 = tg ? Math.atan2(tg.y - P.y, tg.x - P.x) : (P.dir ?? (P.face > 0 ? 0 : Math.PI));
   const n = lv >= 5 ? 3 : lv >= 3 ? 2 : 1, sp = n === 3 ? 0.35 : 0.28;
   for (let i = 0; i < n; i++) {
     const a = a0 + (i - (n - 1) / 2) * sp;
-    R.bullets.push({ x: P.x + Math.cos(a) * 8, y: P.y + Math.sin(a) * 6, vx: Math.cos(a) * 240, vy: Math.sin(a) * 240, d: 0, max: lv >= 4 ? 135 : 110, lv, power, drag: new Set(), dark: prDark(), tr: [] });
+    R.bullets.push({ x: P.x + Math.cos(a) * 8, y: P.y + Math.sin(a) * 6, vx: Math.cos(a) * 240, vy: Math.sin(a) * 240, d: 0, max: lv >= 4 ? 124 : 101, lv, power, drag: new Set(), dark: prDark(), tr: [] });
   }
   sfx('coin');
 }
@@ -1241,8 +1241,8 @@ function updatePriest() {
   }
   // 圣经 / 黑暗圣经
   if (W.bible && tick('bible', 1.6)) {
-    const lv = W.bible, n = lv >= 5 ? 10 : lv >= 2 ? 5 : 3, dmg = lv >= 3 ? 22 : 16, hops = lv >= 4 ? 2 : 1;
-    let tg = nearest(n, 220);
+    const lv = W.bible, n = lv >= 5 ? 9 : lv >= 2 ? 5 : 3, dmg = lv >= 3 ? 22 : 16, hops = lv >= 4 ? 2 : 1;
+    let tg = nearest(n, 202);
     if (light) tg = tg.sort((a, b) => ((b.mark || 0) % 3 > 0) - ((a.mark || 0) % 3 > 0));
     sfx('throw'); R.fx.push({ k: 'book', t: 0 });
     for (let i = 0; i < n; i++) {
@@ -1253,7 +1253,7 @@ function updatePriest() {
   for (const p of R.pages) {
     p.life -= DT; p.ph += DT * 14;
     if (p.orb > 0) { p.orb -= DT; const a = p.a0 + (0.6 - p.orb) * 9, r = 30; p.x = P.x + Math.cos(a) * r; p.y = P.y - 12 + Math.sin(a) * r * 0.75; continue; }
-    if (p.tgt && (p.tgt.dead || p.tgt.gone)) p.tgt = S.en.filter(e => !e.dead && !p.hit.has(e.id) && dist2(e, p) < 160 * 160).sort((a, b) => dist2(a, p) - dist2(b, p))[0];
+    if (p.tgt && (p.tgt.dead || p.tgt.gone)) p.tgt = S.en.filter(e => !e.dead && !p.hit.has(e.id) && dist2(e, p) < 147 * 147).sort((a, b) => dist2(a, p) - dist2(b, p))[0];
     if (p.tgt) {
       const dx = p.tgt.x - p.x, dy = p.tgt.y - 12 - p.y, l = Math.hypot(dx, dy) || 1;
       p.vx += (dx / l * 260 - p.vx) * Math.min(1, DT * 7); p.vy += (dy / l * 260 - p.vy) * Math.min(1, DT * 7);
@@ -1261,7 +1261,7 @@ function updatePriest() {
         const e = p.tgt; p.hit.add(e.id); if (dark) e.curseT = S.t + 4;
         prHit(e, p.dmg, 12, p.x, p.y, 'bible');
         if (--p.hops <= 0) { p.life = 0; continue; }
-        p.tgt = S.en.filter(q => !q.dead && !p.hit.has(q.id) && dist2(q, p) < 120 * 120).sort((a, b) => dist2(a, p) - dist2(b, p))[0];
+        p.tgt = S.en.filter(q => !q.dead && !p.hit.has(q.id) && dist2(q, p) < 110 * 110).sort((a, b) => dist2(a, p) - dist2(b, p))[0];
         if (!p.tgt) p.life = Math.min(p.life, 0.3);
       }
     } else { p.vx *= 1 - DT * 2; p.vy *= 1 - DT * 2; p.life = Math.min(p.life, 0.6); }
@@ -1273,7 +1273,7 @@ function updatePriest() {
   if (W.water && tick('water', 3)) {
     const lv = W.water, n = lv >= 3 ? 2 : 1, used = [];
     for (let i = 0; i < n; i++) {
-      const t = mDense(200, used); const x = t ? t.x : P.x + P.face * 50 + rnd(-20, 20), y = t ? t.y : P.y + rnd(-20, 20);
+      const t = mDense(184, used); const x = t ? t.x : P.x + P.face * 50 + rnd(-20, 20), y = t ? t.y : P.y + rnd(-20, 20);
       used.push({ x, y }); R.bottles.push({ x0: P.x, y0: P.y - 16, x, y, t: -i * 0.15, lv });
     }
     sfx('throw');
@@ -1311,7 +1311,7 @@ function updatePriest() {
   // 银木桩 / 人骨钉
   if (W.stake && tick('stake', 3)) {
     const lv = W.stake, n = lv >= 3 ? 2 : 1;
-    const c = S.en.filter(e => !e.dead && e.type !== 'hand' && !e.audience && !(e.batT > 0) && !(e.god === 'rl') && dist2(e, P) < 230 * 230).sort((a, b) => b.hp - a.hp).slice(0, n);
+    const c = S.en.filter(e => !e.dead && e.type !== 'hand' && !e.audience && !(e.batT > 0) && !(e.god === 'rl') && dist2(e, P) < 212 * 212).sort((a, b) => b.hp - a.hp).slice(0, n);
     for (const e of c) R.stakes.push({ x: P.x, y: P.y - 18, tgt: e, lv, life: 1.2 });
     if (c.length) sfx('throw');
   }
@@ -1366,7 +1366,7 @@ function updatePriest() {
   // 禁锢法咒 / 血色牢笼
   if (W.cage && tick('cage', 6)) {
     const lv = W.cage, n = lv >= 2 ? 3 : 2;
-    const c = S.en.filter(e => !e.dead && !mBig(e) && e.type !== 'hand' && !e.audience && !(e.batT > 0) && !(e.cageT > S.t) && (lv >= 4 || !e.elite) && dist2(e, P) < 170 * 170);
+    const c = S.en.filter(e => !e.dead && !mBig(e) && e.type !== 'hand' && !e.audience && !(e.batT > 0) && !(e.cageT > S.t) && (lv >= 4 || !e.elite) && dist2(e, P) < 156 * 156);
     c.sort(() => Math.random() - 0.5);
     for (const e of c.slice(0, n)) prCage(e, 3);
     if (c.length) sfx('suck');
@@ -3098,7 +3098,7 @@ addEventListener('blur', () => { if (S && S.state === 'play') togglePause(); });
 
 // ---------- 分享 / 复活 ----------
 const SITE = 'https://jiangshidaozhang.netlify.app/';
-const BUILD = '2610190018';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
+const BUILD = '2610190033';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
 const shareUrl = () => ((typeof WEB !== 'undefined' && WEB) ? location.origin + location.pathname : SITE) + '?v=' + BUILD;
 function shichenNow() { let n = '子时'; for (const [a, t] of SHI) if (S.t >= t) n = a; return n; }
 async function copyText(s) {
