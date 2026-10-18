@@ -8,39 +8,65 @@ const D_LANES = MAP.lanes, D_CORE = MAP.core, D_WAVES = 30, D_TOWN_Y = MAP.townY
 const D_SITE = SITE + 'longmai.html';
 const dNum = n => cn(n);
 // 每一波的怪：[从第几波起, 到第几波, 种类, 权重]
+// 第1–5波《僵尸先生》｜6–8《僵尸叔叔》｜9–12《灵幻先生》｜13–15《驱魔警察》｜16–18 洋鬼｜19–28《僵尸道长》｜29–30 终局
 const D_MIX = [
-  [1, 9, 'ghost', 5], [1, 6, 'walk', 4], [1, 4, 'zP', 4], [3, 12, 'zW', 3],
-  [6, 14, 'corpse', 4], [6, 30, 'jump', 2], [11, 30, 'ghostW', 2], [11, 30, 'zG', 3], [11, 18, 'walk', 2],
-  [16, 30, 'wolf', 3], [16, 30, 'vampM', 3], [16, 30, 'ghost', 2], [21, 30, 'corpse', 2], [21, 30, 'zW', 2], [26, 30, 'bride', 1],
+  [1, 5, 'ghost', 5], [1, 6, 'walk', 4], [1, 4, 'zP', 4], [3, 8, 'zW', 3],
+  [6, 9, 'corpse', 4], [6, 30, 'jump', 1.5],
+  [9, 12, 'tanG', 3], [9, 11, 'ghost', 2], [10, 12, 'bandit', 3], [11, 13, 'walk', 2],
+  [13, 15, 'iceZ', 4], [13, 15, 'iceW', 2], [13, 30, 'zG', 2],
+  [16, 18, 'wolf', 3], [16, 18, 'vampM', 3], [16, 18, 'ghostW', 1],
+  [19, 22, 'feitou', 4], [19, 25, 'xiaozun', 3], [21, 23, 'ghostW', 2], [21, 22, 'vampM', 1],
+  [23, 25, 'qingbing', 5], [25, 26, 'feitou', 2],
+  [26, 30, 'qingbing', 2], [26, 30, 'tanG', 1], [26, 30, 'bandit', 1], [26, 30, 'iceZ', 1], [27, 30, 'wolf', 1], [27, 30, 'feitou', 2], [27, 30, 'corpse', 1],
 ];
-// 每五波一个 BOSS
+// 每一段的精英怪
+const D_ELITE = [[1, 8, ['red', 'hairy']], [9, 12, ['oil', 'red']], [13, 15, ['thugA', 'thugB']], [16, 18, ['bride', 'hairy']], [19, 25, ['red', 'oil', 'hairy']], [26, 30, ['oil', 'thugA', 'thugB', 'bride', 'red']]];
+// BOSS（不再是固定每五波一个）
 const D_BOSS = {
   5: { name: '尸变任老爷', type: 'zombie', skin: 'renZ', hp: 650, sc: 1.9, summon: 'zP', leaper: true,
-    say: ['任老爷被老太爷咬了一口，伤口发黑……', '任老爷尸变了！直奔任家镇！'] },
-  10: { name: '赶尸毛僵', type: 'jumper', skin: 'jumperM', hp: 1300, sc: 1.75, summon: 'corpse',
-    say: ['四目道长赶尸路过，一阵阴风吹落了符咒……', '赶尸队里的毛僵挣脱了！'] },
-  15: { name: '红衣女鬼', type: 'ghost', skin: 'ghostR', hp: 2000, sc: 1.6, summon: 'ghostW',
-    say: ['秋生说，昨夜送了一位红衣姑娘回家……', '她根本不是人！红衣女鬼来了！'] },
-  20: { name: '西洋吸血鬼', type: 'walker', skin: 'vampire', hp: 3000, sc: 1.6, summon: 'vampM', bats: true,
-    say: ['教堂地下室那口洋棺材，棺盖从里面推开了……', '西洋吸血鬼！十字架、圣水……还有糯米！'] },
-  25: { name: '吸血鬼新娘', type: 'walker', skin: 'bride', hp: 4000, sc: 1.55, summon: 'wolf',
-    say: ['白纱新娘提着裙摆，从教堂一路飘了过来……', '吸血鬼新娘带着狼人来了！'] },
-  30: { name: '尸王·任老太爷', type: 'zombie', skin: 'king', hp: 7000, sc: 2.1, summon: 'zG', leaper: true, final: true,
-    say: ['七七四十九天，蜻蜓点水穴里的老太爷……', '炼成尸王了！守住龙脉，这是最后一战！'] },
+    say: ['《僵尸先生》：任老爷被老太爷咬了一口……', '任老爷尸变了！直奔任家镇！'] },
+  8: { name: '赶尸毛僵', type: 'jumper', skin: 'jumperM', hp: 1100, sc: 1.75, summon: 'corpse',
+    say: ['《僵尸叔叔》：一阵阴风吹落了赶尸的符咒……', '赶尸队里的毛僵挣脱了！'] },
+  12: { name: '马贼王婆', type: 'walker', skin: 'wangpo', hp: 1500, sc: 1.6, summon: 'bandit', dr: 0.5, next: 'wangpoG', capture: true,
+    say: ['《灵幻先生》：马贼帮的王婆杀进镇来了！她刀枪不入', '她还把大宝抓走了，施法让他专打穿道袍的人！'] },
+  wangpoG: { name: '鬼王·王婆', type: 'ghost', skin: 'wangpoG', hp: 1700, sc: 1.6, summon: 'tanG', fly: true,
+    say: ['王婆掉进井里死了……', '死后化成了鬼王！'] },
+  15: { name: '九菊女教主', type: 'walker', skin: 'jiuju', hp: 2600, sc: 1.55, summon: 'iceZ', jiuju: true,
+    say: ['《驱魔警察》：九菊一派的女教主亲自来了', '小心她的黑泥、石灰，还有隔空斗法！'] },
+  18: { name: '告鲁斯伯爵', type: 'walker', skin: 'vampire', hp: 3300, sc: 1.6, summon: 'vampM', bats: true, batShift: true,
+    say: ['《僵尸道长》：西洋吸血鬼告鲁斯伯爵', '他会化成蝙蝠瞬移，中国法术一时奈何不了他！'] },
+  20: { name: '大罗金仙', type: 'ghost', skin: 'moth', hp: 3600, sc: 1.3, summon: 'feitou', fly: true, charm: true,
+    say: ['自称「大罗金仙」的神棍来了……其实是飞蛾修炼成的蛾妖', '别看她的翅膀！会被迷得晕头转向（方向颠倒）'] },
+  22: { name: '罗平·血魔', type: 'walker', skin: 'xuemo', hp: 4200, sc: 1.6, summon: 'xiaozun', blood: true,
+    say: ['怨气与邪法，把罗平变成了血魔', '他打中你会吸血，走过的地方血流成池！'] },
+  24: { name: '慈禧太后', type: 'zombie', skin: 'cixi', hp: 5000, sc: 1.5, summon: 'qingbing', pearl: true, sumN: 5, sumCd: 7,
+    say: ['盗墓贼偷走了慈禧口中的定东珠……', '慈禧太后复活了！带着清兵僵尸团！'] },
+  26: { name: '杨飞云', type: 'walker', skin: 'yangfy', hp: 5600, sc: 1.55, summon: 'tanG', revive: true, curse: true,
+    say: ['算命的杨飞云为了逆天改命，不择手段……', '他入魔了！小心：他会逆天改命，再活一次！'] },
+  28: { name: '僵尸王玄魁', type: 'ghost', skin: 'xuankui', hp: 6500, sc: 1.45, summon: 'xiaozun', fly: true, immune: true, dr: 0.7,
+    say: ['清朝亲王，僵尸之王——玄魁！', '他会飞，不惧寻常法器（不怕定身、减速，法器伤害打七折）'] },
+  29: { name: '尸王·任老太爷', type: 'zombie', skin: 'king', hp: 6000, sc: 2.1, summon: 'zG', leaper: true,
+    say: ['七七四十九天，蜻蜓点水穴里的老太爷……', '炼成尸王了！'] },
+  30: { name: '邪神降临', type: 'walker', skin: 'xieshen', hp: 9000, sc: 1.25, summon: 'mix', final: true, stomp: true, sumN: 6, sumCd: 7,
+    say: ['天地变色……大魔神，邪神真身降临了！', '最后一战！守住龙脉，等到鸡鸣！'] },
 };
-// 每一波开始时的旁白（参考林正英僵尸片）
+// 每一波开始时的旁白（参考林正英僵尸片和《僵尸道长》）
 const D_SAY = {
-  1: ['鬼门关开了！三路阴兵往任家镇来了', '守住镇中心的龙脉！'],
+  1: ['《僵尸先生》：鬼门关开了！三路阴兵往任家镇来了', '守住镇中心的龙脉！'],
   3: ['白僵出现了——怕火、怕光'],
   4: ['精英怪带着词缀，打掉有机会掉宝箱'],
-  6: ['四目道长的赶尸队……一具具都在往这边跳'],
-  8: ['四目道长赶尸路过任家镇，留下来助阵！他守在龙脉旁扔符'],
-  11: ['女鬼哭了一整夜……白衣女鬼出没'],
-  12: ['绿僵出现了！会蓄力扑跳'],
+  6: ['《僵尸叔叔》：四目道长的赶尸队……一具具都在往这边跳'],
+  7: ['四目道长赶尸路过任家镇，留下来助阵！他守在龙脉旁扔符'],
+  9: ['《灵幻先生》：谭百万把房子建在坟头上，厉鬼一家出来作祟了', '明叔养的两只小鬼大宝、小宝来帮你！'],
+  10: ['马贼的鬼魂来了！它们会附身镇上的保安', '保安被附身会朝你开枪——走过去拍醒他！'],
+  11: ['「半生熟」油炸鬼！浑身漆黑、刀枪不入（法器伤害打六折，雷火光照样疼）'],
+  13: ['《驱魔警察》：九菊一派用邪术冰封的行尸、运毒女尸', '刚出来几秒打不动，也推不开'],
+  14: ['九菊一派的邪术打手！会突然冲过来连打'],
   16: ['教堂的钟自己响了。洋人的东西也来了：狼人、吸血鬼仆从'],
-  21: ['阴气越来越重，镇上的狗都不叫了……'],
-  26: ['子时三刻，百鬼夜行！'],
-  28: ['再撑三波！鸡鸣之前，绝不能让龙脉断了'],
+  19: ['《僵尸道长》：南洋降头术——飞降！只有一颗头在飞', '还有被玄魁咬过的小僵尸小尊'],
+  23: ['清兵僵尸团！排着队跳过来'],
+  25: ['阴气越来越重，镇上的狗都不叫了……'],
+  27: ['子时三刻，百鬼夜行！'],
 };
 const D_FIELD = {   // 野外 BOSS：打死掉大宝箱和铜钱，三波后复活，更强
   tomb: { name: '古墓毛僵', mob: () => ['jumper', { elite: true, skin: 'jumperM', eliteHp: 6 }] },
@@ -119,6 +145,15 @@ function dTarget(e) {
     if (e.skin === 'ghostR') e.dashCd = Math.max(e.dashCd || 0, 0.6);
     return [hx, hy];
   }
+  if (e.dabao) return null;   // 被王婆控制的大宝：只追穿道袍的人
+  if (e.bandit && !P.down) {   // 马贼鬼魂：先去找保安附身
+    let best = null, bd = 170 * 170;
+    for (const m of W.men) { if (m.k === 'simu' || m.pos > 0) continue; const dd = (m.x - e.x) ** 2 + (m.y - e.y) ** 2; if (dd < bd) { bd = dd; best = m; } }
+    if (best) {
+      if (bd < 16 * 16) { best.pos = 9; e.gone = true; dMobGone(e); sfx('scream'); S.texts.push({ x: best.x, y: best.y - 44, v: '马贼上身了！', t: 1.6, c: '#7af0d0', big: true }); return [0, 0]; }
+      return [best.x - e.x, best.y - e.y];
+    }
+  }
   const R = e.boss ? 92 : e.elite ? 80 : 62;
   if (see && (d2 < R * R || (e.aggro && d2 < (R + 55) ** 2))) { e.aggro = true; return null; }
   e.aggro = false;
@@ -141,12 +176,19 @@ function dTarget(e) {
 // ---------- 刷怪 ----------
 function dMob(kind, x, y) {
   let e = null;
+  if (kind === 'mix') kind = ['qingbing', 'feitou', 'tanG', 'iceZ', 'wolf', 'zG', 'xiaozun'][Math.floor(Math.random() * 7)];
   if (kind === 'ghost') e = spawn('ghost', x, y);
   else if (kind === 'ghostW') { e = spawn('ghost', x, y, { skin: 'ghostW' }); if (e) { e.hp = e.max = e.max * 1.8; e.xp *= 1.5; } }
+  else if (kind === 'tanG') { e = spawn('ghost', x, y, { skin: 'tanG' }); if (e) { e.hp = e.max = e.max * 2.4; e.spd *= 0.9; e.dmg = Math.round(e.dmg * 1.3); e.xp *= 1.6; } }
+  else if (kind === 'feitou') { e = spawn('ghost', x, y, { skin: 'feitou' }); if (e) { e.hp = e.max = e.max * 1.2; e.spd *= 1.5; e.r = 5; } }
   else if (kind === 'walk') { e = spawn('walker', x, y); if (e) { const r = Math.random(); if (r < 0.3) e.skin = 'walkF'; else if (r < 0.55) e.skin = 'walkS'; } }
+  else if (kind === 'bandit') { e = spawn('walker', x, y, { skin: Math.random() < 0.5 ? 'banditA' : 'banditB' }); if (e) { e.bandit = true; e.nopois = true; e.spd *= 1.25; e.hp = e.max = e.max * 1.4; } }
+  else if (kind === 'iceZ' || kind === 'iceW') { e = spawn('walker', x, y, { skin: kind }); if (e) { e.nopois = true; e.ice = S.t + 4; e.kbk = 0.25; e.hp = e.max = e.max * 2; e.dmg = Math.round(e.dmg * 1.4); e.spd *= 0.9; e.xp *= 1.5; } }
   else if (kind === 'zP' || kind === 'zW' || kind === 'zG') {
     e = spawn('zombie', x, y); if (e) { e.skin = kind; if (kind === 'zP') { e.hp = e.max = e.max * 0.8; e.spd *= 0.85; } if (kind === 'zG') { e.spd *= 1.2; e.leaper = true; e.leapCd = rnd(1.5, 3.5); } }
   } else if (kind === 'corpse') { e = spawn('zombie', x, y, { skin: 'corpse' }); if (e) { e.hp = e.max = e.max * 1.3; e.xp *= 1.3; } }
+  else if (kind === 'qingbing') { e = spawn('zombie', x, y, { skin: 'qingbing' }); if (e) { e.hp = e.max = e.max * 1.4; e.xp *= 1.3; } }
+  else if (kind === 'xiaozun') { e = spawn('zombie', x, y, { skin: 'xiaozun' }); if (e) { e.spd *= 1.5; e.r = 5; e.hp = e.max = e.max * 0.8; } }
   else if (kind === 'jump') e = spawn('jumper', x, y);
   else if (kind === 'wolf' || kind === 'vampM' || kind === 'bride') e = church2Mob(kind === 'vampM' ? 'mob' : kind, x, y, false);
   return e;
@@ -156,9 +198,12 @@ function dSpawnOne(q) {
   const W = S.dw, [x, y] = q.x != null ? [q.x, q.y] : dPortal(q.lane);
   let e;
   if (q.elite) {
-    const red = q.elite === 'red';
-    e = spawn(red ? 'ghost' : 'jumper', x, y, { elite: true, skin: red ? 'ghostR' : 'jumperM', eliteHp: red ? 15 : 6 });
-    if (e) { const ak = Object.keys(AFFIX)[Math.floor(Math.random() * 5)]; e.affix = ak; e.born = S.t; S.affSeen = S.affSeen || {}; e.lblT = S.affSeen[ak] ? 1.4 : 5; S.affSeen[ak] = 1; e.leak = 6; }
+    const k = q.elite;
+    if (k === 'red' || k === 'hairy') e = spawn(k === 'red' ? 'ghost' : 'jumper', x, y, { elite: true, skin: k === 'red' ? 'ghostR' : 'jumperM', eliteHp: k === 'red' ? 15 : 6 });
+    else if (k === 'oil') { e = spawn('zombie', x, y, { elite: true, skin: 'oilG', eliteHp: 5 }); if (e) { e.dr = 0.6; e.kbk = 0.3; } }   // 半生熟：刀枪不入，只怕雷火光
+    else if (k === 'thugA' || k === 'thugB') { e = spawn('walker', x, y, { elite: true, skin: k, eliteHp: 5 }); if (e) { e.thug = true; e.nopois = true; e.spd *= 1.3; e.dmg = Math.round(e.dmg * 1.5); e.kbk = k === 'thugB' ? 0.3 : 0.7; } }
+    else if (k === 'bride') e = church2Mob('bride', x, y, true);
+    if (e && !e.affix) { const ak = Object.keys(AFFIX)[Math.floor(Math.random() * 5)]; e.affix = ak; e.born = S.t; S.affSeen = S.affSeen || {}; e.lblT = S.affSeen[ak] ? 1.4 : 5; S.affSeen[ak] = 1; e.leak = 6; }
   } else if (q.boss) e = dSpawnBoss(q.boss, x, y, q.lane);
   else e = dMob(q.kind, x, y);
   if (!e) return;
@@ -175,8 +220,8 @@ function dStartWave(w) {
   W.wave = w; W.waveT = S.t; W.nextT = w >= D_WAVES ? 1e9 : S.t + (B ? 44 : 31);
   const n = Math.round((8 + w * 2.5) * (B ? 0.55 : 1) * D.spawn), dur = B ? 18 : 15, mix = dMixFor(w);
   for (let i = 0; i < n; i++) W.q.push({ t: S.t + 1 + dur * i / n + rnd(-0.3, 0.3), kind: dPick(mix), lane: i % 3, wv: w });
-  const ne = w >= 4 ? Math.floor((w - 1) / 4) : 0;
-  for (let i = 0; i < ne; i++) W.q.push({ t: S.t + 4 + dur * (i + 0.5) / ne, elite: i % 2 ? 'red' : 'hairy', lane: Math.floor(Math.random() * 3), wv: w });
+  const ne = w >= 4 ? Math.floor((w - 1) / 4) : 0, pool = (D_ELITE.find(r => w >= r[0] && w <= r[1]) || D_ELITE[0])[2];
+  for (let i = 0; i < ne; i++) W.q.push({ t: S.t + 4 + dur * (i + 0.5) / ne, elite: pool[i % pool.length], lane: Math.floor(Math.random() * 3), wv: w });
   if (B) W.q.push({ t: S.t + 3, boss: w, lane: 1, wv: w });
   W.q.sort((a, b) => a.t - b.t);
   W.spawnEnd = S.t + dur + 2;
@@ -184,46 +229,121 @@ function dStartWave(w) {
   banner(B ? `第${dNum(w)}波 · ${B.name}` : `第${dNum(w)}波`, 2.2);
   if (D_SAY[w]) rumor(D_SAY[w], w === 1 || w === 26);
   if (B) { rumor(B.say, true); sfx('boss'); S.shake = 0.3; }
-  if (w === 8) dSimuJoin();
+  if (w === 7) dSimuJoin();
+  if (w === 9) dAlliesJoin();
   if (MAP.watch) S.texts.push({ x: MAP.watch[0], y: MAP.watch[1] - 40, v: '咚——哐！第' + dNum(w) + '波！', t: 2, c: '#ffe070', big: true });
   W.callable = false;
 }
-function dSpawnBoss(w, x, y, lane) {
-  const B = D_BOSS[w], D = DIFF[S.diff];
+function dSpawnBoss(key, x, y, lane) {
+  const B = D_BOSS[key], D = DIFF[S.diff], w = S.dw.wave;
   const e = spawn(B.type, x, y, { elite: true, skin: B.skin, eliteHp: 6 }); if (!e) return null;
-  e.hp = e.max = B.hp * (1 + 0.06 * w) * D.hp; e.boss = w; e.special = true; e.bsc = B.sc; e.r = 9; e.leak = 0;
-  e.bossCore = B.final ? 6 : 3; e.sumT = S.t + 7; e.xp = 40; e.nopois = true;
+  e.hp = e.max = B.hp * (1 + 0.045 * w) * D.hp; e.boss = key; e.bw = w; e.special = true; e.bsc = B.sc; e.r = 9; e.leak = 0;
+  e.bossCore = B.final ? 6 : 3; e.sumT = S.t + 6; e.xp = 40; e.nopois = true; e.kbk = 0.2;
   if (B.leaper) { e.leaper = true; e.leapCd = rnd(2, 3); }
   if (B.type === 'walker') e.spd *= 1.15;
-  e.dmg = Math.round(e.dmg * (B.final ? 1.4 : 1.15));
+  if (B.type === 'ghost') e.spd *= 0.75;
+  if (B.dr) e.dr = B.dr;
+  if (B.blood) e.affix = 'vamp';
+  e.dmg = Math.round(e.dmg * (B.final ? 1.5 : 1.2));
   S.dw.boss = e; S.dw.awFled = false;
+  if (B.capture) dCapture(e);
   return e;
 }
-function dBossTick(e) {   // BOSS 定时召唤小怪；吸血鬼放蝙蝠
+function dBossTick(e) {   // BOSS 的招式
   const B = D_BOSS[e.boss]; if (!B || e.dead || e.rise > 0) return;
-  if (S.t >= e.sumT) {
-    e.sumT = S.t + (B.final ? 7 : 9);
-    const n = 2 + Math.floor(e.boss / 10) + (S.diff === 'hard' ? 1 : 0);
+  const P = S.p, d = Math.hypot(P.x - e.x, P.y - e.y), near = !P.down;
+  if (S.t >= e.sumT) {   // 召唤
+    e.sumT = S.t + (B.sumCd || (B.final ? 7 : 9));
+    const n = (B.sumN || 2 + Math.floor(e.bw / 10)) + (S.diff === 'hard' ? 1 : 0);
     for (let i = 0; i < n; i++) {
       const a = i / n * 6.283, m = dMob(B.summon, e.x + Math.cos(a) * 18, e.y + Math.sin(a) * 12);
-      if (m) { m.lane = e.lane; m.wp = e.wp; m.lo = rnd(-9, 9); m.wv = S.dw.wave; m.dw = 1; m.rise = 0.6; m.xp *= 0.4; m.hp = m.max = m.max * dHpK(e.boss); S.dw.alive[m.wv] = (S.dw.alive[m.wv] || 0) + 1; }
+      if (m) { m.lane = e.lane; m.wp = e.wp; m.lo = rnd(-9, 9); m.wv = S.dw.wave; m.dw = 1; m.rise = 0.6; m.xp *= 0.4; m.hp = m.max = m.max * dHpK(e.bw); S.dw.alive[m.wv] = (S.dw.alive[m.wv] || 0) + 1; }
     }
     S.texts.push({ x: e.x, y: e.y - 58, v: '召！', t: 1, c: '#ff7a6a', big: true }); sfx('roar');
     for (let i = 0; i < 14; i++) S.parts.push({ x: e.x + rnd(-14, 14), y: e.y - 4, vx: rnd(-60, 60), vy: rnd(-100, -30), t: rnd(0.4, 0.8), c: '#7a3a6a' });
   }
-  if (B.bats) {
-    const P = S.p, d = Math.hypot(P.x - e.x, P.y - e.y);
-    e.batCd = (e.batCd ?? 3) - DT;
-    if (e.batCd <= 0 && d < 220 && !P.down) {
-      e.batCd = rnd(3.5, 5); const a0 = Math.atan2(P.y - 10 - (e.y - 20), P.x - e.x); sfx('wisp');
-      for (let i = -1; i <= 1; i++) { const a = a0 + i * 0.28; S.eshots.push({ k: 'bat', x: e.x, y: e.y - 20, vx: Math.cos(a) * 80, vy: Math.sin(a) * 80, life: 3, a, ph: 0, dmg: Math.round(8 * DIFF[S.diff].dmg) }); }
+  const tick = (k, cd) => { e[k] = (e[k] ?? cd * 0.6) - DT; if (e[k] > 0) return false; e[k] = cd; return true; };
+  const D = DIFF[S.diff], dmg = n => Math.round(n * D.dmg * (1 + e.bw / 30));
+  if (B.bats && near && d < 220 && tick('batCd', 4.2)) {   // 蝙蝠
+    const a0 = Math.atan2(P.y - 10 - (e.y - 20), P.x - e.x); sfx('wisp');
+    for (let i = -1; i <= 1; i++) { const a = a0 + i * 0.28; S.eshots.push({ k: 'bat', x: e.x, y: e.y - 20, vx: Math.cos(a) * 80, vy: Math.sin(a) * 80, life: 3, a, ph: 0, dmg: dmg(7) }); }
+  }
+  if (B.batShift) {   // 化成蝙蝠往前瞬移，这时打不到
+    if (e.batT > 0) { e.batT -= DT; if (e.batT <= 0) { e.spd = e.spd0; S.texts.push({ x: e.x, y: e.y - 50, v: '现形！', t: 0.8, c: '#ff8a9a' }); } }
+    else if (tick('shiftCd', 9)) { e.batT = 1.4; e.spd0 = e.spd; e.spd *= 3.2; sfx('wisp'); S.texts.push({ x: e.x, y: e.y - 50, v: '化蝠！', t: 0.9, c: '#ff8a9a', big: true }); }
+  }
+  if (B.jiuju) {
+    const demon = e.hp < e.max * 0.5;
+    if (demon && !e.demon) { e.demon = true; e.skin = 'jiujuD'; e.spd *= 1.3; banner('女教主魔化了！', 2); sfx('roar'); S.shake = 0.3; }
+    const k = demon ? 0.65 : 1;
+    if (near && d < 200 && tick('mudCd', 6 * k)) {   // 黑泥：脚下一滩毒泥
+      for (let i = 0; i < (demon ? 3 : 1); i++) S.areas.push({ k: 'poison', sha: true, x: P.x + rnd(-24, 24) * (i > 0), y: P.y + rnd(-14, 14) * (i > 0), r: 20, life: 5, tk: 0, seed: Math.random() * 1000 });
+      S.texts.push({ x: P.x, y: P.y - 40, v: '黑泥！', t: 0.9, c: '#c08aff' });
+    }
+    if (near && d < 230 && tick('limeCd', 3.5 * k)) {   // 石灰
+      const a0 = Math.atan2(P.y - 10 - (e.y - 18), P.x - e.x); sfx('throw');
+      for (let i = -1; i <= 1; i++) { const a = a0 + i * 0.2; S.eshots.push({ k: 'lime', x: e.x, y: e.y - 18, vx: Math.cos(a) * 110, vy: Math.sin(a) * 110, life: 2.2, a, dmg: dmg(6) }); }
+    }
+    if (near && d < 280 && d > 70 && tick('blinkCd', 10 * k)) {   // 隔空斗法：闪到你身边
+      for (let i = 0; i < 16; i++) S.parts.push({ x: e.x + rnd(-8, 8), y: e.y - rnd(0, 30), vx: rnd(-40, 40), vy: rnd(-60, 0), t: 0.5, c: '#c08aff' });
+      const a = Math.random() * 6.283; for (let k2 = 0; k2 < 8; k2++) { const nx = P.x + Math.cos(a + k2) * 60, ny = P.y + Math.sin(a + k2) * 40; if (freeAt(nx, ny)) { e.x = nx; e.y = ny; break; } }
+      S.texts.push({ x: e.x, y: e.y - 56, v: '隔空斗法！', t: 1, c: '#c08aff', big: true }); sfx('whoosh');
     }
   }
+  if (B.charm && near && d < 170 && tick('charmCd', 10)) {   // 蛾妖幻术：方向颠倒
+    S.dw.charmT = 3; S.texts.push({ x: P.x, y: P.y - 46, v: '被迷住了！方向颠倒', t: 1.8, c: '#ffd090', big: true }); sfx('suck');
+  }
+  if (B.charm && near && d < 70) { e.drainT = (e.drainT || 0) - DT; if (e.drainT <= 0) { e.drainT = 1; if (P.inv <= 0) { poisonPlayer(dmg(3)); e.hp = Math.min(e.max, e.hp + e.max * 0.004); } } }
+  if (B.blood && tick('poolCd', 1.6)) S.areas.push({ k: 'poison', sha: true, x: e.x, y: e.y + 2, r: 14, life: 6, tk: 0, seed: Math.random() * 1000 });
+  if (B.pearl) {   // 定东珠：隔一阵罩一层金光，三秒刀枪不入
+    if (e.pearlT > 0) { e.pearlT -= DT; if (e.pearlT <= 0) e.dr = 1; }
+    else if (tick('pearlCd', 13)) { e.pearlT = 3; e.dr = 0.05; S.texts.push({ x: e.x, y: e.y - 60, v: '定东珠护体！', t: 1.4, c: '#ffe070', big: true }); sfx('bell'); }
+  }
+  if (B.curse && near && d < 210 && tick('curseCd', 8)) { P.slowT = Math.max(P.slowT || 0, 2.2); S.texts.push({ x: P.x, y: P.y - 44, v: '罗盘锁魂！', t: 1.2, c: '#7af0a0', big: true }); sfx('chain'); }
+  if (B.revive && !e.revived && e.hp < e.max * 0.25) { e.revived = true; e.hp = e.max * 0.7; banner('杨飞云：逆天改命！', 2.2); sfx('gong'); S.shake = 0.3; for (let i = 0; i < 30; i++) S.parts.push({ x: e.x, y: e.y - 20, vx: rnd(-90, 90), vy: rnd(-120, 20), t: 0.7, c: '#7a4ac0' }); }
+  if (B.immune) { e.stun = 0; e.slow = 0; e.pslow = 0; e.cageT = 0; }
+  if (B.stomp && near && d < 90 && tick('stompCd', 5)) {   // 邪神跺地
+    S.fx.push({ k: 'pulse', x: e.x, y: e.y, r: 10, R: 90, t: 0, c: '#ff4a3a' }); sfx('slam'); S.shake = 0.35;
+    if (d < 75 && P.inv <= 0) hurtPlayer(dmg(16));
+  }
+}
+function dCharm() { return S && S.dw && S.dw.charmT > 0; }
+function dDR(e, tag) {   // 伤害减免：油炸鬼、王婆、玄魁 怕雷火光；冰封行尸刚出来几秒打不动
+  let k = 1;
+  if (e.dr != null && e.dr !== 1) k *= (tag === 'light' || tag === 'burn') && e.dr > 0.2 ? Math.min(1, e.dr * 1.8) : e.dr;
+  if (e.ice && S.t < e.ice) k *= 0.25;
+  return k;
+}
+// ---------- 大宝、小宝（明叔养的两只小鬼，来帮你） ----------
+function dAlliesJoin() {
+  const W = S.dw, P = S.p; if (W.pals) return;
+  W.pals = [{ k: 'dabao', x: P.x - 20, y: P.y, cd: 1, ok: true }, { k: 'xiaobao', x: P.x + 20, y: P.y, cd: 0.6, ok: true }];
+}
+function dCapture(boss) {   // 王婆抓走大宝，大宝变成敌人，专打穿道袍的人
+  const W = S.dw, a = W.pals && W.pals.find(q => q.k === 'dabao' && q.ok); if (!a) return;
+  a.ok = false;
+  const e = spawn('ghost', boss.x + 20, boss.y, { skin: 'dabao' }); if (!e) return;
+  e.dabao = true; e.hp = e.max = 300 * (1 + W.wave / 10); e.spd = 46; e.dmg = Math.round(10 * DIFF[S.diff].dmg); e.special = true; e.xp = 0;
+  e.onHurt = q => { if (q.hp <= 0) { q.hp = 1; q.gone = true; a.ok = true; a.x = q.x; a.y = q.y; S.texts.push({ x: q.x, y: q.y - 40, v: '大宝醒了！', t: 1.8, c: '#7ef0a0', big: true }); sfx('ultcard'); } };
+}
+function dPalTick() {
+  const W = S.dw, P = S.p; if (!W.pals) return;
+  W.pals.forEach((a, i) => {
+    if (!a.ok) return;
+    const tx = P.down ? D_CORE[0] + (i ? 24 : -24) : P.x + (i ? 22 : -22), ty = (P.down ? D_CORE[1] - 50 : P.y) - 4 + Math.sin(S.t * 3 + i) * 3;
+    a.x += (tx - a.x) * Math.min(1, DT * 4); a.y += (ty - a.y) * Math.min(1, DT * 4);
+    a.cd -= DT; if (a.cd > 0) return;
+    let tg = null, bd = 80 * 80;
+    for (const e of S.en) { if (e.dead || e.rise > 0 || e.god || e.dabao || e.batT > 0) continue; const d = (e.x - a.x) ** 2 + (e.y - a.y) ** 2; if (d < bd) { bd = d; tg = e; } }
+    if (!tg) { a.cd = 0.3; return; }
+    a.cd = a.k === 'dabao' ? 1.2 : 0.8; a.hitT = 0.15; a.tx = tg.x; a.ty = tg.y - 10; a.face = tg.x < a.x ? -1 : 1;
+    hurt(tg, (6 + 1.1 * W.wave) * (a.k === 'dabao' ? 1.4 : 0.8), a.k === 'dabao' ? 60 : 10, a.x, a.y);
+  });
 }
 function dWispTick() {   // 进了镇的游魂、女鬼会远远朝龙脉吐阴火
   const W = S.dw, cx = D_CORE[0], cy = D_CORE[1] - 30;
   for (const e of S.en) {
-    if (e.dead || e.rise > 0 || e.type !== 'ghost' || e.god || e.field || e.y < D_TOWN_Y) continue;
+    if (e.dead || e.rise > 0 || e.type !== 'ghost' || e.god || e.field || e.boss || e.dabao || e.y < D_TOWN_Y) continue;
     if ((e.x - cx) ** 2 + (e.y - cy) ** 2 > 150 * 150) continue;
     e.wispT = (e.wispT ?? rnd(1, 3)) - DT;
     if (e.wispT > 0) continue;
@@ -238,11 +358,20 @@ function dMobGone(e) { const W = S.dw; if (e.dw && e.wv) W.alive[e.wv] = Math.ma
 function dKill(e) {   // 原游戏 hurt() 里怪死的时候调用
   const W = S.dw; if (!W) return;
   dMobGone(e);
-  const g = e.boss ? 120 + e.boss * 4 : e.field ? 45 + 4 * W.wave : e.elite ? 8 : e.type === 'ghost' ? 1 : 2;
+  const g = e.boss ? 120 + e.bw * 4 : e.field ? 45 + 4 * W.wave : e.elite ? 8 : e.type === 'ghost' ? 1 : 2;
   W.gold += g; W.goldT = 0.4;
   if (g >= 5) { S.texts.push({ x: e.x, y: e.y - 44, v: '+' + g + '文', t: 1.2, c: '#ffd040', big: g >= 40 }); sfx('coin'); }
+  if (e.boss && D_BOSS[e.boss].next) {   // 王婆：死了化成鬼王
+    const B = D_BOSS[e.boss], nk = B.next, NB = D_BOSS[nk];
+    banner(`${B.name} 倒下了……`, 1.6); rumor(NB.say, true);
+    setTimeout(() => { if (!S || !S.dw || S.dw.over) return; const n = dSpawnBoss(nk, e.x, e.y, e.lane); if (n) { n.wp = e.wp; n.wv = e.wv; n.dw = 1; n.rise = 1; S.dw.alive[n.wv] = (S.dw.alive[n.wv] || 0) + 1; sfx('boss'); S.shake = 0.4; } }, 900);
+    S.dw.alive[e.wv] = (S.dw.alive[e.wv] || 0) + 1;   // 先占住这一波，等鬼王出来
+    setTimeout(() => { if (S && S.dw) S.dw.alive[e.wv] = Math.max(0, (S.dw.alive[e.wv] || 0) - 1); }, 1000);
+    return;
+  }
   if (e.boss) {
     const B = D_BOSS[e.boss];
+    if (e.boss === 'wangpoG' && W.pals) { const a = W.pals.find(q => q.k === 'dabao'); if (a && !a.ok) { a.ok = true; S.en.forEach(q => { if (q.dabao) q.gone = true; }); rumor(['王婆一死，大宝身上的法也解了，他又回来帮你了'], false); } }
     S.chests.push({ x: e.x, y: e.y, big: true, t: 0 }); S.chests.push({ x: e.x + 18, y: e.y + 6, big: false, t: 0 });
     banner(`${B.name} 伏诛！`, 2.6); S.shake = 0.4; sfx('boss');
     for (let i = 0; i < 6; i++) S.orbs.push({ x: e.x + rnd(-12, 12), y: e.y + rnd(-8, 8), v: 5, du: true });
@@ -294,10 +423,20 @@ function dGuardTick() {
       W.awFled = true; m.flee = 7; sfx('scream'); window.sayKey && window.sayKey('cap2', 1);
       S.texts.push({ x: m.x, y: m.y - 44, v: '鬼……鬼啊！', t: 2, c: '#ffffff', big: true }); continue;
     }
+    if (m.pos > 0) {   // 被马贼附身：朝你开枪；走过去一巴掌拍醒
+      m.pos -= DT; const P = S.p, dp = Math.hypot(P.x - m.x, P.y - m.y);
+      if (!P.down && dp < 24) { m.pos = 0; S.texts.push({ x: m.x, y: m.y - 44, v: '醒醒！', t: 1.2, c: '#ffe070', big: true }); sfx('hit'); for (let i = 0; i < 12; i++) S.parts.push({ x: m.x, y: m.y - 16, vx: rnd(-50, 50), vy: rnd(-90, -20), t: 0.6, c: '#7af0d0' }); continue; }
+      if (m.pos <= 0) { S.texts.push({ x: m.x, y: m.y - 40, v: '我……刚才怎么了？', t: 1.6, c: '#ffffff' }); continue; }
+      m.cd -= DT; if (m.cd > 0 || P.down || dp > 140) continue;
+      m.cd = 1.4; m.face = P.x < m.x ? -1 : 1; sfx('gun');
+      m.tr = { x1: m.x + m.face * 12, y1: m.y - 14, x2: P.x, y2: P.y - 10 }; m.trT = 0.07;
+      if (P.inv <= 0) { S.hitFrom = m; hurtPlayer(Math.round((5 + 0.4 * W.wave) * DIFF[S.diff].dmg)); S.hitFrom = null; }
+      continue;
+    }
     m.cd -= DT; if (m.cd > 0) continue;
     const R = m.k === 'simu' ? 150 : 135;
     let tg = null, bd = R * R;
-    for (const e of S.en) { if (e.dead || e.rise > 0 || e.god || e.batT > 0) continue; const d = (e.x - m.x) ** 2 + (e.y - m.y) ** 2; if (d < bd) { bd = d; tg = e; } }
+    for (const e of S.en) { if (e.dead || e.rise > 0 || e.god || e.batT > 0 || e.dabao) continue; const d = (e.x - m.x) ** 2 + (e.y - m.y) ** 2; if (d < bd) { bd = d; tg = e; } }
     if (!tg) { m.cd = 0.2; continue; }
     m.face = tg.x < m.x ? -1 : 1;
     const base = (7 + 1.3 * W.wave) * mul;
@@ -357,7 +496,12 @@ function updateEvents() {
   }
   for (const e of S.en) if (e.boss && !e.dead) dBossTick(e);
   dWispTick();
-  dFieldTick(); dGuardTick(); dBellTick();
+  dFieldTick(); dGuardTick(); dBellTick(); dPalTick();
+  if (W.charmT > 0) W.charmT -= DT;
+  for (const e of S.en) if (e.thug && !e.dead && !e.rise && !P.down) {   // 邪术打手：突然冲过来
+    e.dashCd = (e.dashCd ?? rnd(1, 3)) - DT; const dx = P.x - e.x, dy = P.y - e.y, dd = Math.hypot(dx, dy) || 1;
+    if (e.dashCd <= 0 && dd < 110) { e.dashCd = rnd(2.4, 3.6); e.kx += dx / dd * 260; e.ky += dy / dd * 260; S.texts.push({ x: e.x, y: e.y - 40, v: '喝！', t: 0.6, c: '#c08aff' }); sfx('whoosh'); }
+  }
   for (const o of S.orbs) if ((o.age || 0) >= 2 && !P.down) o.pull = true;   // 阴德散在各路，过两秒自己飞回来
   W.coreFx = Math.max(0, (W.coreFx || 0) - DT); W.goldT = Math.max(0, (W.goldT || 0) - DT);
   if (W.wave >= D_WAVES && W.bossDead && !W.q.length && !S.en.some(e => !e.dead && e.dw)) dWin();
@@ -387,7 +531,7 @@ function newGame(diff = 'normal') {
     w: HERO === 'monk' ? { zhang: 1, jia: 1 } : HERO === 'priest' ? { cross: 1 } : { sword: 1 }, timers: {}, swordAng: 0, pr: HERO === 'priest' ? prNew() : null,
     objs: (MAP.objs || []).map(o => ({ ...o, burnt: false, state: 'ok', fireT: 0, smoke: 0, tk: 0 })), ult: null, ultCd: 0, sweeps: [], taijis: [], palms: [], afterimgs: [], ev: {}, allies: [], decor: [], batFx: [], rumorQ: [], guas: [], shield: 0, shieldT: null, chests: [], lvQueue: 0, eliteT: 1e9, eliteN: 0, vampOut: true, wgCd: 8, eshots: [], npcs: [], npcT: 1e9, loot: [], aw: null, awDone: true, yamT: 0, gongVo: 0, dawnT: null, yz: [], yzT: 1e9, fish: [], fishT: 1e9, cam: { x: 0, y: 0 },
     food: [], foodT: 25, parts: [], combo: 0, comboT: 0, stop: 0, flash: 0, en: [], shots: [], areas: [], orbs: [], fx: [], texts: [], spawnAcc: 0, nextId: 1, shake: 0,
-    dw: { wisps: [], wave: 0, cleared: 0, nextT: 14, q: [], alive: {}, core: 100, gold: 40, deaths: 0, buy: { core: 0, guard: 0, gun: 0, bell: 0, lv: 0, heal: 0 }, men: [], field: {}, spawnEnd: 0, boss: null },
+    dw: { wisps: [], pals: null, charmT: 0, wave: 0, cleared: 0, nextT: 14, q: [], alive: {}, core: 100, gold: 40, deaths: 0, buy: { core: 0, guard: 0, gun: 0, bell: 0, lv: 0, heal: 0 }, men: [], field: {}, spawnEnd: 0, boss: null },
   };
   for (const k in D_FIELD) S.dw.field[k] = { e: null, back: 1, kills: 0 };
   dGuardsInit(); wallsInit();
@@ -481,12 +625,19 @@ function drawEventSprites(list) {
     px(x - 2, y - (f ? 4 : 3), 4, 6, '#1a0e1e'); px(x - 1, y - 2, 2, 4, '#d8a8ff'); px(x - 1, y - 1, 2, 2, '#ffffff');
   } });
   for (const m of W.men) list.push({ y: m.y, f: () => {
-    const key = m.k === 'cap' ? (m.flee > 0 ? 'capN' : 'cap') : m.k, im = m.face < 0 ? flipped(key) : IMG[key];
+    const key = (m.k === 'cap' ? (m.flee > 0 ? 'capN' : 'cap') : m.k) + (m.pos > 0 ? 'P' : ''), im = m.face < 0 ? flipped(key) : IMG[key];
     if (!im || !im.width) return;
     g.fillStyle = 'rgba(14,8,24,.45)'; g.beginPath(); g.ellipse(m.x, m.y, 7, 2, 0, 0, 7); g.fill();
     g.drawImage(im, Math.round(m.x - im.width / 2), Math.round(m.y - im.height + 2 - Math.abs(Math.sin((m.walk || 0) * 10)) * 1.2));
     if (m.trT > 0 && m.tr) { g.strokeStyle = '#fff6c0'; g.lineWidth = 1; g.beginPath(); g.moveTo(m.tr.x1, m.tr.y1); g.lineTo(m.tr.x2, m.tr.y2); g.stroke(); px(m.tr.x1 - 1, m.tr.y1 - 1, 3, 3, '#ffd040'); }
   } });
+  if (W.pals) for (const q of W.pals) if (q.ok) list.push({ y: q.y + 0.4, f: () => {
+    const im = (q.face || 1) < 0 ? flipped(q.k) : IMG[q.k]; if (!im || !im.width) return;
+    g.globalAlpha = 0.85; g.drawImage(im, Math.round(q.x - im.width / 2), Math.round(q.y - im.height - 4)); g.globalAlpha = 1;
+    if (q.hitT > 0) { q.hitT -= DT; g.strokeStyle = '#bff0ff'; g.lineWidth = 1; g.beginPath(); g.moveTo(q.x, q.y - 14); g.lineTo(q.tx, q.ty); g.stroke(); }
+  } });
+  for (const e of S.en) if (e.pearlT > 0 && !e.dead) list.push({ y: e.y + 0.8, f: () => { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.25 + 0.1 * Math.sin(S.t * 12); g.fillStyle = '#ffd860'; g.beginPath(); g.ellipse(e.x, e.y - 30, 30, 40, 0, 0, 7); g.fill(); g.restore(); } });
+  for (const e of S.en) if (e.ice > S.t && !e.dead) list.push({ y: e.y + 0.8, f: () => { g.globalAlpha = 0.35; g.fillStyle = '#c8f0ff'; g.fillRect(Math.round(e.x - 8), Math.round(e.y - 34), 16, 34); g.globalAlpha = 1; } });
   if (MAP.watch) list.push({ y: MAP.watch[1], f: () => { const im = IMG.watch; if (im && im.width) g.drawImage(im, Math.round(MAP.watch[0] - im.width / 2), Math.round(MAP.watch[1] - im.height + 2)); } });
   if (MAP.shop) list.push({ y: MAP.shop[1], f: () => {
     const im = IMG.villager, [x, y] = MAP.shop; if (im && im.width) g.drawImage(im, Math.round(x - im.width / 2), Math.round(y - im.height + 2));
@@ -529,7 +680,7 @@ function hud() {
   $('lvl').textContent = `修为 ${cn(S.lv)}重`;
   $('shichen').textContent = W.wave ? `第${W.wave}/${D_WAVES}波` : '准备';
   const left = Math.max(0, W.nextT - S.t);
-  $('till').textContent = P.down ? `调息中 ${Math.ceil(P.downT)} 秒` : W.wave >= D_WAVES ? (W.over ? '' : '最后一战！') : `下一波 ${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')}`;
+  $('till').textContent = W.charmT > 0 ? `方向颠倒 ${W.charmT.toFixed(1)} 秒` : P.down ? `调息中 ${Math.ceil(P.downT)} 秒` : W.wave >= D_WAVES ? (W.over ? '' : '最后一战！') : `下一波 ${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')}`;
   $('coreb').firstElementChild.style.transform = `scaleX(${W.core / 100})`;
   $('coreb').className = 'bar' + (W.core <= 25 ? ' low' : W.core <= 50 ? ' mid' : '');
   $('coreV').textContent = `龙脉 ${Math.ceil(W.core)}`;

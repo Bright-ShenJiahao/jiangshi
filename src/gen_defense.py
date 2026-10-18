@@ -21,6 +21,15 @@ import qrcode
 _q = qrcode.QRCode(border=2, box_size=1, error_correction=qrcode.constants.ERROR_CORRECT_M)
 _q.add_data(URL); _q.make(fit=True)
 sprites['qr'] = _q.make_image(fill_color='black', back_color='white').convert('RGBA')
+G = ns['g']
+exec(open('defense_sprites.py', encoding='utf-8').read(), G)
+for k, f in (('wangpo', lambda: G['wangpo']()), ('wangpoG', lambda: G['wangpo_ghost']()), ('tanG', lambda: G['tan_ghost']()), ('banditA', lambda: G['bandit']()), ('banditB', lambda: G['bandit'](True)),
+             ('dabao', lambda: G['dabao']()), ('xiaobao', lambda: G['xiaobao']()), ('oilG', lambda: G['oil_ghost']()), ('iceZ', lambda: G['ice_corpse']()), ('iceW', lambda: G['ice_corpse'](True)),
+             ('thugA', lambda: G['thug']()), ('thugB', lambda: G['thug'](True)), ('jiuju', lambda: G['jiuju']()), ('jiujuD', lambda: G['jiuju'](True)), ('feitou', lambda: G['feitou']()),
+             ('xiaozun', lambda: G['xiaozun']()), ('moth', lambda: G['moth']()), ('xuemo', lambda: G['xuemo']()), ('cixi', lambda: G['cixi']()), ('qingbing', lambda: G['qingbing']()),
+             ('xuankui', lambda: G['xuankui']()), ('yangfy', lambda: G['yangfy']()), ('xieshen', lambda: G['xieshen']())):
+    sprites[k] = f().img()
+sprites['capP'] = G['possessed'](sprites['cap']); sprites['soldP'] = G['possessed'](sprites['sold'])
 bg, objsprites, data = map_defense.build()
 sprites.update(objsprites)
 
@@ -98,6 +107,9 @@ h1.lmT { font-size: clamp(30px, 8.6vw, 54px); line-height: 1.15; letter-spacing:
 
 # ---------------- 逻辑补丁（原游戏的函数里插几处钩子） ----------------
 rep('  if (S.en.length < 200) {', '  if (false) {   // 防守模式：不在玩家身边刷怪，改由 updateEvents 按波次从鬼门关刷')
+rep('  if (e.jsT > S.t) dmg *= 1.3;', '  if (e.jsT > S.t) dmg *= 1.3;\n  if (e.dr != null || e.ice) dmg *= dDR(e, tag);')
+rep("if (kb) { const dx = e.x - fromX, dy = e.y - fromY, l = Math.hypot(dx, dy) || 1, k = e.type === 'king'", "if (kb) { const dx = e.x - fromX, dy = e.y - fromY, l = Math.hypot(dx, dy) || 1, k = e.kbk != null ? e.kbk : e.type === 'king'")
+rep('  const ml = Math.hypot(mx, my);', '  if (dCharm()) { mx = -mx; my = -my; }\n  const ml = Math.hypot(mx, my);')
 rep('    if (lost) { tx = e.wx; ty = e.wy; }', '    if (lost) { tx = e.wx; ty = e.wy; }\n    { const dT = dTarget(e); if (dT) { tx = dT[0]; ty = dT[1]; } if (e.gone) continue; }')
 rep('    if (e.onDie) e.onDie(e);', '    dKill(e); if (e.onDie) e.onDie(e);')
 rep('const T = ETYPE[type], t = S.t,', 'const T = ETYPE[type], t = dEffT(),')
