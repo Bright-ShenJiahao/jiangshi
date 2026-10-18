@@ -2156,8 +2156,8 @@ const WEAPONS_G = {
 const TAGS_G = { ling: ['伤害', '近身'], jing: ['伤害', '范围'], ding: ['控制', '穿透'], qi: ['被动'], yu: ['伤害', '控制'], gu: ['伤害', '持续'], fan: ['控制', '防御'], qian: ['伤害', '持续'] };
 const ULTS_G = {
   zk: { name: '钟馗附体', qn: '钟馗吞鬼', seal: '馗', desc: ['<b>镇鬼</b>。永久化身钟馗，尸傀变成麾下小鬼（伤害 +30%）。Q：<b>钟馗吞鬼</b>（30 秒）——把身边小怪吸来一口吞掉，按数量回阳气<br><span class="syn">加持：八卦镜化作八方神光；被定尸符定住的怪受伤翻倍，钟馗自动出剑斩；两件伤害 +30%。镇鬼铃：摄魂铃打鬼魂伤害翻倍，打中的怪现形</span>', '吞得更远，回阳气更多', '吞得最远；精英也会被一口吞掉'] },
-  wy: { name: '万业尸仙', qn: '万尸献祭', seal: '尸', desc: ['<b>召唤</b>。灵物不再消散（会被打死），最多 6 + 驭灵术重数只；起尸时 60% 化作灵物。Q：<b>万尸献祭</b>（40 秒）——献祭全部尸傀和灵物，按尸力召夜叉 / 旱魃 / 犼助战 15 秒<br><span class="syn">加持：驭灵术、引魂幡伤害 +30%。招灵铃：铜铃齐鸣时召出一只灵物</span>', '妖魔持续 17 秒，伤害提升', '妖魔持续 20 秒，伤害再提升'] },
-  hb: { name: '生人回避', qn: '铃响尸动', seal: '避', desc: ['<b>赶尸</b>。尸傀上限 +3，攻击、攻速、血量 +30%，起尸几率 +20%；驭灵术召唤时 60% 化作尸傀；尸傀打死贴符的怪必定起尸；喜神不灭：尸傀死后 5 秒复活。Q：<b>铃响尸动</b>（3 秒）——切换 守（尸傀围成一圈护你，大家走得慢些）/ 攻（尸傀狂暴冲向四方）<br><span class="syn">加持：纸钱、起尸术、苗疆尸蛊伤害 +30%。赶尸铃：铜铃每响一下尸傀攻速提升，齐鸣时尸傀一起跳起砸地</span>', '尸傀攻击、攻速、血量 +40%，4 秒复活', '尸傀攻击、攻速、血量 +50%，3 秒复活'] },
+  wy: { name: '万业尸仙', qn: '万尸献祭', seal: '尸', desc: ['<b>召唤</b>。灵物不再消散（会被打死，但多挨一下），最多 6 + 驭灵术重数只；起尸时 60% 化作灵物。Q：<b>万尸献祭</b>（40 秒）——献祭全部尸傀和灵物，按尸力召夜叉 / 旱魃 / 犼助战 15 秒<br><span class="syn">加持：驭灵术、引魂幡伤害 +30%。招灵铃：铜铃齐鸣时召出一只灵物</span>', '妖魔持续 17 秒，伤害提升', '妖魔持续 20 秒，伤害再提升'] },
+  hb: { name: '生人回避', qn: '铃响尸动', seal: '避', desc: ['<b>赶尸</b>。尸傀上限 +3，攻击、攻速、血量 +30%，起尸几率 +20%；驭灵术召唤时 60% 化作尸傀；尸傀打死贴符的怪必定起尸；喜神不灭：尸傀死后 5 秒复活。Q：<b>铃响尸动</b>（3 秒）——切换 守（尸傀围成一圈把怪弹开，你受到伤害 -30%，大家走得慢些）/ 攻（尸傀狂暴冲向四方）<br><span class="syn">加持：纸钱、起尸术、苗疆尸蛊伤害 +30%。赶尸铃：铜铃每响一下尸傀攻速提升，齐鸣时尸傀一起跳起砸地</span>', '尸傀攻击、攻速、血量 +40%，4 秒复活', '尸傀攻击、攻速、血量 +50%，3 秒复活'] },
 };
 const ULTSYN_G = {}, ULTSYN2_G = {};
 const G_LINK = { zk: ['jing', 'ding'], wy: ['yu', 'fan'], hb: ['qian', 'qi', 'gu'] };
@@ -2180,7 +2180,7 @@ const gSpCap = () => 6 + (S.w.yu || 0);
 const gSpKind = q => (q <= 2 ? 'toad' : q <= 4 ? 'scorp' : 'snake');
 function gAddSpirit(k, x, y, life) {   // 加一只灵物（超出上限就不加）
   const G = S.gx; if (G.spirits.length >= gSpCap()) return null;
-  const sp = { k, x, y, life, t: 0, cd: 0.5, face: 1, ph: Math.random() * 6, tgt: null, st: 'idle', hits: G_SPIRIT[k].hits, hurtCd: 0, ox: rnd(-12, 12), oy: rnd(-8, 8) };
+  const sp = { k, x, y, life, t: 0, cd: 0.5, face: 1, ph: Math.random() * 6, tgt: null, st: 'idle', hits: G_SPIRIT[k].hits + (gUlt('wy') ? 1 : 0), hurtCd: 0, ox: rnd(-12, 12), oy: rnd(-8, 8) };
   G.spirits.push(sp); for (let j = 0; j < 8; j++) S.parts.push({ x, y: y - 6, vx: rnd(-30, 30), vy: rnd(-50, -10), t: rnd(0.3, 0.6), c: '#9af0b0' });
   return sp;
 }
@@ -2244,7 +2244,7 @@ function ganPick(k) {   // 选定大招时：钟馗附体当场变身
     G.zk = true; banner('钟馗附体！', 2.2); sfx('gong'); S.flash = Math.max(S.flash, 0.12); S.shake = Math.max(S.shake, 0.3);
     S.texts.push({ x: P.x, y: P.y - 60, v: '天师钟馗在此！', t: 1.8, c: '#ff8a7a', big: true });
     for (let i = 0; i < 30; i++) { const a = Math.random() * 6.283, sp = rnd(40, 110); S.parts.push({ x: P.x, y: P.y - 20, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.6 - 30, t: rnd(0.5, 1), c: Math.random() < 0.5 ? '#d22c28' : '#ffd860' }); }
-  } else if (k === 'wy') { banner('万业尸仙', 2); sfx('wisp'); S.texts.push({ x: P.x, y: P.y - 50, v: '灵物不再消散', t: 1.5, c: '#9af0b0', big: true }); for (const sp of G.spirits) sp.life = 1e9; }
+  } else if (k === 'wy') { banner('万业尸仙', 2); sfx('wisp'); S.texts.push({ x: P.x, y: P.y - 50, v: '灵物不再消散', t: 1.5, c: '#9af0b0', big: true }); for (const sp of G.spirits) { sp.life = 1e9; sp.hits++; } }
   else { G.mode = 'atk'; banner('生人回避', 2); sfx('bell'); S.texts.push({ x: P.x, y: P.y - 50, v: '按 Q 切换 守 / 攻', t: 2, c: '#ffe9a0', big: true }); }
   for (const p of G.pets) { p.max = gPetMax(p.q); p.hp = p.max; }
 }
@@ -2522,6 +2522,10 @@ function updateGanPets() {
     const sp = (mode === 'atk' ? 110 : 85) * hopV * (mode === 'def' ? 0.8 : 1) * (l > 120 ? 1.8 : 1);
     if (l > (tgt ? tgt.r + 6 : 4)) { p.x += dx / l * Math.min(l, sp * DT); p.y += dy / l * Math.min(l, sp * DT); if (Math.abs(dx) > 1) p.face = Math.sign(dx); }
     if (tgt && l < tgt.r + 10 && p.cd <= 0) { p.cd = (mode === 'atk' ? 0.45 : 0.7) / gHbK() * (G.bellBuffT > S.t ? 0.7 : 1); G.byPet = true; hurt(tgt, (6 + p.q * 2.2) * dmgK, 25, p.x, p.y); G.byPet = false; }
+    if (mode === 'def' && !(p.rise > 0)) for (const e of S.en) {   // 守：尸傀把贴上来的怪弹开
+      if (!gTarget(e) || mBig(e) || (e.hitCd.gp || 0) > S.t || (e.x - p.x) ** 2 + (e.y - p.y) ** 2 > (e.r + 9) ** 2) continue;
+      e.hitCd.gp = S.t + 0.4; const dx = e.x - P.x, dy = e.y - P.y, l = Math.hypot(dx, dy) || 1; e.kx += dx / l * 70; e.ky += dy / l * 70;
+    }
     // 挨打
     if (p.hurtCd <= 0) {
       let dmg = 0;
@@ -3132,6 +3136,7 @@ function hurtPlayer(dmg) {
   if (S.shield > 0) { const cap = shieldCap(); shieldBurst(); dmg -= cap; if (dmg <= 0) return false; }
   if (S.hero === 'monk' && S.w.jia) dmg = Math.max(1, Math.round(dmg * (1 - [0, 0.15, 0.2, 0.2, 0.25, 0.25][S.w.jia])));
   if (S.jx) { dmg = Math.max(1, Math.round(dmg * jDR())); jianHurt(); }
+  if (S.gx && gUlt('hb') && S.gx.mode === 'def') dmg = Math.max(1, Math.round(dmg * 0.7));   // 生人回避 · 守：受到伤害 -30%
   const P = S.p; P.hp -= dmg; P.inv = DIFF[S.diff].inv; S.shake = Math.max(S.shake, 0.15); sfx('hurt');
   S.texts.push({ x: P.x, y: P.y - 30, v: '-' + dmg, t: 0.7, c: '#ff6a5a' });
   if (S.hero === 'monk' && S.w.jia) for (const e of S.en) if (!e.dead && (e.x - P.x) ** 2 + (e.y - P.y) ** 2 < 26 * 26) mBurn(e);   // 贴身打一休的怪被袈裟点燃
