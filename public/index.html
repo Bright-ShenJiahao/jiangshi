@@ -1063,6 +1063,7 @@ function prDrain(v, free) {   // 黑暗形态吸血：每秒最多 3 点（猩�
 const prInBlood = e => e.bloodT > S.t;
 const PR_RITE = { cross: 1, bible: 1, water: 1, aegis: 1, stake: 1, stakeB: 1, pistol: 1, pulse: 1, cage: 1 };
 const prRite = () => prDark() && S.pr.mist <= 0 && S.p.hp > S.p.max / 2;
+const PR_RNG = 0.85;   // 2026-10-20 神父技能距离 -15%
 const PR_BAL = 0.736;   // 2026-10-19 再削 8%（原 0.80）   // 平衡：神父法器总伤害系数（模拟测试里比一休、道长强太多，整体下调）
 function prHit(e, dmg, kb, fx, fy, src, tag) {   // 神父法器统一走这里：记下伤害来源，处理吸血和圣印
   if (e.dead) return 0;
@@ -1200,19 +1201,19 @@ function prBlock(dmg) {   // 天使之护 / 骷髅盾牌：挡正前方来的伤
   }
   if (lv >= 5) {
     R.perfT = S.t + 0.6;
-    const D = Math.min(90, dmg * 3), L = 150, ux = Math.cos(dir), uy = Math.sin(dir) * 0.75;
+    const D = Math.min(90, dmg * 3), L = 150 * PR_RNG, ux = Math.cos(dir), uy = Math.sin(dir) * 0.75;
     R.lines.push({ x: P.x, y: P.y - 12, ux, uy, L, w: 10, t: 0, kind: prDark() ? 'blood' : 'holy' });
     for (const e of S.en) { if (e.dead) continue; const rx = e.x - P.x, ry = e.y - P.y, al = rx * ux + ry * uy; if (al < 0 || al > L || Math.abs(rx * uy - ry * ux) > 10 + e.r) continue; prHit(e, D, 60, P.x, P.y, 'aegis', 'light'); if (prLight()) prMark(e, 3); }
   }
   return true;
 }
 function prShoot(lv, power) {   // 银手枪 / 猎魂手枪：射出推进弹
-  const P = S.p, R = S.pr, tg = nearest(1, 184)[0];
+  const P = S.p, R = S.pr, tg = nearest(1, 184 * PR_RNG)[0];
   const a0 = tg ? Math.atan2(tg.y - P.y, tg.x - P.x) : (P.dir ?? (P.face > 0 ? 0 : Math.PI));
   const n = lv >= 5 ? 3 : lv >= 3 ? 2 : 1, sp = n === 3 ? 0.35 : 0.28;
   for (let i = 0; i < n; i++) {
     const a = a0 + (i - (n - 1) / 2) * sp;
-    R.bullets.push({ x: P.x + Math.cos(a) * 8, y: P.y + Math.sin(a) * 6, vx: Math.cos(a) * 240, vy: Math.sin(a) * 240, d: 0, max: lv >= 4 ? 124 : 101, lv, power, drag: new Set(), dark: prDark(), tr: [] });
+    R.bullets.push({ x: P.x + Math.cos(a) * 8, y: P.y + Math.sin(a) * 6, vx: Math.cos(a) * 240, vy: Math.sin(a) * 240, d: 0, max: (lv >= 4 ? 124 : 101) * PR_RNG, lv, power, drag: new Set(), dark: prDark(), tr: [] });
   }
   sfx('coin');
 }
@@ -1229,7 +1230,7 @@ function prBoom(b) {
     const used = new Set(hitM.map(e => e.id)); let n = 0;
     for (const e of hitM) {
       if (n >= 3) break;
-      const n2 = S.en.filter(q => !q.dead && !used.has(q.id) && q.mark > 0 && S.t < (q.markT || 0) && dist2(q, e) < 130 * 130).sort((p, q) => dist2(p, e) - dist2(q, e))[0];
+      const n2 = S.en.filter(q => !q.dead && !used.has(q.id) && q.mark > 0 && S.t < (q.markT || 0) && dist2(q, e) < (130 * PR_RNG) ** 2).sort((p, q) => dist2(p, e) - dist2(q, e))[0];
       if (!n2) continue; used.add(n2.id); n++;
       R.fx.push({ k: 'chainL', x1: e.x, y1: e.y - 10, x2: n2.x, y2: n2.y - 10, t: 0 });
       prHit(n2, D * 0.6, 20, e.x, e.y, 'pistol');
@@ -1254,7 +1255,7 @@ function updatePriest() {
   // 圣经 / 黑暗圣经
   if (W.bible && tick('bible', 1.6)) {
     const lv = W.bible, n = lv >= 5 ? 9 : lv >= 2 ? 5 : 3, dmg = lv >= 3 ? 22 : 16, hops = lv >= 4 ? 2 : 1;
-    let tg = nearest(n, 202);
+    let tg = nearest(n, 202 * PR_RNG);
     if (light) tg = tg.sort((a, b) => ((b.mark || 0) % 3 > 0) - ((a.mark || 0) % 3 > 0));
     sfx('throw'); R.fx.push({ k: 'book', t: 0 });
     for (let i = 0; i < n; i++) {
@@ -1265,7 +1266,7 @@ function updatePriest() {
   for (const p of R.pages) {
     p.life -= DT; p.ph += DT * 14;
     if (p.orb > 0) { p.orb -= DT; const a = p.a0 + (0.6 - p.orb) * 9, r = 30; p.x = P.x + Math.cos(a) * r; p.y = P.y - 12 + Math.sin(a) * r * 0.75; continue; }
-    if (p.tgt && (p.tgt.dead || p.tgt.gone)) p.tgt = S.en.filter(e => !e.dead && !p.hit.has(e.id) && dist2(e, p) < 147 * 147).sort((a, b) => dist2(a, p) - dist2(b, p))[0];
+    if (p.tgt && (p.tgt.dead || p.tgt.gone)) p.tgt = S.en.filter(e => !e.dead && !p.hit.has(e.id) && dist2(e, p) < (147 * PR_RNG) ** 2).sort((a, b) => dist2(a, p) - dist2(b, p))[0];
     if (p.tgt) {
       const dx = p.tgt.x - p.x, dy = p.tgt.y - 12 - p.y, l = Math.hypot(dx, dy) || 1;
       p.vx += (dx / l * 260 - p.vx) * Math.min(1, DT * 7); p.vy += (dy / l * 260 - p.vy) * Math.min(1, DT * 7);
@@ -1273,7 +1274,7 @@ function updatePriest() {
         const e = p.tgt; p.hit.add(e.id); if (dark) e.curseT = S.t + 4;
         prHit(e, p.dmg, 12, p.x, p.y, 'bible');
         if (--p.hops <= 0) { p.life = 0; continue; }
-        p.tgt = S.en.filter(q => !q.dead && !p.hit.has(q.id) && dist2(q, p) < 110 * 110).sort((a, b) => dist2(a, p) - dist2(b, p))[0];
+        p.tgt = S.en.filter(q => !q.dead && !p.hit.has(q.id) && dist2(q, p) < (110 * PR_RNG) ** 2).sort((a, b) => dist2(a, p) - dist2(b, p))[0];
         if (!p.tgt) p.life = Math.min(p.life, 0.3);
       }
     } else { p.vx *= 1 - DT * 2; p.vy *= 1 - DT * 2; p.life = Math.min(p.life, 0.6); }
@@ -1285,7 +1286,7 @@ function updatePriest() {
   if (W.water && tick('water', 3)) {
     const lv = W.water, n = lv >= 3 ? 2 : 1, used = [];
     for (let i = 0; i < n; i++) {
-      const t = mDense(184, used); const x = t ? t.x : P.x + P.face * 50 + rnd(-20, 20), y = t ? t.y : P.y + rnd(-20, 20);
+      const t = mDense(184 * PR_RNG, used); const x = t ? t.x : P.x + P.face * 50 + rnd(-20, 20), y = t ? t.y : P.y + rnd(-20, 20);
       used.push({ x, y }); R.bottles.push({ x0: P.x, y0: P.y - 16, x, y, t: -i * 0.15, lv });
     }
     sfx('throw');
@@ -1323,7 +1324,7 @@ function updatePriest() {
   // 银木桩 / 人骨钉
   if (W.stake && tick('stake', 3)) {
     const lv = W.stake, n = lv >= 3 ? 2 : 1;
-    const c = S.en.filter(e => !e.dead && e.type !== 'hand' && !e.audience && !(e.batT > 0) && !(e.god === 'rl') && dist2(e, P) < 212 * 212).sort((a, b) => b.hp - a.hp).slice(0, n);
+    const c = S.en.filter(e => !e.dead && e.type !== 'hand' && !e.audience && !(e.batT > 0) && !(e.god === 'rl') && dist2(e, P) < (212 * PR_RNG) ** 2).sort((a, b) => b.hp - a.hp).slice(0, n);
     for (const e of c) R.stakes.push({ x: P.x, y: P.y - 18, tgt: e, lv, life: 1.2 });
     if (c.length) sfx('throw');
   }
@@ -1378,7 +1379,7 @@ function updatePriest() {
   // 禁锢法咒 / 血色牢笼
   if (W.cage && tick('cage', 6)) {
     const lv = W.cage, n = lv >= 2 ? 3 : 2;
-    const c = S.en.filter(e => !e.dead && !mBig(e) && e.type !== 'hand' && !e.audience && !(e.batT > 0) && !(e.cageT > S.t) && (lv >= 4 || !e.elite) && dist2(e, P) < 156 * 156);
+    const c = S.en.filter(e => !e.dead && !mBig(e) && e.type !== 'hand' && !e.audience && !(e.batT > 0) && !(e.cageT > S.t) && (lv >= 4 || !e.elite) && dist2(e, P) < (156 * PR_RNG) ** 2);
     c.sort(() => Math.random() - 0.5);
     for (const e of c.slice(0, n)) prCage(e, 3);
     if (c.length) sfx('suck');
@@ -1482,7 +1483,7 @@ function updatePriest() {
   R.lines = R.lines.filter(l => l.t < 0.3);
 }
 function prPulse(lv, extra) {
-  const P = S.p, R = S.pr, dark = prDark(), Rr = (lv >= 2 ? 74 : 60) + extra;
+  const P = S.p, R = S.pr, dark = prDark(), Rr = ((lv >= 2 ? 74 : 60) + extra) * PR_RNG;
   R.fx.push({ k: 'pulse', x: P.x, y: P.y, R: Rr, t: 0, dark }); sfx('pulse');
   for (const e of S.en) {
     if (e.dead || e.type === 'hand' || e.audience || !inEll(e, P.x, P.y, Rr + e.r)) continue;
@@ -1677,7 +1678,7 @@ const WEAPONS_J = {
   zhen: { name: '九宫八卦剑阵', seal: '阵', w: 1, desc: ['在脚下召唤剑阵，留在原地 6 秒：八个方位各插一剑，怪踏进哪一格，那一剑就刺出去；中宫剑每 1.5 秒震开四周。同时只有一个剑阵，收阵后 12 秒再召', '剑阵更大', '剑阵持续 7 秒', '收阵后 9 秒再召', '收阵时八剑齐飞，射向八方'] },
   shen: { name: '如有神助', seal: '神', w: 1, desc: ['每 20 秒随机一位神明附身 5 秒：二郎神（伤害 +25%，哮天犬助战）、雷公（命中引小雷）、张天师（受伤 -30%，出手快 25%，清除减速）、李冰（移速 +20%，命中减速，身边涌浪推开怪）', '每 18 秒一次，附身 6 秒', '每 16 秒一次', '每 14 秒一次，附身 7 秒', '每 12 秒一次，附身 8 秒；两位神明同时附身'] },
   chun: { name: '三清纯阳功', seal: '阳', w: 1, desc: ['身周一圈纯阳光环：灼烧贴身的怪（鬼魂双倍），每秒回 0.3 点阳气', '光环更大，每秒回 0.4 点', '灼烧伤害提升，每秒回 0.5 点', '光环更大，每秒回 0.6 点', '每秒回 0.8 点；光环里烧死的怪再回 1 点（每秒最多 2 点）'] },
-  ci: { name: '刺剑式', seal: '刺', w: 1, desc: ['朝移动方向刺出巨剑，近距离穿刺。走着出剑快，站着出剑慢（朝最近的怪）。刺、劈命中少量吸血，偶尔打断怪的进攻', '伤害提升', '一次连刺两剑', '剑更长，剑尖带出剑气', '三连刺，最后一刺伤害翻倍'] },
+  ci: { name: '刺剑式', seal: '刺', w: 1, desc: ['朝移动方向刺出巨剑，近距离穿刺。走着出剑快，站着出剑慢（朝最近的怪）。刺、劈命中少量吸血，偶尔打断怪的进攻。任何剑招打中起跳的跳尸，都会把它斩落在原地', '伤害提升', '一次连刺两剑', '剑更长，剑尖带出剑气', '三连刺，最后一刺伤害翻倍'] },
   pi: { name: '劈剑式', seal: '劈', w: 1, desc: ['朝移动方向的两侧各劈一剑，把怪远远击退。走着出剑快，站着出剑慢；命中少量吸血，偶尔打断怪的进攻', '劈得更宽', '伤害提升', '劈完留下剑痕，片刻后再打一次', '前后左右四面齐劈'] },
   tianluo: { name: '天罗步', seal: '步', w: 1, desc: ['一直走且不受伤，每秒移速 +2%（最多 +8%），叠满时 6% 闪避；受伤清零。走动时身后留下剑招残影，片刻后连出两剑', '移速最多 +12%，闪避最多 8%', '残影更频繁，连出三剑；闪避最多 10%', '移速最多 +16%，残影伤害提升；闪避最多 12%', '一步杀十人：移速最多 +20%，残影连出四剑；闪避最多 15%；背上的剑落到脚下，御剑飞行'] },
 };
@@ -1691,7 +1692,7 @@ const ULTSYN_J = {}, ULTSYN2_J = {};
 const J_LINK = { qi: ['fei', 'liumai', 'zhen'], fa: ['shen', 'chun'], dun: ['ci', 'pi', 'tianluo'] };
 const J_SRC = { fei: 'fei', throw: 'fei', liumai: 'liumai', zhen: 'zhen', zhenC: 'zhen', zhenF: 'zhen', chun: 'chun', ci: 'ci', pi: 'pi', piMark: 'pi', ghost: 'tianluo', dog: 'shen', bolt: 'shen', wave: 'shen' };
 const J_MELEE = { ci: 1, pi: 1, piMark: 1, ghost: 1 };
-const J_BAL = 1.0;   // 平衡：剑仙法器总伤害系数（飞剑去掉每圈飞出后恢复为 1.0）
+const J_BAL = 1.05;   // 2026-10-20 剑仙全体伤害 +5%   // 平衡：剑仙法器总伤害系数（飞剑去掉每圈飞出后恢复为 1.0）
 const J_GODS = { er: { n: '二郎神', c: '#ffd860', g: '二' }, lei: { n: '雷公', c: '#c890ff', g: '雷' }, tian: { n: '张天师', c: '#7fe0d0', g: '天' }, li: { n: '李冰', c: '#7ac8ff', g: '冰' } };
 const jOn = () => S && S.hero === 'jian' && S.jx;
 const jUlt = k => S.ult && S.ult.k === k;
@@ -1725,13 +1726,18 @@ function jHit(e, dmg, kb, fx, fy, src, tag) {   // 剑仙法器统一走这里�
   dmg *= J_BAL;
   if (S.ult && J_LINK[S.ult.k] && J_LINK[S.ult.k].includes(w)) dmg *= S.ult.k === 'fa' ? 1.4 : 1.3;
   if (jGod('er')) dmg *= 1 + 0.25 * jFa();
-  const R = S.jx, h0 = e.hp; R.src = src; hurt(e, dmg, kb, fx, fy, tag); R.src = null;
-  if (J_MELEE[src]) {   // 剑宗近身：3% 伤害转成阳气（每秒最多 1 点）；10% 几率打断（定身 0.4 秒，大怪只减速）
+  const R = S.jx, h0 = e.hp;
+  if ((e.type === 'jumper' || e.leaper) && e.leap > 0) {   // 斩落：剑招打中起跳的跳尸，直接摔在原地，不砸地
+    e.leap = 0; e.leapCd = Math.max(e.leapCd, 1.5); mStun(e, 0.8, true);
+    S.texts.push({ x: e.x, y: e.y - 30, v: '斩落', t: 0.7, c: '#bff6ff', big: true });
+  }
+  R.src = src; hurt(e, dmg, kb, fx, fy, tag); R.src = null;
+  if (J_MELEE[src]) {   // 剑宗近身：5% 伤害转成阳气（每秒最多 2 点）；10% 几率打断（定身 0.4 秒，大怪只减速）
     const dealt = Math.max(0, h0 - Math.max(0, e.hp));
     if (S.t - (R.lsT || -9) >= 1) { R.lsT = S.t; R.lsN = 0; }
-    R.lsAcc = (R.lsAcc || 0) + dealt * 0.03;
-    if (R.lsAcc >= 1 && R.lsN < 1 && S.p.hp < S.p.max) { R.lsAcc -= 1; R.lsN++; S.p.hp = Math.min(S.p.max, S.p.hp + 1); if (Math.random() < 0.3) S.texts.push({ x: S.p.x + rnd(-6, 6), y: S.p.y - 30, v: '+1', t: 0.5, c: '#7ef0a0' }); }
-    R.lsAcc = Math.min(R.lsAcc, 1.5);
+    R.lsAcc = (R.lsAcc || 0) + dealt * 0.05;
+    while (R.lsAcc >= 1 && R.lsN < 2 && S.p.hp < S.p.max) { R.lsAcc -= 1; R.lsN++; S.p.hp = Math.min(S.p.max, S.p.hp + 1); if (Math.random() < 0.3) S.texts.push({ x: S.p.x + rnd(-6, 6), y: S.p.y - 30, v: '+1', t: 0.5, c: '#7ef0a0' }); }
+    R.lsAcc = Math.min(R.lsAcc, 2.5);
     if (!e.dead && Math.random() < 0.1 && mStun(e, 0.4, true)) S.texts.push({ x: e.x, y: e.y - 26, v: '断', t: 0.5, c: '#bff6ff' });
   }
   if (e.dead) return h0;
@@ -3785,7 +3791,7 @@ addEventListener('blur', () => { if (S && S.state === 'play') togglePause(); });
 
 // ---------- 分享 / 复活 ----------
 const SITE = 'https://jiangshidaozhang.netlify.app/';
-const BUILD = '2610190310';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
+const BUILD = '2610200059';   // 发布时间：链接带上 ?v=，每次发布都是新网址，微信会重新抓取预览卡片
 const shareUrl = () => ((typeof WEB !== 'undefined' && WEB) ? location.origin + location.pathname : SITE) + '?v=' + BUILD;
 function shichenNow() { let n = '子时'; for (const [a, t] of SHI) if (S.t >= t) n = a; return n; }
 async function copyText(s) {
